@@ -1,0 +1,16 @@
+# Analysis
+networkx==1.10
+
+# Website
+Jinja2==2.8
+MarkupSafe==0.23
+
+# Utilities
+confire==0.2.0
+PyYAML==3.11
+python-dateutil==2.4.2
+six==1.10.0
+decorator==4.0.6
+
+# Pip stuff
+wheel==0.24.0

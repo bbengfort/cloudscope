@@ -1,0 +1,14 @@
+##
+## Example configuration file for CloudScope.
+## Created: Thu Jan 07 16:15:28 2016 -0500
+##
+## Copy this file into one of the following locations, then edit for your
+## specific environment settings, e.g. for production or development.
+##
+## - /etc/cloudscope.yaml
+## - $HOME/.cloudscope.yaml
+## - $(pwd)/conf/cloudscope.yaml
+##
+
+debug:      true
+testing:    false
