@@ -10,5 +10,11 @@
 ## - $(pwd)/conf/cloudscope.yaml
 ##
 
+# Base Settings
 debug:      true
 testing:    false
+
+# Site/Server Settings
+site:
+    # htdocs: path/to/htdocs
+    # url:    url of site for links

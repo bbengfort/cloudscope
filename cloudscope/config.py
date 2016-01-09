@@ -33,8 +33,8 @@ class SiteConfiguration(Configuration):
     Configuration variables to add to the site.
     """
 
+    htdocs     = os.path.join(PROJECT, "deploy")
     url        = "http://localhost:8080"
-
 
 
 ##########################################################################
