@@ -38,6 +38,23 @@ class SiteConfiguration(Configuration):
 
 
 ##########################################################################
+## Logging Configuration
+##########################################################################
+
+class LoggingConfiguration(Configuration):
+    """
+    Very specific logging configuration instructions (does not provide the
+    complete configuration as available in the python logging module). See
+    the `cloudscope.utils.logger` module for more info.
+    """
+
+    level   = "INFO"
+    logfmt  = "[%(asctime)s] %(levelname)s %(message)s"
+    datefmt = "%d/%b/%Y %H:%M:%S"
+    disable_existing_loggers = False
+
+
+##########################################################################
 ## Application Configuration
 ##########################################################################
 
@@ -52,6 +69,7 @@ class CloudScopeConfiguration(Configuration):
     debug     = False
     testing   = True
     site      = SiteConfiguration()
+    logging   = LoggingConfiguration()
 
 ##########################################################################
 ## Generate Site Settings

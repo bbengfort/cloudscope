@@ -14,6 +14,10 @@
 debug:      true
 testing:    false
 
+# Logging Settings
+logging:
+    level: INFO
+
 # Site/Server Settings
 site:
     # htdocs: path/to/htdocs

@@ -59,7 +59,7 @@ def main(*args):
     args = parser.parse_args()            # Parse the arguments
     try:
         msg = args.func(args)             # Call the default function
-        parser.exit(0, msg+"\n")          # Exit cleanly with message
+        parser.exit(0, msg+"\n".strip())  # Exit cleanly with message
     except Exception as e:
         parser.error(str(e))              # Exit with error
 
