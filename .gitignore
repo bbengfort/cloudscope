@@ -60,6 +60,3 @@ target/
 # Configuration
 conf/*
 !conf/cloudscope-example.yaml
-
-# The main site
-deploy

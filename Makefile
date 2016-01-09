@@ -8,7 +8,7 @@ PYTHONPATH := $(LOCALPATH)/
 PYTHON_BIN := $(VIRTUAL_ENV)/bin
 
 # Export targets not associated with files
-.PHONY: test coverage bootstrap pip virtualenv clean virtual_env_set
+.PHONY: test coverage pip virtualenv clean publish
 
 # Clean build files
 clean:
@@ -19,6 +19,10 @@ clean:
 	-rm -rf dist
 	-rm -rf $(PROJECT).egg-info
 
-# Targets for Coruscate testing
+# Targets for testing
 test:
 	$(PYTHON_BIN)/nosetests -v --with-coverage --cover-package=$(PROJECT) --cover-inclusive --cover-erase tests
+
+# Publish to gh-pages
+publish:
+	git subtree push --prefix deploy origin gh-pages
