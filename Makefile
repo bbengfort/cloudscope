@@ -25,4 +25,4 @@ test:
 
 # Publish to gh-pages
 publish:
-	git subtree push --prefix deploy origin gh-pages
+	git subtree push --prefix=deploy origin gh-pages

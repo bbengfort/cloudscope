@@ -36,8 +36,8 @@ from SimpleHTTPServer import SimpleHTTPRequestHandler
 ## Module Constants
 ##########################################################################
 
-ADDR   = "localhost"
-PORT   = 8080
+ADDR   = settings.server.address
+PORT   = settings.server.port
 
 
 ##########################################################################

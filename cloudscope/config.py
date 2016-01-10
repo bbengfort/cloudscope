@@ -33,8 +33,21 @@ class SiteConfiguration(Configuration):
     Configuration variables to add to the site.
     """
 
-    htdocs     = os.path.join(PROJECT, "deploy")
-    url        = "http://localhost:8080"
+    htdocs      = os.path.join(PROJECT, "deploy")
+    url         = "http://localhost:8080"
+    title       = "CloudScope"
+    author      = "Benjamin  Bengfort"
+    keywords    = "Distributed Storage Systems, Visualization, Simulation"
+    description = "Visualization of distributed systems and communications."
+
+
+class ServerConfiguration(Configuration):
+    """
+    Configure the development server
+    """
+
+    address     = "localhost"
+    port        = 8080
 
 
 ##########################################################################
@@ -70,6 +83,7 @@ class CloudScopeConfiguration(Configuration):
     testing   = True
     site      = SiteConfiguration()
     logging   = LoggingConfiguration()
+    server    = ServerConfiguration()
 
 ##########################################################################
 ## Generate Site Settings

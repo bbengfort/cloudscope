@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+
+{% block body %}
+
+  {% block navbar %}
+    {% include 'includes/navbar.html' %}
+  {% endblock %}
+
+  {% block page %}
+  <!-- Page Content -->
+  <div class="container">
+    {% block content %}
+    <div class="row">
+      <div class="col-xs-12">
+
+        <div class="page-header">
+          <h1>{{ page.title }}</h1>
+        </div>
+
+        <p>{{ page.description }}</p>
+
+      </div>
+    </div>
+    {% endblock content %}
+  </div>
+  {% endblock page %}
+
+  {% block footer %}
+    {% include 'includes/footer.html' %}
+  {% endblock %}
+
+{% endblock body %}

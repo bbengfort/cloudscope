@@ -18,7 +18,16 @@ testing:    false
 logging:
     level: INFO
 
-# Site/Server Settings
+# Site Settings
 site:
     # htdocs: path/to/htdocs
     # url:    url of site for links
+    title:       CloudScope
+    author:      Benjamin  Bengfort
+    keywords:    Distributed Storage Systems, Visualization, Simulation
+    description: Visualization of distributed systems and communications.
+
+# Server Settings
+server:
+    address:     "localhost"
+    port:        8080
