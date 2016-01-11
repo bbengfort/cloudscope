@@ -1,6 +1,6 @@
 # CloudScope
 
-[![Stories in Progress](https://badge.waffle.io/bbengfort/cloudscope.png?label=in+progress&title=In+Progress)](https://waffle.io/bbengfort/cloudscope)
+[![Stories Ready](https://badge.waffle.io/bbengfort/cloudscope.png?label=ready&title=ready)](https://wÂaffle.io/bbengfort/cloudscope)
 
 **Visualization of distributed systems and communications.**
 

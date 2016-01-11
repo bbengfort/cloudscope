@@ -39,6 +39,20 @@
     },
 
     /*
+     * An infinite sequence iterator for auto incrementing ids.
+     */
+    Sequence: function(start) {
+
+      this.value = start || 0;
+
+      this.next  = function() {
+        this.value += 1;
+        return this.value;
+      }
+
+    },
+
+    /*
      * Creates an SVG element to add via jquery.
      * http://www.benknowscode.com/2012/09/using-svg-elements-with-jquery_6812.html
      */

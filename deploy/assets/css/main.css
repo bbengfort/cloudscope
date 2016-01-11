@@ -104,3 +104,9 @@ svg #ring {
     stroke: #333;
     stroke-width: 1;
 }
+
+.response {
+    fill: #fcfcfc;
+    stroke: #59c8fc;
+    stroke-width: 2;
+}
