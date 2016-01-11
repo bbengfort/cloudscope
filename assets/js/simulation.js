@@ -16,21 +16,31 @@
   var CONSTANT = "constant",
       VARIABLE = "variable";
 
+  // Module Variables
+  var sequence = new utils.Sequence();
+
   // Message object to simulate network communication
-  Message = function(source, target, delay, payload) {
+  Message = function(source, target, payload, options) {
 
     this.source  = source;
     this.target  = target;
-    this.delay   = delay;
     this.payload = payload;
+    this.options = {
+      delay: 1000,
+      class: 'message'
+    };
 
     // Sends the message
-    this.init = function(target, delay) {
+    this.trigger = function(options) {
+
+      // Set default options
+      options = options || {};
+      this.options = _.defaults(options, this.options);
       var self = this;
 
       setTimeout(function() {
-        target.recv(self);
-      }, delay);
+        self.target.recv(self);
+      }, self.options.delay);
 
       self.animate();
 
@@ -41,14 +51,14 @@
     this.animate = function() {
       var circle = $(utils.SVG('circle'))
         .attr({'cx': this.source.layout.cx, 'cy': this.source.layout.cy, 'r': 8})
-        .attr('class', 'message')
+        .attr('class', this.options.class)
         .appendTo($("#network", this.source.env.svg));
 
       circle.velocity({
         cx: this.target.layout.cx,
         cy: this.target.layout.cy
       }, {
-        duration: this.delay,
+        duration: this.options.delay,
         complete: function(elements) {
           _.each(elements, function(element) {
             $(element).remove();
@@ -57,7 +67,14 @@
       });
     }
 
-    return this.init(target, delay);
+    // Clones a message with a new source and target
+    this.clone = function(source, target, options) {
+      options = options || {};
+      options = _.defaults(options, this.options)
+      return new Message(source, target, this.payload, options);
+    }
+
+    return this.trigger(options);
   };
 
   // Replica object to simulate devices on the file system
@@ -89,16 +106,55 @@
 
     // Sends a message to the destination
     // For now message can be anything, dst must be a replica id.
-    this.send = function(msg, dst) {
+    this.send = function(msg, dst, options) {
       var self = this;
       var conn = self.comms[dst];
-      var latency = conn.getLatency();
-      return new Message(self, conn.target, conn.getLatency(), msg);
+
+      // Create a message with the version information
+      msg = msg || {};
+      msg = _.defaults(msg, {
+        creator: self,
+        version: sequence.next(),
+        level: self.consistency
+      });
+
+      // Add the message properties like network latency
+      options  = options || {};
+      options  = _.defaults(options, {
+        delay: conn.getLatency()
+      });
+
+      return new Message(self, conn.target, msg, options);
     };
 
     // Handler for receiving a message
     this.recv = function(msg) {
-      console.log(this.label + " received message from " + msg.source.label + " in " + msg.delay + " milliseconds.");
+      var self = this;
+
+      // "ACK" is currently the payload for an acknowledgement
+      if (msg.payload != "ACK") {
+        // Add the version to your files.
+        if (!_.contains(self.files, msg.payload)) {
+            self.files.push(msg.payload);
+
+            // Send updates to everyone else
+            _.each(this.comms, function(link) {
+              if (link.target != msg.source) {
+                return msg.clone(self, link.target, {delay: link.getLatency()});
+              }
+
+            });
+        }
+
+        // Send acknowledgment
+        options = {
+          delay: this.comms[msg.source.id].getLatency(),
+          class: 'response'
+        }
+        var response = new Message(this, msg.source, "ACK", options);
+        console.log(this.label + " received message from " + msg.source.label + " in " + msg.options.delay + " milliseconds.");
+
+      }
     };
 
     // Broadcast a message to all connected nodes
