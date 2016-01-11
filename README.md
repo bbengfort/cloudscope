@@ -1,5 +1,6 @@
-[![Stories in Ready](https://badge.waffle.io/bbengfort/cloudscope.png?label=ready&title=Ready)](https://waffle.io/bbengfort/cloudscope)
 # CloudScope
+
+[![Stories in Progress](https://badge.waffle.io/bbengfort/cloudscope.png?label=in+progress&title=In+Progress)](https://waffle.io/bbengfort/cloudscope)
 
 **Visualization of distributed systems and communications.**
 
@@ -14,6 +15,10 @@ Right now the plan is to have the cloudscope package generate a static site, whi
 Simple repository to visualize examples of data flow in distributed systems. Inspired by [The Secret Lives of Data](http://thesecretlivesofdata.com/raft/) and [RaftScope](https://github.com/ongardie/raftscope).
 
 The photo used in this README, &ldquo;[Lens capped lunar eclipse of 2010][eclipse_flickr]&rdquo; by [John](https://www.flickr.com/photos/jahdakinebrah/) is used under a [CC BY-NC 2.0](https://creativecommons.org/licenses/by-nc/2.0/) creative commons license.
+
+## Other Information
+
+[![Throughput Graph](https://graphs.waffle.io/bbengfort/cloudscope/throughput.svg)](https://waffle.io/bbengfort/cloudscope/metrics)
 
 [eclipse.jpg]: docs/img/eclipse.jpg
 [eclipse_flickr]: https://flic.kr/p/93AzEB
