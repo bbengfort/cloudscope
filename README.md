@@ -1,3 +1,4 @@
+[![Stories in Ready](https://badge.waffle.io/bbengfort/cloudscope.png?label=ready&title=Ready)](https://waffle.io/bbengfort/cloudscope)
 # CloudScope
 
 **Visualization of distributed systems and communications.**
