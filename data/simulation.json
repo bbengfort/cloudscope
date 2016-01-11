@@ -1,0 +1,75 @@
+{
+    "nodes": [
+        {
+            "id": "r0",
+            "label": "Home Desktop",
+            "type": "desktop",
+            "consistency": "strong",
+            "files": []
+        },
+        {
+            "id": "r1",
+            "label": "Work Desktop",
+            "type": "desktop",
+            "consistency": "strong",
+            "files": []
+        },
+        {
+            "id": "r2",
+            "label": "Cloud Storage",
+            "type": "storage",
+            "consistency": "strong",
+            "files": []
+        },
+        {
+            "id": "r3",
+            "label": "Home Backup",
+            "type": "storage",
+            "consistency": "medium",
+            "files": []
+        },
+        {
+            "id": "r4",
+            "label": "Work Backup",
+            "type": "storage",
+            "consistency": "medium",
+            "files": []
+        },
+        {
+            "id": "r5",
+            "label": "Laptop",
+            "type": "laptop",
+            "consistency": "medium",
+            "files": []
+        },
+        {
+            "id": "r6",
+            "label": "iPad",
+            "type": "tablet",
+            "consistency": "low",
+            "files": []
+        },
+        {
+            "id": "r7",
+            "label": "iPhone",
+            "type": "smartphone",
+            "consistency": "low",
+            "files": []
+        }
+    ],
+    "links": [
+        {"source": 0, "target": 1, "connection": "constant", "latency": 20},
+        {"source": 0, "target": 2, "connection": "constant", "latency": 20},
+        {"source": 1, "target": 2, "connection": "constant", "latency": 20},
+        {"source": 0, "target": 3, "connection": "constant", "latency": 20},
+        {"source": 1, "target": 4, "connection": "constant", "latency": 20},
+        {"source": 0, "target": 5, "connection": "variable", "latency": [20, 500]},
+        {"source": 3, "target": 5, "connection": "variable", "latency": [20, 500]},
+        {"source": 4, "target": 5, "connection": "variable", "latency": [20, 500]},
+        {"source": 5, "target": 6, "connection": "variable", "latency": [20, 500]},
+        {"source": 5, "target": 7, "connection": "variable", "latency": [20, 500]},
+        {"source": 3, "target": 6, "connection": "variable", "latency": [20, 500]},
+        {"source": 3, "target": 7, "connection": "variable", "latency": [20, 500]},
+        {"source": 6, "target": 7, "connection": "variable", "latency": [20, 500]}
+    ]
+}
