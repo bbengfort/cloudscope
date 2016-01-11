@@ -59,33 +59,41 @@ svg #ring {
     stroke-dasharray: 5, 5;
 }
 
-svg #network > .link {
+.label {
+    fill: #333;
+    font-weight: bold;
+    font-size: 1.1em;
+    stroke: none;
+}
+
+.link {
     stroke: #666;
     stroke-width: 2;
     fill: none;
+    font-family: monospace;
 }
 
-svg #network > .constant {
-
+.link.constant {
+    stroke-dasharray: none;
 }
 
-svg #network > .variable {
-    stroke-dasharray: 5, 7, 3, 5, 7;
+.link.variable {
+    stroke-dasharray: 6, 4, 3, 4, 6;
 }
 
-svg > .replica {
+.replica {
     stroke: #333;
     stroke-width: 2;
 }
 
-svg > .consistency-strong {
+.consistency-strong {
     fill: #91cf60;
 }
 
-svg > .consistency-medium {
+.consistency-medium {
     fill: #ffffbf;
 }
 
-svg > .consistency-low {
+.consistency-low {
     fill: #fc8d59;
 }
