@@ -70,6 +70,25 @@
         .attr({"cx": layout.cx, "cy": layout.cy, r: (layout.r * .75)})
         .attr("filter", "url(#" + this.type + ")")
         .appendTo(this.svg);
+
+      // The label of the node
+      var label = {
+        "text-anchor": "middle",
+        "x": layout.cx,
+        "class": "label"
+      }
+
+      // Move above if above the fold else move below
+      if (layout.cy < (this.env.height() / 2)) {
+        label.y = layout.cy - 8 - layout.r;
+      } else {
+        label.y = layout.cy + 18 + layout.r;
+      }
+
+      $(utils.SVG('text'))
+        .attr(label)
+        .text(this.label)
+        .appendTo(this.svg);
     }
 
     return this.init(env, options);
@@ -82,9 +101,9 @@
     this.elem    = null;
     this.nodes   = [];
     this.margins = {
-      top: 30,
+      top: 38,
       right: 10,
-      bottom: 30,
+      bottom: 38,
       left: 10
     }
 
@@ -186,7 +205,7 @@
         return {
           cx: (dims.r * Math.cos(angle) + dims.cx),
           cy: (dims.r * Math.sin(angle) + dims.cy),
-          r: 50
+          r: 45
         };
       });
     };
