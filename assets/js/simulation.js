@@ -14,7 +14,8 @@
 
   // Module Constants
   var CONSTANT = "constant",
-      VARIABLE = "variable";
+      VARIABLE = "variable",
+      SLOWMO   = 3;  // Set this to 1 for real speed, or a factor < 10 for slow motion
 
   // Module Variables
   var sequence = new utils.Sequence();
@@ -117,11 +118,12 @@
         version: sequence.next(),
         level: self.consistency
       });
+      self.files.push(msg);
 
       // Add the message properties like network latency
       options  = options || {};
       options  = _.defaults(options, {
-        delay: conn.getLatency()
+        delay: conn.getLatency(),
       });
 
       return new Message(self, conn.target, msg, options);
@@ -176,9 +178,9 @@
         // Computes the latency of the connection
         getLatency: function() {
           if (typeof(this.latency) == "number") {
-            return this.latency;
+            return this.latency * SLOWMO;
           } else {
-            return random.randint(this.latency[0], this.latency[1]);
+            return random.randint(this.latency[0], this.latency[1]) * SLOWMO;
           }
         }
       }
