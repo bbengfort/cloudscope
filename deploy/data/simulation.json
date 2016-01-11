@@ -58,18 +58,18 @@
         }
     ],
     "links": [
-        {"source": 0, "target": 1, "connection": "constant", "latency": 20},
-        {"source": 0, "target": 2, "connection": "constant", "latency": 20},
-        {"source": 1, "target": 2, "connection": "constant", "latency": 20},
-        {"source": 0, "target": 3, "connection": "constant", "latency": 20},
-        {"source": 1, "target": 4, "connection": "constant", "latency": 20},
-        {"source": 0, "target": 5, "connection": "variable", "latency": [20, 500]},
-        {"source": 3, "target": 5, "connection": "variable", "latency": [20, 500]},
-        {"source": 4, "target": 5, "connection": "variable", "latency": [20, 500]},
-        {"source": 5, "target": 6, "connection": "variable", "latency": [20, 500]},
-        {"source": 5, "target": 7, "connection": "variable", "latency": [20, 500]},
-        {"source": 3, "target": 6, "connection": "variable", "latency": [20, 500]},
-        {"source": 3, "target": 7, "connection": "variable", "latency": [20, 500]},
-        {"source": 6, "target": 7, "connection": "variable", "latency": [20, 500]}
+        {"source": 0, "target": 1, "connection": "constant", "latency": 500},
+        {"source": 0, "target": 2, "connection": "constant", "latency": 500},
+        {"source": 1, "target": 2, "connection": "constant", "latency": 500},
+        {"source": 0, "target": 3, "connection": "constant", "latency": 500},
+        {"source": 1, "target": 4, "connection": "constant", "latency": 500},
+        {"source": 0, "target": 5, "connection": "variable", "latency": [300, 1500]},
+        {"source": 3, "target": 5, "connection": "variable", "latency": [300, 1500]},
+        {"source": 4, "target": 5, "connection": "variable", "latency": [300, 1500]},
+        {"source": 5, "target": 6, "connection": "variable", "latency": [300, 1500]},
+        {"source": 5, "target": 7, "connection": "variable", "latency": [300, 1500]},
+        {"source": 3, "target": 6, "connection": "variable", "latency": [300, 1500]},
+        {"source": 3, "target": 7, "connection": "variable", "latency": [300, 1500]},
+        {"source": 6, "target": 7, "connection": "variable", "latency": [300, 1500]}
     ]
 }

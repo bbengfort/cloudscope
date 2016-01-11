@@ -12,6 +12,55 @@
 
 (function() {
 
+  // Module Constants
+  var CONSTANT = "constant",
+      VARIABLE = "variable";
+
+  // Message object to simulate network communication
+  Message = function(source, target, delay, payload) {
+
+    this.source  = source;
+    this.target  = target;
+    this.delay   = delay;
+    this.payload = payload;
+
+    // Sends the message
+    this.init = function(target, delay) {
+      var self = this;
+
+      setTimeout(function() {
+        target.recv(self);
+      }, delay);
+
+      self.animate();
+
+      return self;
+    };
+
+    //  Animates a message circle
+    this.animate = function() {
+      var circle = $(utils.SVG('circle'))
+        .attr({'cx': this.source.layout.cx, 'cy': this.source.layout.cy, 'r': 8})
+        .attr('class', 'message')
+        .appendTo($("#network", this.source.env.svg));
+
+      circle.velocity({
+        cx: this.target.layout.cx,
+        cy: this.target.layout.cy
+      }, {
+        duration: this.delay,
+        complete: function(elements) {
+          _.each(elements, function(element) {
+            $(element).remove();
+          });
+        }
+      });
+    }
+
+    return this.init(target, delay);
+  };
+
+  // Replica object to simulate devices on the file system
   Replica = function(env, options) {
 
     this.id    = null;
@@ -23,7 +72,7 @@
     this.consistency = null;
     this.layout      = null;
 
-    this.comms = [];
+    this.comms = {};
     this.files = [];
 
     // Initializes a replica based on node data from a JSON graph.
@@ -36,28 +85,63 @@
       this.consistency = node.consistency || "strong";
 
       return this;
-    }
+    };
+
+    // Sends a message to the destination
+    // For now message can be anything, dst must be a replica id.
+    this.send = function(msg, dst) {
+      var self = this;
+      var conn = self.comms[dst];
+      var latency = conn.getLatency();
+      return new Message(self, conn.target, conn.getLatency(), msg);
+    };
+
+    // Handler for receiving a message
+    this.recv = function(msg) {
+      console.log(this.label + " received message from " + msg.source.label + " in " + msg.delay + " milliseconds.");
+    };
+
+    // Broadcast a message to all connected nodes
+    this.broadcast = function(msg) {
+      var self = this;
+      return _.map(self.comms, function(link) {
+        return self.send(msg, link.target.id);
+      });
+    };
 
     // Adds connections based on link data from a JSON graph.
     this.addConnection = function(link, replica) {
       var connection = {
-        target: replica,       // replica destination
-        type: link.connection, // constant or variable
-        latency: link.latency  // either an integer or a min, max pair.
+        target: replica,        // replica destination
+        type: link.connection,  // constant or variable
+        latency: link.latency,  // either an integer or a min, max pair.
+        path: link.path,         // the path of the svg connection
+
+        // Computes the latency of the connection
+        getLatency: function() {
+          if (typeof(this.latency) == "number") {
+            return this.latency;
+          } else {
+            return random.randint(this.latency[0], this.latency[1]);
+          }
+        }
       }
-      this.comms.push(connection);
+
+      this.comms[replica.id] = connection;
       return connection;
-    }
+    };
 
     // Draws the node to the parent environment
     // Must take a layout parameter for the position of the node.
     this.draw = function(layout) {
+      var self = this;
       this.layout = layout;
 
       // The node icon group
       this.svg = $(utils.SVG('g'))
         .attr("id", this.id)
         .attr("class", "replica consistency-" + this.consistency)
+        .click(function() { self.broadcast(); })
         .appendTo(this.env.svg);
 
       // The node circle
@@ -105,7 +189,7 @@
       right: 10,
       bottom: 38,
       left: 10
-    }
+    };
 
 
     // Initializes the simulation by loading data from a URL.
@@ -159,22 +243,22 @@
 
           // Add all the communiucation edges between replicas
           _.each(data.links, function(link) {
-            source = self.nodes[link.source];
-            target = self.nodes[link.target];
+            var source = self.nodes[link.source];
+            var target = self.nodes[link.target];
+
+            var sp = "M" + source.layout.cx + "," + source.layout.cy;
+            var ep = target.layout.cx + "," + target.layout.cy;
+            var cp = "Q" + ring.cx + "," + ring.cy;
+
+            // Draw the edges onto the graph
+            link.path = $(utils.SVG("path"))
+              .attr("d", sp + " " + cp + " " + ep)
+              .attr("class", "link " + link.connection)
+              .appendTo(network);
 
             // Add source and target connections (undirected graph).
             source.addConnection(link, target);
             target.addConnection(link, source);
-
-            sp = "M" + source.layout.cx + "," + source.layout.cy;
-            ep = target.layout.cx + "," + target.layout.cy;
-            cp = "Q" + ring.cx + "," + ring.cy;
-
-            // Draw the edges onto the graph
-            $(utils.SVG("path"))
-              .attr("d", sp + " " + cp + " " + ep)
-              .attr("class", "link " + link.connection)
-              .appendTo(network);
           });
 
           console.log("Simulation loaded from " + self.url);

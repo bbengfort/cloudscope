@@ -84,6 +84,7 @@ svg #ring {
 .replica {
     stroke: #333;
     stroke-width: 2;
+    cursor: pointer;
 }
 
 .consistency-strong {
@@ -96,4 +97,10 @@ svg #ring {
 
 .consistency-low {
     fill: #fc8d59;
+}
+
+.message {
+    fill: #59c8fc;
+    stroke: #333;
+    stroke-width: 1;
 }
