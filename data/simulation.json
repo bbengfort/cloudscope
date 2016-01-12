@@ -5,56 +5,56 @@
             "label": "Home Desktop",
             "type": "desktop",
             "consistency": "strong",
-            "files": []
+            "files": {}
         },
         {
             "id": "r1",
             "label": "Work Desktop",
             "type": "desktop",
             "consistency": "strong",
-            "files": []
+            "files": {}
         },
         {
             "id": "r2",
             "label": "Cloud Storage",
             "type": "storage",
             "consistency": "strong",
-            "files": []
+            "files": {}
         },
         {
             "id": "r3",
             "label": "Home Backup",
             "type": "storage",
             "consistency": "medium",
-            "files": []
+            "files": {}
         },
         {
             "id": "r4",
             "label": "Work Backup",
             "type": "storage",
             "consistency": "medium",
-            "files": []
+            "files": {}
         },
         {
             "id": "r5",
             "label": "Laptop",
             "type": "laptop",
             "consistency": "medium",
-            "files": []
+            "files": {}
         },
         {
             "id": "r6",
             "label": "iPad",
             "type": "tablet",
             "consistency": "low",
-            "files": []
+            "files": {}
         },
         {
             "id": "r7",
             "label": "iPhone",
             "type": "smartphone",
             "consistency": "low",
-            "files": []
+            "files": {}
         }
     ],
     "links": [

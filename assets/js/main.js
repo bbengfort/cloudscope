@@ -17,8 +17,9 @@ $(document).ready(function() {
   // Fetch the simulation data to begin writing it to the screen.
   simulation = Simulation("#simulation", 'data/simulation.json');
 
-  // TODO: Clean this up.
+  // Register various other event handlers.
   $(".btnSnapshot").click(function() {
     simulation.snapshot();
   });
+
 });
