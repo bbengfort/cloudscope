@@ -134,7 +134,7 @@
         .attr("id", this.id)
         .attr("class", "replica consistency-" + this.consistency)
         .click(function() { self.create(); })
-        .appendTo(this.sim.svg);
+        .appendTo($("#graph", this.sim.svg));
 
       // The node circle
       $(utils.SVG('circle'))

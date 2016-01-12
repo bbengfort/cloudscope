@@ -33,6 +33,11 @@
         <ul class="nav navbar-nav navbar-right">
         </ul>
         <p class="navbar-text navbar-right">
+          <a href="#settingsModal" class="navbar-link" data-toggle="modal">
+            <i class="fa fa-wrench"></i> Settings
+          </a>
+        </p>
+        <p class="navbar-text navbar-right">
           <a href="#" class="navbar-link btnSnapshot">
             <i class="fa fa-camera-retro"></i> Take Snapshot
           </a>
@@ -69,8 +74,42 @@
               </filter>
             </defs>
 
-            <!-- Primary layout ring -->
-            <circle id="ring" />
+            <!-- Legend and log column -->
+            <g id="info">
+              <svg id="legend">
+                <rect class="infobox" x="1" y="1" height="164" width="300" />
+                <text class="infobox-title" x="10" y="24">Legend</text>
+                <g>
+                  <circle class="replica-legend consistency-strong"
+                    cx="24" cy="50" r="10" />
+                  <text class="label-legend" x="44" y="54">Strong Consistency</text>
+                </g>
+                <g>
+                  <circle class="replica-legend consistency-medium"
+                    cx="24" cy="74" r="10" />
+                  <text class="label-legend" x="44" y="78">Medium Consistency</text>
+                </g>
+                <g>
+                  <circle class="replica-legend consistency-low"
+                    cx="24" cy="98" r="10" />
+                  <text class="label-legend" x="44" y="102">Low Consistency</text>
+                </g>
+                <g>
+                  <line class="link-legend constant" x1="12" y1="122" x2="36" y2="122" />
+                  <text class="label-legend" x="44" y="126">Constant Latency</text>
+                </g>
+                <g>
+                  <line class="link-legend variable" x1="12" y1="146" x2="36" y2="146" />
+                  <text class="label-legend" x="44" y="150">Variable Latency</text>
+                </g>
+              </svg>
+            </g>
+
+            <!-- Primary visualization space -->
+            <g id="graph">
+              <circle id="ring" />
+            </g>
+
           </svg>
         </div>
 
@@ -83,6 +122,43 @@
       <p class="text-muted">&copy; 2016 University of Maryland</p>
     </div>
   </footer>
+
+  <!-- Modals -->
+  <!-- Settings Modal -->
+  <div id="settingsModal" class="modal fade" tabindex="-1" role="dialog">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+          <h4 class="modal-title">Simulation Settings</h4>
+        </div>
+        <div class="modal-body">
+
+          <form class="form-horizontal" id="settingsForm">
+            <div class="form-group">
+              <label for="slowmo" class="col-sm-3 control-label">Slow Down Factor</label>
+              <div class="col-sm-9">
+                <input type="text" class="form-control" id="slowmo" name="slowmo">
+                <span class="help-block">Controls the speed of the simulation. Set 1 for real time, or scale by a factor of up to 10 (increasing the latency of messages).</span>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="default_latency" class="col-sm-3 control-label">Default Latency</label>
+              <div class="col-sm-9">
+                <input type="text" class="form-control" id="default_latency" name="default_latency">
+                <span class="help-block">The default latency between nodes if not assigned by the simulation data file.</span>
+              </div>
+            </div>
+          </form>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" id="btnSaveSettings">Save Changes</button>
+        </div>
+      </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+  </div><!-- /.modal -->
 
   <!-- Javascripts -->
   <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>

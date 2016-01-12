@@ -52,6 +52,20 @@ body > .container-fluid {
     margin: 0;
 }
 
+svg .infobox {
+    stroke: #333;
+    stroke-width: 2;
+    fill: none;
+}
+
+svg .infobox-title {
+    font-weight: bold;
+    font-size: 1.3em;
+    font-family: Verdana, Helvetica, Arial, sans-serif;
+    stroke: none;
+    fill: #333;
+}
+
 svg #ring {
     fill: #fcfcfc;
     stroke: #bbb;
@@ -60,30 +74,38 @@ svg #ring {
 }
 
 .label {
-    fill: #333;
     font-weight: bold;
+}
+
+.label, .label-legend {
+    fill: #333;
     font-size: 1.1em;
+    font-family: Verdana, Helvetica, Arial, sans-serif;
     stroke: none;
 }
 
-.link {
+.link, .link-legend {
     stroke: #666;
     stroke-width: 2;
     fill: none;
-    font-family: monospace;
 }
 
-.link.constant {
+.link.constant,
+.link-legend.constant {
     stroke-dasharray: none;
 }
 
-.link.variable {
+.link.variable,
+.link-legend.variable {
     stroke-dasharray: 6, 4, 3, 4, 6;
 }
 
-.replica {
+.replica, .replica-legend {
     stroke: #333;
     stroke-width: 2;
+}
+
+.replica {
     cursor: pointer;
 }
 

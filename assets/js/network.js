@@ -58,7 +58,11 @@
     // TODO: follow the connection path rather than straight line.
     this.animate = function() {
       var circle = $(utils.SVG('circle'))
-        .attr({'cx': this.source.layout.cx, 'cy': this.source.layout.cy, 'r': 8})
+        .attr({
+          'cx': this.source.layout.cx,
+          'cy': this.source.layout.cy,
+          'r': config.message_radius
+        })
         .attr('class', this.options.class)
         .appendTo($("#network", this.source.sim.svg));
 
