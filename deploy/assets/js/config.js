@@ -20,7 +20,7 @@
     VARIABLE: "variable",
 
     // Constant message payloads
-    ACK: "ACK", 
+    ACK: "ACK",
   }
 
   // Modifiable configuration values.
@@ -35,10 +35,14 @@
     // Margins for the primary simulation SVG
     margins: {
       top: 38,
-      right: 10,
+      right: 50,
       bottom: 38,
-      left: 10
+      left: 38
     },
+
+    // Sizes of variou selements
+    node_radius: 45,
+    message_radius: 8,
 
   };
 

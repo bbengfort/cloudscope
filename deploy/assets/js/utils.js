@@ -50,6 +50,7 @@
         return this.value;
       }
 
+      return this;
     },
 
     /*
@@ -58,7 +59,17 @@
      */
     SVG: function(tag) {
       return document.createElementNS('http://www.w3.org/2000/svg', tag);
-    }
+    },
+
+    /*
+     * Pass in the selector for a form, this method uses jQuery's serializeArray
+     * method to map the data in the form to an object for json.
+     */
+    formData: function(selector) {
+      return _.object(_.map($(selector).serializeArray(), function(obj) {
+        return [obj.name, obj.value];
+      }));
+    },
 
   };
 

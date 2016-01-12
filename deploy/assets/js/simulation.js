@@ -35,10 +35,9 @@
         }
       }
 
-      // Add the layout ring to the center of the svg.
-      $('#ring', this.svg).attr(this.ringDimension());
-
-      // Load data and return
+      // Draw the initial simulation space
+      // Load data from the data file and return
+      this.draw()
       this.load();
       return this;
 
@@ -59,7 +58,7 @@
           var layout  = self.ringLayout(self.nodes.length);
           var network = $(utils.SVG('g'))
             .attr("id", "network")
-            .appendTo(self.svg);
+            .appendTo($("#graph", self.svg));
 
           // Draw the nodes onto the graph
           _.each(_.zip(self.nodes, layout), function(item) {
@@ -88,6 +87,25 @@
         });
     };
 
+    // Draws the primary simulation elements
+    this.draw = function() {
+
+      // Add the layout ring to the center of the svg.
+      var ringSpec = this.ringDimension();
+      $('#ring', this.svg).attr(ringSpec);
+
+      // Hacky method to move the graph for more room.
+      var shift = (this.width()) - (ringSpec.r + ringSpec.cx + config.node_radius + this.margins.right);
+      $('#graph', this.svg).attr({
+        'transform': 'translate(' + shift + ',0)'
+      });
+
+      // Move the info column to inside of the margins
+      $('#info', this.svg).attr({
+        'transform': 'translate(' + this.margins.left + ',' + this.margins.top + ')'
+      });
+    };
+
     // Computes the ring dimensions to create a layout
     this.ringDimension = function() {
         return {
@@ -109,7 +127,7 @@
         return {
           cx: (dims.r * Math.cos(angle) + dims.cx),
           cy: (dims.r * Math.sin(angle) + dims.cy),
-          r: 45
+          r: config.node_radius
         };
       });
     };
