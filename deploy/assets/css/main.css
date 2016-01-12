@@ -73,6 +73,10 @@ svg #ring {
     stroke-dasharray: 5, 5;
 }
 
+svg text.icon {
+    font-family: FontAwesome;
+}
+
 .label {
     font-weight: bold;
 }

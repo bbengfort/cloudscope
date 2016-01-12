@@ -101,4 +101,38 @@
     }
   };
 
+  // Statistics "package" for computing descriptive statistics.
+  stats = {
+
+    // Computes the mean of a set of values.
+    mean: function(values) {
+      if (values.length == 0) return 0.0;
+
+      var sum = _.reduce(values, function(sum, val) {
+        return sum + val;
+      }, 0);
+
+      var avg = sum / values.length;
+      return avg;
+
+    },
+
+    // Computes the standard deviation of a set of values
+    stddev: function(values) {
+      if (values.length == 0) return 0.0;
+
+      var avg = stats.mean(values);
+
+      var squareDiffs = _.map(values, function(val) {
+        var diff = val - avg;
+        return diff * diff;
+      });
+
+      var avgSquareDiff = stats.mean(squareDiffs);
+      return Math.sqrt(avgSquareDiff);
+
+    },
+
+  };
+
 })();

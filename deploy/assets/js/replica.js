@@ -50,17 +50,19 @@
       // Add the file to our storage
       // And replicate the new file across the network
       this.files[vers.version] = vers;
+      this.sim.updateState();
       this.broadcast(vers);
     };
 
     // Updates a particular version (forks) and replicates it.
     this.update = function(version) {
-      var vers = this.files[vers.version];
+      var vers = this.files[version];
       var fork = vers.fork();
 
       // Replace the file we have in our storage with the new version.
-      // and replicate the update across the network
+      // and replicate the update across the network (updating the sim)
       this.files[fork.version] = fork;
+      this.sim.updateState();
       this.broadcast(fork);
     };
 
@@ -85,10 +87,13 @@
       // If we have an acknowledgement message; do nothing
       if (msg.payload == consts.ACK) return;
 
-      // Add the version to your files.
       var vers = msg.payload;
       if (!self.files[vers.version]) {
+          // Add the version to your files.
+          // Update the simulation state with the new version update.
           self.files[vers.version] = vers;
+          vers.addReplica(self.sim.nodes.length);
+          self.sim.updateState();
 
           // Send updates to everyone else
           _.each(this.comms, function(conn) {
@@ -104,7 +109,12 @@
         class: 'response'
       }
       var response = new Message(this, msg.source, "ACK", options);
-      console.log(this.label + " received message from " + msg.source.label + " in " + msg.options.delay + " milliseconds.")
+      console.log(
+        s.sprintf(
+          "%s received message from %s in %dms",
+          this.label, msg.source.label, msg.options.delay
+        )
+      );
 
     };
 
@@ -176,23 +186,26 @@
   // Implement a piece of file version meta data
   Version = function(parent, options) {
 
-    this.parent  = null;  // create a tree of version meta data
-    this.version = null;  // version id (auto increment)
-    this.creator = null;  // the replica that created the version
-    this.level   = null;  // the consistency level of the version meta
-    this.created = null;  // timestamp when created
-    this.updated = null;  // timestamp when updated
+    this.parent     = null;  // create a tree of version meta data
+    this.version    = null;  // version id (auto increment)
+    this.creator    = null;  // the replica that created the version
+    this.level      = null;  // the consistency level of the version meta
+    this.created    = null;  // timestamp when created
+    this.updated    = null;  // timestamp when updated
+    this.replicas   = null;  // the number of times the version is replicated
+    this.replicated = null;  // timestamp when completely replicated
 
     // Initialize version meta data
     this.init = function(parent, options) {
       options = options || {};
 
-      this.parent  = parent;
-      this.version = sequence.next();
-      this.creator = options.creator || null;
-      this.level   = options.level || null;
-      this.created = options.created || Date.now();
-      this.updated = options.updated || null;
+      this.parent   = parent;
+      this.version  = sequence.next();
+      this.creator  = options.creator || null;
+      this.level    = options.level || null;
+      this.created  = options.created || Date.now();
+      this.updated  = options.updated || null;
+      this.replicas = 1;
 
       return this;
     }
@@ -206,10 +219,28 @@
         creator: this.creator,
         level: this.level,
         created: this.created,
-        update: this.updated,
+        updated: this.updated,
       });
 
       return new Version(this, options)
+    }
+
+    // Add a new replica to the version
+    // Requires the number of nodes in the network to determine "completeness"
+    this.addReplica = function(n) {
+      this.replicas += 1;
+      if (this.replicas == n) {
+        this.replicated = Date.now();
+      }
+    }
+
+    // Returns the replication latency of the version
+    this.getLatency = function() {
+      if (this.replicated) {
+        return this.replicated - this.created;
+      } else {
+        return null;
+      }
     }
 
     return this.init(parent, options);
