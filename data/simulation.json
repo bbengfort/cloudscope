@@ -1,4 +1,10 @@
 {
+    "meta": {
+        "constant": "500ms",
+        "variable": "300-1500ms",
+        "seed": null,
+        "title": "Origin Simulation"
+    },
     "nodes": [
         {
             "id": "r0",

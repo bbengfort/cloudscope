@@ -76,7 +76,7 @@
 
             <!-- Legend and log column -->
             <g id="info">
-              <svg id="legend">
+              <g id="legend">
                 <rect class="infobox" x="1" y="1" height="164" width="300" />
                 <text class="infobox-title" x="10" y="24">Legend</text>
                 <g>
@@ -96,13 +96,33 @@
                 </g>
                 <g>
                   <line class="link-legend constant" x1="12" y1="122" x2="36" y2="122" />
-                  <text class="label-legend" x="44" y="126">Constant Latency</text>
+                  <text id="constantLatencyLegend" class="label-legend" x="44" y="126">Constant Latency</text>
                 </g>
                 <g>
                   <line class="link-legend variable" x1="12" y1="146" x2="36" y2="146" />
-                  <text class="label-legend" x="44" y="150">Variable Latency</text>
+                  <text id="variableLatencyLegend" class="label-legend" x="44" y="150">Variable Latency</text>
                 </g>
-              </svg>
+              </g>
+
+              <g id="state">
+                <rect class="infobox" x="1" y="174" height="164" width="300" />
+                <text class="infobox-title" x="10" y="198">Simulation State</text>
+
+                <!-- Versions Label -->
+                <text class="icon" x="10" y="220">&#xf0c5;</text>
+                <text class="label-legend" x="26" y="220">Versions:</text>
+                <text id="versionsLegend" class="label-legend" x="120" y="220">0</text>
+
+                <!-- Staleness Label -->
+                <text class="icon" x="10" y="242">&#xf1b8;</text>
+                <text class="label-legend" x="26" y="242">Staleness:</text>
+                <text id="stalenessLegend" class="label-legend" x="120" y="242">0%</text>
+
+                <!-- Latency Label -->
+                <text class="icon" x="10" y="264">&#xf0e4;</text>
+                <text class="label-legend" x="26" y="264">Latency:</text>
+                <text id="latencyLegend" class="label-legend" x="120" y="264">&#x3bc;: 0ms 	&#x3c3;: 0ms</text>
+              </g>
             </g>
 
             <!-- Primary visualization space -->
@@ -163,8 +183,8 @@
   <!-- Javascripts -->
   <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.string/3.2.2/underscore.string.min.js"></script>
   <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha256-KXn5puMvxCw+dAYznun+drMdG1IFl3agK0p/pqT9KAo= sha512-2e8qq0ETcfWRI4HJBzQiA3UoyFk6tbNyG+qSaIBZLyW9Xf3sWZHN/lxe9fTh1U45DpPf07yj94KsUHHWe4Yk1A==" crossorigin="anonymous"></script>
-
   <script src="//cdn.jsdelivr.net/velocity/1.2.3/velocity.min.js"></script>
 
   <script src="assets/js/config.js" type="text/javascript"></script>

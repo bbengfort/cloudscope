@@ -80,11 +80,40 @@
             target.addConnection(link, source);
           });
 
+          // Add the minimum and maximum latency to the legend
+          $("#constantLatencyLegend").text(
+            $("#constantLatencyLegend").text() + ": " + data.meta.constant
+          );
+          $("#variableLatencyLegend").text(
+            $("#variableLatencyLegend").text() + ": " + data.meta.variable
+          );
+
           console.log("Simulation loaded from " + self.url);
         })
         .fail(function(jqxhr, status, error) {
           console.log("ERROR (" + status + "): " + error);
         });
+    };
+
+    // Updates the state of the simulation shown in the legend.
+    // TODO: This is a complete hack and needs to be rewritten!
+    this.updateState = function() {
+        var state = $("#state", this.svg);
+        var files = _.unique(_.flatten(_.map(this.nodes, function(node) {
+          return _.values(node.files);
+        })));
+
+        var blocks = _.reduce(files, function(blocks, file) { return blocks + file.replicas }, 0);
+        var staleness = (blocks / (this.nodes.length * files.length)) * 100;
+        var latencies = _.compact(_.map(files, function(version) {
+          if (version.replicated) return version.getLatency();
+        }));
+
+        $("#versionsLegend", state).text(files.length);
+        $("#stalenessLegend", state).text(s.sprintf("%d%%", staleness));
+        $("#latencyLegend", state).text(
+          s.sprintf("μ: %0.0fms σ: %0.0fms", stats.mean(latencies), stats.stddev(latencies)
+        ));
     };
 
     // Draws the primary simulation elements
@@ -104,6 +133,11 @@
       $('#info', this.svg).attr({
         'transform': 'translate(' + this.margins.left + ',' + this.margins.top + ')'
       });
+
+      // Scale the state box to the height of the simulation.
+      var sbox = $('#state rect.infobox', this.svg);
+      var sh = this.height(true) - sbox.attr("y");
+      sbox.attr('height', sh);
     };
 
     // Computes the ring dimensions to create a layout
