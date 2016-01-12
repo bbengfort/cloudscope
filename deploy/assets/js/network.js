@@ -19,28 +19,43 @@
     this.target  = target;
     this.payload = payload;
     this.options = {
-      delay: 1000,
-      class: 'message'
+      delay: 1000,        // The message latency (or delay)
+      class: 'message',   // Class to add to the message circle
+      trigger: true,      // Trigger the message to send immediately
     };
 
-    // Sends the message
-    this.trigger = function(options) {
-
+    // Initializes the message
+    this.init = function(options) {
       // Set default options
       options = options || {};
       this.options = _.defaults(options, this.options);
+
+      if (options.trigger) {
+        this.trigger();
+      }
+
+      // Return this for chaining
+      return this;
+    }
+
+    // Sends the message
+    this.trigger = function() {
       var self = this;
 
+      // Prepare callback for message recv
       setTimeout(function() {
         self.target.recv(self);
       }, self.options.delay);
 
+      // Animate the message
       self.animate();
 
+      // Return this for chaining
       return self;
     };
 
-    //  Animates a message circle
+    // Animates a message circle between nodes
+    // TODO: follow the connection path rather than straight line.
     this.animate = function() {
       var circle = $(utils.SVG('circle'))
         .attr({'cx': this.source.layout.cx, 'cy': this.source.layout.cy, 'r': 8})
@@ -67,7 +82,7 @@
       return new Message(source, target, this.payload, options);
     }
 
-    return this.trigger(options);
+    return this.init(options);
   };
 
   // Connection manages network properties as well as visual paths.

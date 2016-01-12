@@ -12,150 +12,207 @@
 
  (function() {
 
-   // Module Variables
-   var sequence = new utils.Sequence();
+  // Replica object to simulate devices on the file system
+  Replica = function(sim, options) {
 
-   // Replica object to simulate devices on the file system
-   Replica = function(sim, options) {
+    this.id    = null;
+    this.sim   = null;
+    this.svg   = null;
+    this.label = null;
+    this.type  = null;
 
-     this.id    = null;
-     this.sim   = null;
-     this.svg   = null;
-     this.label = null;
-     this.type  = null;
+    this.consistency = null;
+    this.layout      = null;
 
-     this.consistency = null;
-     this.layout      = null;
+    this.comms = {};
+    this.files = {};
 
-     this.comms = {};
-     this.files = {};
+    // Initializes a replica based on node data from a JSON graph.
+    this.init = function(sim, node) {
+      this.id    = node.id;
+      this.sim   = sim
+      this.label = node.label || "Replica " + node.id;
+      this.type  = node.type || "storage";
+      this.files = node.files || {};
+      this.consistency = node.consistency || "strong";
 
-     // Initializes a replica based on node data from a JSON graph.
-     this.init = function(sim, node) {
-       this.id    = node.id;
-       this.sim   = sim
-       this.label = node.label || "Replica " + node.id;
-       this.type  = node.type || "storage";
-       this.files = node.files || {};
-       this.consistency = node.consistency || "strong";
+      return this;
+    };
 
-       return this;
-     };
+    // Creates a new version (file) and replicates it.
+    this.create = function() {
+      // Create a new file with the version information
+      var vers = new Version(0, {
+        creator: self,
+        level: this.consistency,
+      })
 
-     // Sends a message to the destination
-     // For now message can be anything, dst must be a replica id.
-     this.send = function(msg, dst, options) {
-       var self = this;
-       var conn = self.comms[dst];
+      // Add the file to our storage
+      // And replicate the new file across the network
+      this.files[vers.version] = vers;
+      this.broadcast(vers);
+    };
 
-       // Create a message with the version information
-       msg = msg || {};
-       msg = _.defaults(msg, {
-         creator: self,
-         version: sequence.next(),
-         level: self.consistency
-       });
-       self.files[msg.version] = msg;
+    // Updates a particular version (forks) and replicates it.
+    this.update = function(version) {
+      var vers = this.files[vers.version];
+      var fork = vers.fork();
 
-       // Add the message properties like network latency
-       options  = options || {};
-       options  = _.defaults(options, {
-         delay: conn.getLatency(),
-       });
+      // Replace the file we have in our storage with the new version.
+      // and replicate the update across the network
+      this.files[fork.version] = fork;
+      this.broadcast(fork);
+    };
 
-       return new Message(self, conn.target, msg, options);
-     };
+    // Sends a message to the destination
+    // For now message can be anything, dst must be a replica id.
+    this.send = function(msg, dst, options) {
+      var conn = this.comms[dst];
 
-     // Handler for receiving a message
-     this.recv = function(msg) {
-       var self = this;
+      // Add the message properties like network latency
+      options  = options || {};
+      options  = _.defaults(options, {
+        delay: conn.getLatency(),
+      });
 
-       // "ACK" is currently the payload for an acknowledgement
-       if (msg.payload != "ACK") {
-         // Add the version to your files.
-         if (!self.files[msg.payload.version]) {
-             self.files[msg.payload.version] = msg.payload;
+      return new Message(this, conn.target, msg, options);
+    };
 
-             // Send updates to everyone else
-             _.each(this.comms, function(link) {
-               if (link.target != msg.source) {
-                 return msg.clone(self, link.target, {delay: link.getLatency()});
-               }
+    // Handler for receiving a message
+    this.recv = function(msg) {
+      var self = this;
 
-             });
-         }
+      // If we have an acknowledgement message; do nothing
+      if (msg.payload == consts.ACK) return;
 
-         // Send acknowledgment
-         options = {
-           delay: this.comms[msg.source.id].getLatency(),
-           class: 'response'
-         }
-         var response = new Message(this, msg.source, "ACK", options);
-         console.log(this.label + " received message from " + msg.source.label + " in " + msg.options.delay + " milliseconds.");
+      // Add the version to your files.
+      var vers = msg.payload;
+      if (!self.files[vers.version]) {
+          self.files[vers.version] = vers;
 
-       }
-     };
+          // Send updates to everyone else
+          _.each(this.comms, function(conn) {
+            if (conn.target != msg.source) {
+              return msg.clone(self, conn.target, {delay: conn.getLatency()});
+            }
+          });
+      }
 
-     // Broadcast a message to all connected nodes
-     this.broadcast = function(msg) {
-       var self = this;
-       return _.map(self.comms, function(link) {
-         return self.send(msg, link.target.id);
-       });
-     };
+      // Send acknowledgment
+      options = {
+        delay: this.comms[msg.source.id].getLatency(),
+        class: 'response'
+      }
+      var response = new Message(this, msg.source, "ACK", options);
+      console.log(this.label + " received message from " + msg.source.label + " in " + msg.options.delay + " milliseconds.")
 
-     // Adds connections based on link data from a JSON graph.
-     this.addConnection = function(link, replica) {
-       var connection = new Connection(this.sim, this, replica, link);
-       this.comms[replica.id] = connection;
-       return connection;
-     };
+    };
 
-     // Draws the node to the parent simulation
-     // Must take a layout parameter for the position of the node.
-     this.draw = function(layout) {
-       var self = this;
-       this.layout = layout;
+    // Broadcast a message to all connected nodes
+    this.broadcast = function(msg) {
+      var self = this;
+      return _.map(self.comms, function(link) {
+        return self.send(msg, link.target.id);
+      });
+    };
 
-       // The node icon group
-       this.svg = $(utils.SVG('g'))
-         .attr("id", this.id)
-         .attr("class", "replica consistency-" + this.consistency)
-         .click(function() { self.broadcast(); })
-         .appendTo(this.sim.svg);
+    // Adds connections based on link data from a JSON graph.
+    this.addConnection = function(link, replica) {
+      var connection = new Connection(this.sim, this, replica, link);
+      this.comms[replica.id] = connection;
+      return connection;
+    };
 
-       // The node circle
-       $(utils.SVG('circle'))
-         .attr(layout)
-         .appendTo(this.svg);
+    // Draws the node to the parent simulation
+    // Must take a layout parameter for the position of the node.
+    this.draw = function(layout) {
+      var self = this;
+      this.layout = layout
 
-       // The icon circle
-       $(utils.SVG('circle'))
-         .attr({"cx": layout.cx, "cy": layout.cy, r: (layout.r * .75)})
-         .attr("filter", "url(#" + this.type + ")")
-         .appendTo(this.svg);
+      // The node icon group
+      this.svg = $(utils.SVG('g'))
+        .attr("id", this.id)
+        .attr("class", "replica consistency-" + this.consistency)
+        .click(function() { self.create(); })
+        .appendTo(this.sim.svg);
 
-       // The label of the node
-       var label = {
-         "text-anchor": "middle",
-         "x": layout.cx,
-         "class": "label"
-       }
+      // The node circle
+      $(utils.SVG('circle'))
+        .attr(layout)
+        .appendTo(this.svg);
 
-       // Move above if above the fold else move below
-       if (layout.cy < (this.sim.height() / 2)) {
-         label.y = layout.cy - 8 - layout.r;
-       } else {
-         label.y = layout.cy + 18 + layout.r;
-       }
+      // The icon circle
+      $(utils.SVG('circle'))
+        .attr({"cx": layout.cx, "cy": layout.cy, r: (layout.r * .75)})
+        .attr("filter", "url(#" + this.type + ")")
+        .appendTo(this.svg);
 
-       $(utils.SVG('text'))
-         .attr(label)
-         .text(this.label)
-         .appendTo(this.svg);
-     }
+      // The label of the node
+      var label = {
+        "text-anchor": "middle",
+        "x": layout.cx,
+        "class": "label"
+      }
 
-     return this.init(sim, options);
-   };
+      // Move above if above the fold else move below
+      if (layout.cy < (this.sim.height() / 2)) {
+        label.y = layout.cy - 8 - layout.r;
+      } else {
+        label.y = layout.cy + 18 + layout.r;
+      }
+
+      $(utils.SVG('text'))
+        .attr(label)
+        .text(this.label)
+        .appendTo(this.svg);
+    }
+
+    return this.init(sim, options);
+  };
+
+  // Auto increment sequence for version ids.
+  var sequence = new utils.Sequence();
+
+  // Implement a piece of file version meta data
+  Version = function(parent, options) {
+
+    this.parent  = null;  // create a tree of version meta data
+    this.version = null;  // version id (auto increment)
+    this.creator = null;  // the replica that created the version
+    this.level   = null;  // the consistency level of the version meta
+    this.created = null;  // timestamp when created
+    this.updated = null;  // timestamp when updated
+
+    // Initialize version meta data
+    this.init = function(parent, options) {
+      options = options || {};
+
+      this.parent  = parent;
+      this.version = sequence.next();
+      this.creator = options.creator || null;
+      this.level   = options.level || null;
+      this.created = options.created || Date.now();
+      this.updated = options.updated || null;
+
+      return this;
+    }
+
+    // Fork a new version from this version
+    this.fork = function(options) {
+      this.updated = Date.now();
+
+      options = options || {};
+      options = _.defaults(options, {
+        creator: this.creator,
+        level: this.level,
+        created: this.created,
+        update: this.updated,
+      });
+
+      return new Version(this, options)
+    }
+
+    return this.init(parent, options);
+  };
 
 })();

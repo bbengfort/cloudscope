@@ -19,6 +19,8 @@
     CONSTANT: "constant",
     VARIABLE: "variable",
 
+    // Constant message payloads
+    ACK: "ACK", 
   }
 
   // Modifiable configuration values.
