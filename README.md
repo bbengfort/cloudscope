@@ -10,6 +10,28 @@
 
 Right now the plan is to have the cloudscope package generate a static site, which will then be placed into the `gh-pages` repository for hosting. A simple static webserver can serve that site for development. Generation of the static site, in this case, is simply the generation of JSON data from graphs that are constructed by the cloudscope utility.
 
+### Working Links 
+
+The following are tabs that I have open when I'm working on either the simulation or the SVG visualization. 
+
+- [CloudScope](http://bbengfort.github.io/cloudscope/)
+- [Waffle Dev Board](https://waffle.io/bbengfort/cloudscope)
+- [Github Repository](https://github.com/bbengfort/cloudscope)
+
+#### Simulation 
+
+- [SimPy Reference](https://simpy.readthedocs.org/en/latest/)
+
+#### SVG Visualization 
+
+- [Underscore.js Reference](http://underscorejs.org/)
+- [jQuery Reference](https://jquery.com/)
+- [Velocity.js Reference](http://julian.com/research/velocity/)
+- [Bootstrap Reference](http://getbootstrap.com/css/)
+- [Font Awesome Reference](https://fortawesome.github.io/Font-Awesome/cheatsheet/)
+- [SVG Reference](https://developer.mozilla.org/en-US/docs/Web/SVG)
+
+
 ## About
 
 Simple repository to visualize examples of data flow in distributed systems. Inspired by [The Secret Lives of Data](http://thesecretlivesofdata.com/raft/) and [RaftScope](https://github.com/ongardie/raftscope).
