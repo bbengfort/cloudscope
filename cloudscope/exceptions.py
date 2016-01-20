@@ -36,3 +36,10 @@ class ServerError(CloudScopeException):
     Errors in the development debug server.
     """
     pass
+
+
+class UnknownType(CloudScopeException):
+    """
+    An unknown type was passed causing a TypeError of some kind.
+    """
+    pass

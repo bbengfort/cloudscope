@@ -17,11 +17,13 @@ Wraps the Python logging module for cloudscope-specific logging.
 ## Imports
 ##########################################################################
 
+import getpass
 import logging
 import warnings
 import logging.config
 
 from cloudscope.config import settings
+from cloudscope.dynamo import Sequence
 
 ##########################################################################
 ## Logging configuration: must be run at the module level first
@@ -57,6 +59,11 @@ configuration = {
             'propagate': True,
         },
         'cloudscope.server': {
+            'level': settings.logging.level,
+            'handlers': ['console',],
+            'propagate': False,
+        },
+        'cloudscope.simulation': {
             'level': settings.logging.level,
             'handlers': ['console',],
             'propagate': False,
@@ -162,6 +169,44 @@ class ServerLogger(WrappedLogger):
         """
         # No extra context required at the moment.
         super(ServerLogger, self).log(level, message, *args, **kwargs)
+
+
+##########################################################################
+## The simulation logger class
+##########################################################################
+
+class SimulationLogger(WrappedLogger):
+    """
+    This will correctly log messages from the simulation.
+    """
+
+    counter = Sequence()
+    logger  = logging.getLogger('cloudscope.simulation')
+
+    def __init__(self, env, **kwargs):
+        self.env   = env
+        self._user = kwargs.pop('user', None)
+        super(SimulationLogger, self).__init__(**kwargs)
+
+    @property
+    def user(self):
+        if not self._user:
+            self._user = getpass.getuser()
+        return self._user
+
+    def log(self, level, message, *args, **kwargs):
+        """
+        Provide current user as extra context to the logger
+        """
+        extra = kwargs.pop('extra', {})
+        extra.update({
+            'user':  self.user,
+            'msgid': self.counter.next(),
+            'time':  self.env.now,
+        })
+
+        kwargs['extra'] = extra
+        super(SimulationLogger, self).log(level, message, *args, **kwargs)
 
 
 if __name__ == '__main__':

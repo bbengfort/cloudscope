@@ -28,6 +28,10 @@ from confire import Configuration
 PROJECT  = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
 
+##########################################################################
+## Web Configurations
+##########################################################################
+
 class SiteConfiguration(Configuration):
     """
     Configuration variables to add to the site.
@@ -68,6 +72,24 @@ class LoggingConfiguration(Configuration):
 
 
 ##########################################################################
+## Simulation Configuration
+##########################################################################
+
+class SimulationConfiguration(Configuration):
+
+    # Simulation Environment Parameters
+    random_seed   = 42
+    max_sim_time  = 1000
+
+
+class VisualizationConfiguration(Configuration):
+
+    style         = "whitegrid"
+    context       = "paper"
+    palette       = None
+
+
+##########################################################################
 ## Application Configuration
 ##########################################################################
 
@@ -79,11 +101,19 @@ class CloudScopeConfiguration(Configuration):
         os.path.abspath('conf/cloudscope.yaml')
     ]
 
-    debug     = False
-    testing   = True
-    site      = SiteConfiguration()
-    logging   = LoggingConfiguration()
-    server    = ServerConfiguration()
+    debug      = False
+    testing    = True
+    logging    = LoggingConfiguration()
+
+    # Web server parameters
+    site       = SiteConfiguration()
+    server     = ServerConfiguration()
+
+    # Simulation parameters
+    simulation = SimulationConfiguration()
+
+    # Visualization parameters
+    vizualization = VisualizationConfiguration()
 
 ##########################################################################
 ## Generate Site Settings
