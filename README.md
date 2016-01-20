@@ -1,6 +1,8 @@
 # CloudScope
 
-[![Stories Ready](https://badge.waffle.io/bbengfort/cloudscope.png?label=ready&title=ready)](https://wÂaffle.io/bbengfort/cloudscope)
+[![Build Status](https://travis-ci.org/bbengfort/cloudscope.svg?branch=master)](https://travis-ci.org/bbengfort/cloudscope)
+[![Coverage Status](https://coveralls.io/repos/github/bbengfort/cloudscope/badge.svg?branch=master)](https://coveralls.io/github/bbengfort/cloudscope?branch=master)
+[![Stories Ready](https://badge.waffle.io/bbengfort/cloudscope.png?label=ready&title=ready)](https://waffle.io/bbengfort/cloudscope)
 
 **Visualization of distributed systems and communications.**
 
@@ -10,19 +12,19 @@
 
 Right now the plan is to have the cloudscope package generate a static site, which will then be placed into the `gh-pages` repository for hosting. A simple static webserver can serve that site for development. Generation of the static site, in this case, is simply the generation of JSON data from graphs that are constructed by the cloudscope utility.
 
-### Working Links 
+### Working Links
 
-The following are tabs that I have open when I'm working on either the simulation or the SVG visualization. 
+The following are tabs that I have open when I'm working on either the simulation or the SVG visualization.
 
 - [CloudScope](http://bbengfort.github.io/cloudscope/)
 - [Waffle Dev Board](https://waffle.io/bbengfort/cloudscope)
 - [Github Repository](https://github.com/bbengfort/cloudscope)
 
-#### Simulation 
+#### Simulation
 
 - [SimPy Reference](https://simpy.readthedocs.org/en/latest/)
 
-#### SVG Visualization 
+#### SVG Visualization
 
 - [Underscore.js Reference](http://underscorejs.org/)
 - [jQuery Reference](https://jquery.com/)
