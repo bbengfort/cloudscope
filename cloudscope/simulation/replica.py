@@ -27,6 +27,14 @@ class Consistency(object):
     MEDIUM = "medium"
     LOW    = "low"
 
+class Location(object):
+
+    HOME    = "home"
+    WORK    = "work"
+    MOBILE  = "mobile"
+    CLOUD   = "cloud"
+    UNKNOWN = "unknown"
+
 ##########################################################################
 ## Replica Functionality
 ##########################################################################
@@ -57,6 +65,7 @@ class Replica(Node):
         self.id    = kwargs.get('id', 'r{}'.format(self.counter.next()))
         self.type  = kwargs.get('type', settings.simulation.default_replica)
         self.label = kwargs.get('label', "{}-{}".format(self.type, self.id))
+        self.location    = kwargs.get('location', Location.UNKNOWN)
         self.versions    = {}
         self.consistency = kwargs.get(
             'consistency', settings.simulation.default_consistency
@@ -77,6 +86,8 @@ class Replica(Node):
             )
         )
 
+        return event
+
     def recv(self, event):
         message = event.value
         self.sim.logger.debug(
@@ -85,10 +96,28 @@ class Replica(Node):
             )
         )
 
+        # Implemented straight from the simulation
+        if message.value == "ACK":
+            return
+
+        # Send acknowledgement to the sender
+        self.send(message.source, "ACK")
+
+        vers = message.value
+        if vers.version not in self.versions:
+            self.versions[vers.version] = vers
+
+            # Send updates to everyone else.
+            for target in self.connections:
+                if target != message.source:
+                    self.send(target, vers)
+
     def serialize(self):
         return dict([
             (attr, getattr(self, attr))
-            for attr in ('id', 'type', 'label', 'consistency', 'versions')
+            for attr in (
+                'id', 'type', 'label', 'location', 'consistency', 'versions'
+            )
         ])
 
     def __str__(self):
@@ -124,3 +153,27 @@ class Version(object):
         return Version(
             replica, parent=self, level=self.level, created=self.created
         )
+
+    def contiguous(self):
+        """
+        Counts the number of contiguous versions between the parent and this
+        version; use this method to detect conflicts between different forks.
+        """
+        if self.parent:
+            # Is the parent one less than this version?
+            if self.parent.version == self.version - 1:
+                return self.parent.contiguous() + 1
+        return -1
+
+    def __str__(self):
+        if self.parent:
+            root = self.parent
+            contiguous = self.contiguous()
+            if contiguous:
+                for idx in xrange(contiguous):
+                    root = root.parent
+            return "{}-[{}]-{}".format(root, contiguous, self.version)
+        return "Version {}".format(self.version)
+
+    def __repr__(self):
+        return repr(str(self))

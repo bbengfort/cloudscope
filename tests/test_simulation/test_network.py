@@ -34,33 +34,33 @@ class ConnectionTests(unittest.TestCase):
         """
         Test constant latency connections.
         """
-        conn = Connection(None, None, None, latency=300, type=CONSTANT)
+        conn = Connection(None, None, None, latency=300, connection=CONSTANT)
         for idx in xrange(5000):
             self.assertEqual(conn.latency(), 300)
 
         # Test latency invariant: latency is an integer
         with self.assertRaises(AssertionError):
-            conn = Connection(None, None, None, latency=(300, 1200), type=CONSTANT)
+            conn = Connection(None, None, None, latency=(300, 1200), connection=CONSTANT)
             conn.latency()
 
     def test_variable_latency(self):
         """
         Test variable latency connections.
         """
-        conn = Connection(None, None, None, latency=(300, 1200), type=VARIABLE)
+        conn = Connection(None, None, None, latency=(300, 1200), connection=VARIABLE)
         for idx in xrange(5000):
             self.assertGreaterEqual(conn.latency(), 300)
             self.assertLessEqual(conn.latency(), 1200)
 
         # Test latency invariant: latency is an tuple
         with self.assertRaises(AssertionError):
-            conn = Connection(None, None, None, latency=300, type=VARIABLE)
+            conn = Connection(None, None, None, latency=300, connection=VARIABLE)
             conn.latency()
 
     def test_weird_connection_type(self):
         """
         Ensure that connections can only be constant or variable
         """
-        conn = Connection(None, None, None, type="weird")
+        conn = Connection(None, None, None, connection="weird")
         with self.assertRaises(UnknownType):
             conn.latency()

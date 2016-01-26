@@ -11,6 +11,7 @@
             "label": "Home Desktop",
             "type": "desktop",
             "consistency": "strong",
+            "location": "home",
             "files": {}
         },
         {
@@ -18,6 +19,7 @@
             "label": "Work Desktop",
             "type": "desktop",
             "consistency": "strong",
+            "location": "work",
             "files": {}
         },
         {
@@ -25,6 +27,7 @@
             "label": "Cloud Storage",
             "type": "storage",
             "consistency": "strong",
+            "location": "cloud",
             "files": {}
         },
         {
@@ -32,6 +35,7 @@
             "label": "Home Backup",
             "type": "storage",
             "consistency": "medium",
+            "location": "home",
             "files": {}
         },
         {
@@ -39,6 +43,7 @@
             "label": "Work Backup",
             "type": "storage",
             "consistency": "medium",
+            "location": "work",
             "files": {}
         },
         {
@@ -46,6 +51,7 @@
             "label": "Laptop",
             "type": "laptop",
             "consistency": "medium",
+            "location": "mobile",
             "files": {}
         },
         {
@@ -53,6 +59,7 @@
             "label": "iPad",
             "type": "tablet",
             "consistency": "low",
+            "location": "mobile",
             "files": {}
         },
         {
@@ -60,6 +67,7 @@
             "label": "iPhone",
             "type": "smartphone",
             "consistency": "low",
+            "location": "mobile",
             "files": {}
         }
     ],

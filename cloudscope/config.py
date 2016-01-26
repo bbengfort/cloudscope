@@ -86,6 +86,11 @@ class SimulationConfiguration(Configuration):
     default_replica = "storage"
     default_consistency = "strong"
 
+    # Workload Parameters
+    workable = [
+        "home", "work", "mobile"
+    ]
+
 
 class VisualizationConfiguration(Configuration):
 

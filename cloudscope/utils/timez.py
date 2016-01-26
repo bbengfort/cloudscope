@@ -91,6 +91,11 @@ def humanizedelta(*args, **kwargs):
     Wrapper around dateutil.relativedelta (same construtor args) and returns
     a humanized string representing the detla in a meaningful way.
     """
+    if 'milliseconds' in kwargs:
+        sec  = kwargs.get('seconds', 0)
+        msec = kwargs.pop('milliseconds')
+        kwargs['seconds'] = sec + (float(msec) / 1000.0)
+
     delta = relativedelta(*args, **kwargs)
     attrs = ('years', 'months', 'days', 'hours', 'minutes', 'seconds')
     parts = [

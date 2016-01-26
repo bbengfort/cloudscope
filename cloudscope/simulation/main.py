@@ -24,6 +24,7 @@ from cloudscope.config import settings
 from cloudscope.simulation import Simulation
 from cloudscope.simulation.network import Network
 from cloudscope.simulation.replica import Replica
+from cloudscope.simulation.workload import Workload
 from cloudscope.utils.serialize import JSONEncoder
 
 ##########################################################################
@@ -63,15 +64,8 @@ class ConsistencySimulation(Simulation):
         self.network  = Network()
 
     def script(self):
-        import random
-
-        def messenger(env):
-            for idx in xrange(20):
-                yield env.timeout(random.randint(20, 1000))
-                conn = random.choice(list(self.network))
-                conn.source.send(conn.target, "hello world {}!".format(idx))
-
-        self.env.process(messenger(self.env))
+        self.workload = Workload(self.env, self)
+        print self.workload.locations
 
     def dump(self, fobj, **kwargs):
         """

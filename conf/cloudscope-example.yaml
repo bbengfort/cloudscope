@@ -44,6 +44,12 @@ simulation:
     default_replica: storage
     default_consistency: strong
 
+    # Workload Parameters
+    workable:
+        - home
+        - work
+        - mobile
+
 ## Visualization parameters
 vizualization:
     # The Seaborn style can be one of darkgrid, whitegrid, dark, white, ticks

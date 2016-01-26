@@ -218,3 +218,24 @@ class DiscreteDistribution(Distribution):
         x = random.random() * self.total
         i = bisect.bisect(self.cumulative, x)
         return self.values[i]
+
+## Alias for Discrete Distribution
+Discrete = DiscreteDistribution
+
+
+class BernoulliDistribution(Distribution):
+    """
+    The probability distribution of a random variable which is True with the
+    success probability of p and False with the probability of 1-p. By default
+    this is a coin toss with probability p=0.5.
+    """
+
+    def __init__(self, p=0.5):
+        self.p = p
+        self.q = 1 - p
+
+    def next(self):
+        return random.random() < self.p
+
+## Alias for Bernoulli Distribution
+Bernoulli = BernoulliDistribution
