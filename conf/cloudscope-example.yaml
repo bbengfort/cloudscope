@@ -39,6 +39,11 @@ simulation:
     random_seed:  42
     max_sim_time: 1000
 
+    # Network Parameters
+    default_latency: 800
+    default_replica: storage
+    default_consistency: strong
+
 ## Visualization parameters
 vizualization:
     # The Seaborn style can be one of darkgrid, whitegrid, dark, white, ticks
