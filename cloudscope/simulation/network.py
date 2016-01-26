@@ -23,9 +23,11 @@ and the Network manages Messages -- events that are sent between them.
 ##########################################################################
 
 import random
+import networkx as nx
 
 from collections import defaultdict
 from collections import namedtuple
+from networkx.readwrite import json_graph
 
 from cloudscope.config import settings
 from cloudscope.exceptions import UnknownType
@@ -129,6 +131,20 @@ class Connection(object):
             "Unkown connection type, {!r}".format(self.type)
         )
 
+    def get_latency_range(self):
+        """
+        Returns the latency range no matter the type.
+        """
+        if self.type == CONSTANT:
+            return (self._latency, self._latency)
+        return self._latency
+
+    def serialize(self):
+        return {
+            "connection": self.type,
+            "active": self.active,
+            "latency": self._latency,
+        }
 
 ##########################################################################
 ## Network of connections
@@ -168,3 +184,54 @@ class Network(object):
 
         if bidirectional:
             self.remove_connection(target, source)
+
+    def iter_connections(self):
+        """
+        Iterate through all the connection objects
+        """
+        for source, link in self.connections.iteritems():
+            for connection in link.values():
+                yield connection
+
+    def filter(self, type):
+        """
+        Filter the connections by type, e.g. constant or variable.
+        """
+        for connection in self.iter_connections():
+            if connection.type == type:
+                yield connection
+
+    def get_latency_ranges(self):
+        """
+        Computes the minimum and maximum latencies for all connection types.
+        """
+        latencies = defaultdict(set)
+        for connection in self.iter_connections():
+            for latency in connection.get_latency_range():
+                latencies[connection.type].add(latency)
+
+        return dict([
+            (conn, (min(late), max(late)))
+            for conn, late in latencies.iteritems()
+        ])
+
+    def graph(self):
+        """
+        Returns a NetworkX undirected graph of the network by first creating
+        a directed graph then calling the NetworkX to_undirected method.
+        """
+        graph = nx.DiGraph()
+        for source, links in self.connections.iteritems():
+            graph.add_node(source.id, **source.serialize())
+
+            for target, conn in links.iteritems():
+                graph.add_edge(source.id, target.id, **conn.serialize())
+
+        return graph.to_undirected()
+
+    def serialize(self):
+        """
+        Returns the D3 JSON representation of the graph
+        """
+        graph = self.graph()
+        return json_graph.node_link_data(graph)

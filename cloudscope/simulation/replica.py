@@ -53,5 +53,11 @@ class Replica(Node):
         self.consistency = kwargs.get(
             'consistency', settings.simulation.default_consistency
         )
-        
+
         self.versions    = {}
+
+    def serialize(self):
+        return dict([
+            (attr, getattr(self, attr))
+            for attr in ('id', 'type', 'label', 'consistency', 'versions')
+        ])

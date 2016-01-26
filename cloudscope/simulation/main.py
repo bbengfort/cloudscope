@@ -24,6 +24,7 @@ from cloudscope.config import settings
 from cloudscope.simulation import Simulation
 from cloudscope.simulation.network import Network
 from cloudscope.simulation.replica import Replica
+from cloudscope.utils.serialize import JSONEncoder
 
 ##########################################################################
 ## Primary Simulation
@@ -62,5 +63,29 @@ class ConsistencySimulation(Simulation):
         self.network  = Network()
 
     def script(self):
-        print self.replicas
-        print self.network
+        import sys
+        self.dump(sys.stdout, indent=2)
+        print
+
+    def dump(self, fobj, **kwargs):
+        """
+        Write the simulation to disk as a D3 JSON Graph
+        """
+        return json.dump(self, fobj, cls=JSONEncoder, **kwargs)
+
+    def serialize(self):
+        latency = self.network.get_latency_ranges()
+        network = self.network.serialize()
+
+        return {
+            'nodes': network['nodes'],
+            'links': network['links'],
+            'meta':  {
+                'seed': self.random_seed,
+                'title': self.name,
+
+                # Latency Labels
+                'constant': '{}ms'.format(latency['constant'][0]),
+                'variable': '{}-{}ms'.format(*latency['variable']),
+            },
+        }
