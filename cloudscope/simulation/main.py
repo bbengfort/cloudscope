@@ -45,7 +45,7 @@ class ConsistencySimulation(Simulation):
 
             # Add replicas to the simulation
             for node in data['nodes']:
-                csim.replicas.append(Replica(**node))
+                csim.replicas.append(Replica(csim, **node))
 
             # Add edges to the network graph
             for link in data['links']:
@@ -63,9 +63,15 @@ class ConsistencySimulation(Simulation):
         self.network  = Network()
 
     def script(self):
-        import sys
-        self.dump(sys.stdout, indent=2)
-        print
+        import random
+
+        def messenger(env):
+            for idx in xrange(20):
+                yield env.timeout(random.randint(20, 1000))
+                conn = random.choice(list(self.network))
+                conn.source.send(conn.target, "hello world {}!".format(idx))
+
+        self.env.process(messenger(self.env))
 
     def dump(self, fobj, **kwargs):
         """

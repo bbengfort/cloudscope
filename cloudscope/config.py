@@ -79,7 +79,7 @@ class SimulationConfiguration(Configuration):
 
     # Simulation Environment Parameters
     random_seed     = 42
-    max_sim_time    = 1000
+    max_sim_time    = 4320000
 
     # Network Parameters
     default_latency = 800

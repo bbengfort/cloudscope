@@ -41,7 +41,7 @@ from cloudscope.simulation.base import Process
 CONSTANT = "constant"
 VARIABLE = "variable"
 
-Message  = namedtuple('Message', 'source, target, value')
+Message  = namedtuple('Message', 'source, target, value, delay')
 
 ##########################################################################
 ## A Node implements the connectible interface
@@ -65,11 +65,19 @@ class Node(object):
         """
         return self.network.connections[self]
 
+    def pack(self, target, value):
+        """
+        Packs a message object with connection-specific values.
+        """
+        return Message(
+            self, target, value, self.connections[target].latency()
+        )
+
     def send(self, target, value):
         """
         The send messsage interface required by connectible objects.
         """
-        pass
+        raise NotImplementedError("Subclasses must handle sending messages.")
 
     def recv(self, message):
         """
@@ -81,7 +89,8 @@ class Node(object):
         """
         Sends a message to every connection on the network.
         """
-        pass
+        for target in self.network.connections:
+            self.send(target, value)
 
 
 ##########################################################################
@@ -235,3 +244,6 @@ class Network(object):
         """
         graph = self.graph()
         return json_graph.node_link_data(graph)
+
+    def __iter__(self):
+        return self.iter_connections()
