@@ -89,7 +89,7 @@ class Node(object):
         """
         Sends a message to every connection on the network.
         """
-        for target in self.network.connections:
+        for target in self.connections:
             self.send(target, value)
 
 

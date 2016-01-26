@@ -23,7 +23,7 @@ from cloudscope.config import settings
 from cloudscope.simulation.base import Process
 from cloudscope.dynamo import Normal, Bernoulli, Discrete
 from cloudscope.utils.decorators import memoized
-from cloudscope.simulation.replica import Location, Replica
+from cloudscope.simulation.replica import Location, Replica, Version
 from cloudscope.exceptions import UnknownType
 
 from collections import defaultdict
@@ -46,6 +46,7 @@ class Workload(Process):
         # Current Device and location
         self.location  = None
         self.device    = None
+        self.version   = None
 
         # Write Likelihood of a Device
         # About 20 writes per hour with stddev of about 8 writes per hour.
@@ -114,11 +115,13 @@ class Workload(Process):
     def run(self):
         from cloudscope.utils.timez import humanizedelta
         self.update()
+        self.version = Version(self.device)
         self.sim.logger.debug(
             "User is at {} on their {}".format(
                 self.location, self.device
             )
         )
+        self.device.broadcast(self.version)
 
         while True:
             self.update()
@@ -130,3 +133,7 @@ class Workload(Process):
                     self.location, self.device, humanizedelta(milliseconds=wait)
                 )
             )
+
+            # Initiate a write.
+            self.version = self.version.fork(self.device)
+            self.device.broadcast(self.version)

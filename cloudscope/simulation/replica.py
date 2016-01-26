@@ -86,6 +86,8 @@ class Replica(Node):
             )
         )
 
+        return event
+
     def recv(self, event):
         message = event.value
         self.sim.logger.debug(
@@ -93,6 +95,22 @@ class Replica(Node):
                 message.value, message.target, self.env.now, message.source, message.delay
             )
         )
+
+        # Implemented straight from the simulation
+        if message.value == "ACK":
+            return
+
+        # Send acknowledgement to the sender
+        self.send(message.source, "ACK")
+
+        vers = message.value
+        if vers.version not in self.versions:
+            self.versions[vers.version] = vers
+
+            # Send updates to everyone else.
+            for target in self.connections:
+                if target != message.source:
+                    self.send(target, vers)
 
     def serialize(self):
         return dict([
@@ -135,3 +153,27 @@ class Version(object):
         return Version(
             replica, parent=self, level=self.level, created=self.created
         )
+
+    def contiguous(self):
+        """
+        Counts the number of contiguous versions between the parent and this
+        version; use this method to detect conflicts between different forks.
+        """
+        if self.parent:
+            # Is the parent one less than this version?
+            if self.parent.version == self.version - 1:
+                return self.parent.contiguous() + 1
+        return -1
+
+    def __str__(self):
+        if self.parent:
+            root = self.parent
+            contiguous = self.contiguous()
+            if contiguous:
+                for idx in xrange(contiguous):
+                    root = root.parent
+            return "{}-[{}]-{}".format(root, contiguous, self.version)
+        return "Version {}".format(self.version)
+
+    def __repr__(self):
+        return repr(str(self))
