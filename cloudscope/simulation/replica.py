@@ -27,6 +27,14 @@ class Consistency(object):
     MEDIUM = "medium"
     LOW    = "low"
 
+class Location(object):
+
+    HOME    = "home"
+    WORK    = "work"
+    MOBILE  = "mobile"
+    CLOUD   = "cloud"
+    UNKNOWN = "unknown"
+
 ##########################################################################
 ## Replica Functionality
 ##########################################################################
@@ -57,6 +65,7 @@ class Replica(Node):
         self.id    = kwargs.get('id', 'r{}'.format(self.counter.next()))
         self.type  = kwargs.get('type', settings.simulation.default_replica)
         self.label = kwargs.get('label', "{}-{}".format(self.type, self.id))
+        self.location    = kwargs.get('location', Location.UNKNOWN)
         self.versions    = {}
         self.consistency = kwargs.get(
             'consistency', settings.simulation.default_consistency
@@ -88,7 +97,9 @@ class Replica(Node):
     def serialize(self):
         return dict([
             (attr, getattr(self, attr))
-            for attr in ('id', 'type', 'label', 'consistency', 'versions')
+            for attr in (
+                'id', 'type', 'label', 'location', 'consistency', 'versions'
+            )
         ])
 
     def __str__(self):
