@@ -78,8 +78,13 @@ class LoggingConfiguration(Configuration):
 class SimulationConfiguration(Configuration):
 
     # Simulation Environment Parameters
-    random_seed   = 42
-    max_sim_time  = 1000
+    random_seed     = 42
+    max_sim_time    = 4320000
+
+    # Network Parameters
+    default_latency = 800
+    default_replica = "storage"
+    default_consistency = "strong"
 
 
 class VisualizationConfiguration(Configuration):

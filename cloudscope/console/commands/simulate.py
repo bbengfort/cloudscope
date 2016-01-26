@@ -21,7 +21,7 @@ import argparse
 
 from commis import Command
 from cloudscope.config import settings
-from cloudscope.simulation.cars import GasStationSimulation
+from cloudscope.simulation.main import ConsistencySimulation
 
 
 ##########################################################################
@@ -38,11 +38,18 @@ class SimulateCommand(Command):
             'default': None,
             'metavar': 'PATH',
             'help': 'specify location to write output to',
+        },
+        'data': {
+            'nargs': '?',
+            'type': argparse.FileType('r'),
+            'default': None,
+            'metavar': 'data.json',
+            'help': 'simulation description file to load'
         }
     }
 
     def handle(self, args):
-        sim = GasStationSimulation()
+        sim = ConsistencySimulation.load(args.data)
         sim.run()
 
         # Dump the output data to a file.

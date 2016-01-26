@@ -43,3 +43,20 @@ class UnknownType(CloudScopeException):
     An unknown type was passed causing a TypeError of some kind.
     """
     pass
+
+##########################################################################
+## Simulation Exception Hierarchy
+##########################################################################
+
+class SimulationException(CloudScopeException):
+    """
+    Something went wrong in a simulation.
+    """
+    pass
+
+
+class NetworkError(SimulationException):
+    """
+    Could not send or receive a message between two nodes.
+    """
+    pass
