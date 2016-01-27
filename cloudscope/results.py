@@ -25,6 +25,7 @@ from cloudscope.utils.serialize import JSONEncoder
 from cloudscope.utils.decorators import Timer, memoized
 from cloudscope.utils.timez import HUMAN_DATETIME
 from cloudscope.utils.timez import epochptime
+from cloudscope.viz import plot_workload
 
 from collections import defaultdict
 
@@ -88,6 +89,12 @@ class Results(object):
         Alias for cloudscope.viz.plot_results
         """
         raise NotImplementedError("Plotting the results not implemented yet.")
+
+    def plot_workload(self, **kwargs):
+        """
+        Hook for cloudscope.viz.plot_workload
+        """
+        return plot_workload(self, **kwargs)
 
     @memoized
     def title(self):

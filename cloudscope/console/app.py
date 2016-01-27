@@ -34,6 +34,7 @@ EPILOG      = "If there are any bugs or concerns, submit an issue on Github"
 COMMANDS    = [
     ServeCommand,
     SimulateCommand,
+    VisualizeCommand,
 ]
 
 ##########################################################################

@@ -161,9 +161,18 @@ class Workload(Process):
                 self.version = self.version.fork(self.device)
                 self.device.broadcast(self.version)
 
-            if access == WRITE:
+                # Log timeseries
+                self.sim.results.update(
+                    WRITE, (self.env.now, self.location, self.device.label)
+                )
+
+            if access == READ:
                 # TODO: Perform appropriate device read
-                pass
+
+                # Log timeseries
+                self.sim.results.update(
+                    READ, (self.env.now, self.location, self.device.label)
+                )
 
             # Debug log the read/write access
             self.sim.logger.debug(
