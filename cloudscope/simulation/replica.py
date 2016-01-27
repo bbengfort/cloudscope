@@ -116,7 +116,7 @@ class Replica(Node):
         return dict([
             (attr, getattr(self, attr))
             for attr in (
-                'id', 'type', 'label', 'location', 'consistency', 'versions'
+                'id', 'type', 'label', 'location', 'consistency'
             )
         ])
 

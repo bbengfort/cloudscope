@@ -45,10 +45,20 @@ simulation:
     default_consistency: strong
 
     # Workload Parameters
-    workable:
+    valid_locations:    # locations to allow user to move to.
         - home
         - work
         - mobile
+
+    invalid_types:      # replica types that shouldn't have accesses.
+        - storage
+
+    move_prob: 0.2      # probability of moving locations
+    switch_prob: 0.4    # probability of switching devices
+    access_mean: 1800   # mean delay (milliseconds) between accesses
+    access_stddev: 512  # standard deviation of delay (milliseconds) between accesses
+    read_prob: 0.8      # probability of read access; write probability is 1 - read_prob
+
 
 ## Visualization parameters
 vizualization:

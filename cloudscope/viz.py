@@ -17,6 +17,8 @@ Helper functions for creating output vizualiations from simulations.
 ## Imports
 ##########################################################################
 
+from operator import itemgetter
+from collections import defaultdict
 from cloudscope.config import settings
 from peak.util.imports import lazyModule
 
@@ -62,3 +64,50 @@ def plot_time(series, **kwargs):
     """
     kwargs = configure(**kwargs)
     return sns.tsplot(np.array(series), **kwargs)
+
+
+def plot_workload(results, devices=False, **kwargs):
+    """
+    Helper function to make a timeline plot of reads/writes.
+    If devices is True, plots timeline by device, else location.
+    """
+    kwargs  = configure(**kwargs)
+    outpath = kwargs.pop('savefig', None)
+    series  = 2 if devices else 1
+
+    read_color  = kwargs.pop('read_color', '#E20404')
+    write_color = kwargs.pop('write_color', '#1E05D9')
+    locations   = defaultdict(list)
+
+    # Build the data from the read and write time series
+    for key in ('read', 'write'):
+        for item in results.results[key]:
+            locations[item[series]].append(
+                item + [key]
+            )
+
+    # Sort the data by timestamp
+    for key in locations:
+        locations[key].sort(key=itemgetter(0))
+
+    # Create the visualization
+    x = []
+    y = []
+    c = []
+
+    for idx, (key, lst) in enumerate(locations.items()):
+        for item in lst:
+            x.append(item[0])
+            y.append(idx)
+            c.append(read_color if item[-1] == 'read' else write_color)
+
+    plt.figure(figsize=(14,4))
+    plt.ylim((-1,len(locations)))
+    plt.xlim((-1000, max(item[-1][0] for item in locations.values())+1000))
+    plt.yticks(range(len(locations)), locations.keys())
+    plt.scatter(x, y, color=c, alpha=0.5, s=10)
+
+    if outpath:
+        return plt.savefig(outpath, format='svg', dpi=1200)
+
+    return plt

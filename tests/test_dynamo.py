@@ -23,7 +23,12 @@ from cloudscope.dynamo import Sequence
 from cloudscope.dynamo import ExponentialSequence
 from cloudscope.dynamo import NormalDistribution
 from cloudscope.dynamo import UniformDistribution
+from cloudscope.dynamo import BoundedNormalDistribution
+from cloudscope.dynamo import DiscreteDistribution
+from cloudscope.dynamo import BernoulliDistribution
 from cloudscope.exceptions import UnknownType
+
+from collections import Counter
 
 ##########################################################################
 ## Sequence Tests
@@ -94,6 +99,18 @@ class DistributionTests(unittest.TestCase):
     Make sure that the distributions behave as expected.
     """
 
+    def assertCloseEqual(self, first, second, amount=7, **kwargs):
+        """
+        Assertion for integer closeness, e.g. abs(a-b) < amount
+        """
+        if 'msg' not in kwargs:
+            kwargs['msg'] = (
+                "{} and {} are not closely equal by a difference of {}"
+                .format(first, second, amount)
+            )
+
+        self.assertLessEqual(abs(first - second), amount, **kwargs)
+
     def test_uniform_int(self):
         """
         Weak test of uniform int distributions.
@@ -141,8 +158,8 @@ class DistributionTests(unittest.TestCase):
         standard = NormalDistribution(0, 1)
         for idx in xrange(100000):
             event = standard.next()
-            self.assertGreater(event, -5)
-            self.assertLess(event, 5)
+            self.assertGreater(event, -6)
+            self.assertLess(event, 6)
 
     def test_normal_mean(self):
         """
@@ -154,3 +171,116 @@ class DistributionTests(unittest.TestCase):
         mean    = total / samples
 
         self.assertAlmostEqual(mean, 0.0, places=2)
+
+    def test_bounded_normal(self):
+        """
+        Perform same normal test with an unbounded, bounded normal.
+        """
+        standard = BoundedNormalDistribution(0, 1)
+        for idx in xrange(100000):
+            event = standard.next()
+            self.assertGreater(event, -6)
+            self.assertLess(event, 6)
+
+    def test_bounded_normal_mean(self):
+        """
+        Perform same normal mean approximation with an unbounded, bounded normal.
+        """
+        dist    = BoundedNormalDistribution(0, 1)
+        samples = 1000000
+        total   = sum(dist.next() for idx in xrange(samples))
+        mean    = total / samples
+
+        self.assertAlmostEqual(mean, 0.0, places=2)
+
+    def test_bounded_normal_floor(self):
+        """
+        Test the bounded normal with only a floor.
+        """
+        standard = BoundedNormalDistribution(0, 1, floor=-1)
+        for idx in xrange(100000):
+            event = standard.next()
+            self.assertGreaterEqual(event, -1)
+            self.assertLess(event, 6)
+
+    def test_bounded_normal_ceil(self):
+        """
+        Test the bounded normal with only a ceil.
+        """
+        standard = BoundedNormalDistribution(0, 1, ceil=1)
+        for idx in xrange(100000):
+            event = standard.next()
+            self.assertGreater(event, -6)
+            self.assertLessEqual(event, 1)
+
+    def test_bounded_normal_floor_ceil(self):
+        """
+        Test the bounded normal with floor and ceil.
+        """
+        standard = BoundedNormalDistribution(0, 1, floor=-1, ceil=1)
+        for idx in xrange(100000):
+            event = standard.next()
+            self.assertGreaterEqual(event, -1)
+            self.assertLessEqual(event, 1)
+
+    def test_discrete_cumulative(self):
+        """
+        Test the creation of a cumulative distribtion.
+        """
+        discrete = DiscreteDistribution('abcde')
+        self.assertEqual(discrete.cumulative, [1.0, 2.0, 3.0, 4.0, 5.0])
+
+        discrete = DiscreteDistribution('abcde', [80, 5, 5, 5, 5])
+        self.assertEqual(discrete.cumulative, [80, 85, 90, 95, 100])
+
+    def test_discrete_probabilities(self):
+        """
+        Test the discrete probabilities computation.
+        """
+        discrete = DiscreteDistribution('abcde')
+        self.assertEqual(
+            discrete.probabilities,
+            {'a':0.2, 'b':0.2, 'c':0.2, 'd':0.2, 'e':0.2}
+        )
+
+        discrete = DiscreteDistribution('abcde', [80, 5, 5, 5, 5])
+        self.assertEqual(
+            discrete.probabilities,
+            {'a':0.8, 'b':0.05, 'c':0.05, 'd':0.05, 'e':0.05}
+        )
+
+    def test_discrete_distribution(self):
+        """
+        Weak test of discrete distributions.
+        """
+        n = 10000
+        discrete = DiscreteDistribution('abcde')
+        counts = Counter([discrete.get() for x in xrange(n)])
+        for val, prob in discrete.probabilities.items():
+            self.assertCloseEqual(counts[val], n * prob, 200)
+
+        discrete = DiscreteDistribution('abcde', [80, 5, 5, 5, 5])
+        counts = Counter([discrete.get() for x in xrange(n)])
+        for val, prob in discrete.probabilities.items():
+            self.assertCloseEqual(counts[val], n * prob, 200)
+
+    def test_bernoulli_distribution(self):
+        """
+        Weak test of bernoulli distributions.
+        """
+        n = 10000
+        bernoulli = BernoulliDistribution()
+        self.assertAlmostEqual(bernoulli.p, 0.5)
+        self.assertAlmostEqual(bernoulli.q, 0.5)
+
+        counts = Counter([bernoulli.get() for x in xrange(n)])
+        self.assertCloseEqual(counts[True], n * 0.5, 100)
+        self.assertCloseEqual(counts[True], n * 0.5, 100)
+
+        bernoulli = BernoulliDistribution(0.8)
+        self.assertAlmostEqual(bernoulli.p, 0.8)
+        self.assertAlmostEqual(bernoulli.q, 0.2)
+
+        counts = Counter([bernoulli.get() for x in xrange(n)])
+        self.assertCloseEqual(counts[True], n * 0.8, 100)
+        self.assertCloseEqual(counts[False], n * 0.2, 100)

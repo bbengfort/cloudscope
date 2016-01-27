@@ -184,6 +184,31 @@ class NormalDistribution(Distribution):
 Normal = NormalDistribution
 
 
+class BoundedNormalDistribution(NormalDistribution):
+    """
+    A normal distribution with a hard floor and/or ceiling.
+    """
+
+    def __init__(self, mean, stddev, floor=None, ceil=None):
+        self.floor = floor
+        self.ceil  = ceil
+        super(BoundedNormalDistribution, self).__init__(mean, stddev)
+
+    def next(self):
+        val = super(BoundedNormalDistribution, self).next()
+        if self.floor is not None:
+            val = max(val, self.floor)
+
+        if self.ceil is not None:
+            val = min(val, self.ceil)
+
+        return val
+
+
+## Alias for Bounded Normal Distribution
+BoundedNormal = BoundedNormalDistribution
+
+
 class DiscreteDistribution(Distribution):
     """
     Generates a random selection from a possible list of values, and is
