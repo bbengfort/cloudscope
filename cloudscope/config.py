@@ -87,9 +87,21 @@ class SimulationConfiguration(Configuration):
     default_consistency = "strong"
 
     # Workload Parameters
-    workable = [
+    # Locations to allow users to move to
+    valid_locations = [
         "home", "work", "mobile"
     ]
+
+    # Replica types that shouldn't have accesses.
+    invalid_types   = [
+        "storage"
+    ]
+
+    move_prob       = 0.2   # probability of moving locations
+    switch_prob     = 0.4   # probability of swithcing devices
+    access_mean     = 1800  # mean delay between accesses (milliseconds)
+    access_stddev   = 512   # stddev of delay between accesses (milliseconds)
+    read_prob       = 0.8   # probability of read access (write is 1-read_prob)
 
 
 class VisualizationConfiguration(Configuration):

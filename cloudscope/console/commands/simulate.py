@@ -39,6 +39,12 @@ class SimulateCommand(Command):
             'metavar': 'PATH',
             'help': 'specify location to write output to',
         },
+        ('-g', '--graph'): {
+            'type': argparse.FileType('w'),
+            'default': None,
+            'metavar': 'PATH',
+            'help': 'specify location to write the simulation graph',
+        },
         'data': {
             'nargs': '?',
             'type': argparse.FileType('r'),
@@ -57,5 +63,9 @@ class SimulateCommand(Command):
             path = "{}-{}.json".format(sim.name, sim.results.finished.strftime('%Y%m%d'))
             args.output = open(path, 'w')
         sim.results.dump(args.output)
+
+        # Dump the graph data to a file.
+        if args.graph:
+            sim.dump(args.graph, indent=2)
 
         return "Results for {} written to {}".format(sim.name, args.output.name)

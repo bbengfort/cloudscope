@@ -17,16 +17,23 @@ Defines the generators that create versions or "work" in the simulation.
 ## Imports
 ##########################################################################
 
-import random
-
 from cloudscope.config import settings
 from cloudscope.simulation.base import Process
-from cloudscope.dynamo import Normal, Bernoulli, Discrete
+from cloudscope.dynamo import BoundedNormal, Bernoulli, Discrete
 from cloudscope.utils.decorators import memoized
 from cloudscope.simulation.replica import Location, Replica, Version
 from cloudscope.exceptions import UnknownType
+from cloudscope.utils.timez import humanizedelta
 
 from collections import defaultdict
+
+
+##########################################################################
+## Module Constants
+##########################################################################
+
+READ  = "read"
+WRITE = "write"
 
 ##########################################################################
 ## Initial Workload Generator
@@ -35,23 +42,31 @@ from collections import defaultdict
 class Workload(Process):
 
     # TODO: add this to settings rather than hard code.
-    valid_locations = frozenset([Location.HOME, Location.WORK, Location.MOBILE])
-    invalid_types = frozenset([Replica.STORAGE])
+    valid_locations = frozenset(settings.simulation.valid_locations)
+    invalid_types = frozenset(settings.simulation.invalid_types)
 
     def __init__(self, env, sim, **kwargs):
+        # Parent
         self.sim = sim
-        self.do_move   = Bernoulli(0.2).get
-        self.do_switch = Bernoulli(0.4).get
+
+        # Various workload probabilities
+        self.do_move   = Bernoulli(kwargs.get('move_prob', settings.simulation.move_prob))
+        self.do_switch = Bernoulli(kwargs.get('switch_prob', settings.simulation.switch_prob))
+        self.do_read   = Bernoulli(kwargs.get('read_prob', settings.simulation.read_prob))
 
         # Current Device and location
         self.location  = None
         self.device    = None
         self.version   = None
 
-        # Write Likelihood of a Device
-        # About 20 writes per hour with stddev of about 8 writes per hour.
-        self.write_wait = Normal(180000, 51429)
+        # Access interval for the version.
+        self.next_access = BoundedNormal(
+            kwargs.get('access_mean', settings.simulation.access_mean),
+            kwargs.get('access_stddev', settings.simulation.access_stddev),
+            floor = 0.0,
+        )
 
+        # Initialize the Process
         super(Workload, self).__init__(env)
 
     @memoized
@@ -104,36 +119,59 @@ class Workload(Process):
         """
         Updates the device and location to simulate random user movement.
         """
-        if self.do_move() or self.location is None:
-            return self.move()
+        if self.do_move.get() or self.location is None:
+            if self.move():
+                self.sim.logger.info(
+                    "User has moved to {} on their {}.".format(
+                        self.location, self.device
+                    )
+                )
+                return True
+            return False
 
-        if self.do_switch() or self.device is None:
-            return self.switch()
+        if self.do_switch.get() or self.device is None:
+            if self.switch():
+                self.sim.logger.info(
+                    "User has switched devices to their {} ({})".format(
+                        self.device, self.location
+                    )
+                )
+                return True
+            return False
 
         return False
 
     def run(self):
-        from cloudscope.utils.timez import humanizedelta
+
+        # Initialze location, device, and version
         self.update()
         self.version = Version(self.device)
-        self.sim.logger.debug(
-            "User is at {} on their {}".format(
-                self.location, self.device
-            )
-        )
         self.device.broadcast(self.version)
 
         while True:
-            self.update()
-            wait = self.write_wait.get()
+            # Wait for the next access interval
+            wait = self.next_access.get()
             yield self.env.timeout(wait)
 
+            # Initiate an access after the interval is complete.
+            access = READ if self.do_read.get() else WRITE
+
+            if access == WRITE:
+                # TODO: Perform appropriate device write
+                self.version = self.version.fork(self.device)
+                self.device.broadcast(self.version)
+
+            if access == WRITE:
+                # TODO: Perform appropriate device read
+                pass
+
+            # Debug log the read/write access
             self.sim.logger.debug(
-                "User is at {} on their {} (after {})".format(
-                    self.location, self.device, humanizedelta(milliseconds=wait)
+                "{} access by {} (at {}) after {}".format(
+                    access, self.device, self.location,
+                    humanizedelta(milliseconds=wait)
                 )
             )
 
-            # Initiate a write.
-            self.version = self.version.fork(self.device)
-            self.device.broadcast(self.version)
+            # Update the state (e.g. device/location) of the workload
+            self.update()

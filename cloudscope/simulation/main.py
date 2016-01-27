@@ -65,7 +65,6 @@ class ConsistencySimulation(Simulation):
 
     def script(self):
         self.workload = Workload(self.env, self)
-        print self.workload.locations
 
     def dump(self, fobj, **kwargs):
         """
