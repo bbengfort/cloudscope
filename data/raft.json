@@ -1,0 +1,63 @@
+{
+    "meta": {
+        "constant": "500ms",
+        "variable": "300-1500ms",
+        "seed": null,
+        "title": "Raft Quorum",
+        "description": "Single Consistency Type: Strong Raft Consensus."
+    },
+    "nodes": [
+        {
+            "id": "r0",
+            "label": "Raft 1",
+            "type": "storage",
+            "consistency": "strong",
+            "location": "cloud",
+            "files": {}
+        },
+        {
+            "id": "r1",
+            "label": "Raft 2",
+            "type": "storage",
+            "consistency": "strong",
+            "location": "cloud",
+            "files": {}
+        },
+        {
+            "id": "r2",
+            "label": "Raft 3",
+            "type": "storage",
+            "consistency": "strong",
+            "location": "cloud",
+            "files": {}
+        },
+        {
+            "id": "r3",
+            "label": "Raft 4",
+            "type": "storage",
+            "consistency": "strong",
+            "location": "cloud",
+            "files": {}
+        },
+        {
+            "id": "r4",
+            "label": "Raft 5",
+            "type": "storage",
+            "consistency": "strong",
+            "location": "cloud",
+            "files": {}
+        }
+    ],
+    "links": [
+        {"source": 0, "target": 1, "connection": "constant", "latency": 500},
+        {"source": 0, "target": 2, "connection": "constant", "latency": 500},
+        {"source": 0, "target": 3, "connection": "constant", "latency": 500},
+        {"source": 0, "target": 4, "connection": "constant", "latency": 500},
+        {"source": 1, "target": 2, "connection": "constant", "latency": 500},
+        {"source": 1, "target": 3, "connection": "constant", "latency": 500},
+        {"source": 1, "target": 4, "connection": "constant", "latency": 500},
+        {"source": 2, "target": 3, "connection": "constant", "latency": 500},
+        {"source": 2, "target": 4, "connection": "constant", "latency": 500},
+        {"source": 3, "target": 4, "connection": "constant", "latency": 500}
+    ]
+}

@@ -3,48 +3,48 @@
         "constant": "500ms",
         "variable": "300-1500ms",
         "seed": null,
-        "title": "Backbone",
-        "description": "A strong quroum backbone across locations, with causal work horses.."
+        "title": "Origin Simulation",
+        "description": "An attempt at a realistic initial toplogy."
     },
     "nodes": [
         {
             "id": "r0",
-            "label": "Work Server",
-            "type": "storage",
-            "consistency": "strong",
-            "location": "work",
-            "files": {}
-        },
-        {
-            "id": "r3",
-            "label": "Work Desktop",
+            "label": "Home Desktop",
             "type": "desktop",
-            "consistency": "medium",
-            "location": "work",
+            "consistency": "strong",
+            "location": "home",
             "files": {}
         },
         {
             "id": "r1",
-            "label": "Home Server",
+            "label": "Work Desktop",
+            "type": "desktop",
+            "consistency": "strong",
+            "location": "work",
+            "files": {}
+        },
+        {
+            "id": "r2",
+            "label": "Cloud Storage",
             "type": "storage",
             "consistency": "strong",
+            "location": "cloud",
+            "files": {}
+        },
+        {
+            "id": "r3",
+            "label": "Home Backup",
+            "type": "storage",
+            "consistency": "medium",
             "location": "home",
             "files": {}
         },
         {
             "id": "r4",
-            "label": "Home Desktop",
-            "type": "desktop",
-            "consistency": "medium",
-            "location": "home",
-            "files": {}
-        },
-        {
-            "id": "r2",
-            "label": "Cloud Server",
+            "label": "Work Backup",
             "type": "storage",
-            "consistency": "strong",
-            "location": "cloud",
+            "consistency": "medium",
+            "location": "work",
             "files": {}
         },
         {
@@ -54,18 +54,37 @@
             "consistency": "medium",
             "location": "mobile",
             "files": {}
+        },
+        {
+            "id": "r6",
+            "label": "iPad",
+            "type": "tablet",
+            "consistency": "low",
+            "location": "mobile",
+            "files": {}
+        },
+        {
+            "id": "r7",
+            "label": "iPhone",
+            "type": "smartphone",
+            "consistency": "low",
+            "location": "mobile",
+            "files": {}
         }
     ],
     "links": [
+        {"source": 0, "target": 1, "connection": "constant", "latency": 500},
         {"source": 0, "target": 2, "connection": "constant", "latency": 500},
-        {"source": 0, "target": 4, "connection": "constant", "latency": 500},
-        {"source": 2, "target": 4, "connection": "constant", "latency": 500},
+        {"source": 1, "target": 2, "connection": "constant", "latency": 500},
+        {"source": 0, "target": 3, "connection": "constant", "latency": 500},
         {"source": 1, "target": 4, "connection": "constant", "latency": 500},
-        {"source": 1, "target": 0, "connection": "constant", "latency": 500},
-        {"source": 3, "target": 4, "connection": "constant", "latency": 500},
-        {"source": 3, "target": 2, "connection": "constant", "latency": 500},
-        {"source": 5, "target": 0, "connection": "variable", "latency": [300, 1500]},
-        {"source": 5, "target": 2, "connection": "variable", "latency": [300, 1500]},
-        {"source": 5, "target": 4, "connection": "variable", "latency": [300, 1500]}
+        {"source": 0, "target": 5, "connection": "variable", "latency": [300, 1500]},
+        {"source": 3, "target": 5, "connection": "variable", "latency": [300, 1500]},
+        {"source": 4, "target": 5, "connection": "variable", "latency": [300, 1500]},
+        {"source": 5, "target": 6, "connection": "variable", "latency": [300, 1500]},
+        {"source": 5, "target": 7, "connection": "variable", "latency": [300, 1500]},
+        {"source": 3, "target": 6, "connection": "variable", "latency": [300, 1500]},
+        {"source": 3, "target": 7, "connection": "variable", "latency": [300, 1500]},
+        {"source": 6, "target": 7, "connection": "variable", "latency": [300, 1500]}
     ]
 }

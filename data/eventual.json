@@ -1,0 +1,105 @@
+{
+    "meta": {
+        "constant": "500ms",
+        "variable": "300-1500ms",
+        "seed": null,
+        "title": "Eventually There",
+        "description": "Single Consistency Type: An Eventually Consistent Data Center."
+    },
+    "nodes": [
+        {
+            "id": "r0",
+            "label": "Eventual 1",
+            "type": "storage",
+            "consistency": "low",
+            "location": "cloud",
+            "files": {}
+        },
+        {
+            "id": "r1",
+            "label": "Eventual 2",
+            "type": "storage",
+            "consistency": "low",
+            "location": "cloud",
+            "files": {}
+        },
+        {
+            "id": "r2",
+            "label": "Eventual 3",
+            "type": "storage",
+            "consistency": "low",
+            "location": "cloud",
+            "files": {}
+        },
+        {
+            "id": "r3",
+            "label": "Eventual 4",
+            "type": "storage",
+            "consistency": "low",
+            "location": "cloud",
+            "files": {}
+        },
+        {
+            "id": "r4",
+            "label": "Eventual 5",
+            "type": "storage",
+            "consistency": "low",
+            "location": "cloud",
+            "files": {}
+        },
+        {
+            "id": "r5",
+            "label": "Eventual 6",
+            "type": "storage",
+            "consistency": "low",
+            "location": "cloud",
+            "files": {}
+        },
+        {
+            "id": "r6",
+            "label": "Eventual 7",
+            "type": "storage",
+            "consistency": "low",
+            "location": "cloud",
+            "files": {}
+        },
+        {
+            "id": "r7",
+            "label": "Eventual 8",
+            "type": "storage",
+            "consistency": "low",
+            "location": "cloud",
+            "files": {}
+        }
+    ],
+    "links": [
+        {"source": 0, "target": 1, "connection": "variable", "latency": [300, 1500]},
+        {"source": 0, "target": 2, "connection": "variable", "latency": [300, 1500]},
+        {"source": 0, "target": 3, "connection": "variable", "latency": [300, 1500]},
+        {"source": 0, "target": 4, "connection": "variable", "latency": [300, 1500]},
+        {"source": 0, "target": 5, "connection": "variable", "latency": [300, 1500]},
+        {"source": 0, "target": 6, "connection": "variable", "latency": [300, 1500]},
+        {"source": 0, "target": 7, "connection": "variable", "latency": [300, 1500]},
+        {"source": 1, "target": 2, "connection": "variable", "latency": [300, 1500]},
+        {"source": 1, "target": 3, "connection": "variable", "latency": [300, 1500]},
+        {"source": 1, "target": 4, "connection": "variable", "latency": [300, 1500]},
+        {"source": 1, "target": 5, "connection": "variable", "latency": [300, 1500]},
+        {"source": 1, "target": 6, "connection": "variable", "latency": [300, 1500]},
+        {"source": 1, "target": 7, "connection": "variable", "latency": [300, 1500]},
+        {"source": 2, "target": 3, "connection": "variable", "latency": [300, 1500]},
+        {"source": 2, "target": 4, "connection": "variable", "latency": [300, 1500]},
+        {"source": 2, "target": 5, "connection": "variable", "latency": [300, 1500]},
+        {"source": 2, "target": 6, "connection": "variable", "latency": [300, 1500]},
+        {"source": 2, "target": 7, "connection": "variable", "latency": [300, 1500]},
+        {"source": 3, "target": 4, "connection": "variable", "latency": [300, 1500]},
+        {"source": 3, "target": 5, "connection": "variable", "latency": [300, 1500]},
+        {"source": 3, "target": 6, "connection": "variable", "latency": [300, 1500]},
+        {"source": 3, "target": 7, "connection": "variable", "latency": [300, 1500]},
+        {"source": 4, "target": 5, "connection": "variable", "latency": [300, 1500]},
+        {"source": 4, "target": 6, "connection": "variable", "latency": [300, 1500]},
+        {"source": 4, "target": 7, "connection": "variable", "latency": [300, 1500]},
+        {"source": 5, "target": 6, "connection": "variable", "latency": [300, 1500]},
+        {"source": 5, "target": 7, "connection": "variable", "latency": [300, 1500]},
+        {"source": 6, "target": 7, "connection": "variable", "latency": [300, 1500]}
+    ]
+}
