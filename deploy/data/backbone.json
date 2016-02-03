@@ -3,8 +3,8 @@
         "constant": "500ms",
         "variable": "300-1500ms",
         "seed": null,
-        "title": "Backbone",
-        "description": "A strong quroum backbone across locations, with causal work horses.."
+        "title": "Backbone Simulation",
+        "description": "A strong quroum backbone across locations, with causal work horses."
     },
     "nodes": [
         {
