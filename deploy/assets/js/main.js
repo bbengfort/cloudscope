@@ -18,6 +18,15 @@ $(document).ready(function() {
   simulation = new Simulation("#simulation", 'data/simulation.json');
 
   // Register various other event handlers.
+  // Select Simulation from Dropdown Menu.
+  $("#selectSimulation a").click(function(e) {
+    e.preventDefault();
+    simulation.clear();
+    var href = $(e.target).attr('href');
+    simulation = new Simulation("#simulation", href);
+
+  });
+
   // Create a PNG from the SVG and download it.
   $(".btnSnapshot").click(function() {
     simulation.snapshot();

@@ -177,6 +177,11 @@
         .appendTo(this.svg);
     }
 
+    // Clears the drawing of this replica from the simulation.
+    this.clear = function() {
+      this.svg.remove();
+    };
+
     return this.init(sim, options);
   };
 
