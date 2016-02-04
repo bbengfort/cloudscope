@@ -89,6 +89,7 @@ class Workload(Process):
         if len(self.locations) == 1:
             # There is only one choice, no switching!
             self.location = self.locations.keys()[0]
+            self.switch()
             return False
 
         self.location = Discrete([
@@ -158,8 +159,8 @@ class Workload(Process):
 
             if access == WRITE:
                 # TODO: Perform appropriate device write
-                self.version = self.version.fork(self.device)
-                self.device.broadcast(self.version)
+                # self.version = self.version.fork(self.device)
+                # self.device.broadcast(self.version)
 
                 # Log timeseries
                 self.sim.results.update(

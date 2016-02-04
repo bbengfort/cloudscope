@@ -47,16 +47,17 @@ Message  = namedtuple('Message', 'source, target, value, delay')
 ## A Node implements the connectible interface
 ##########################################################################
 
-class Node(object):
+class Node(Process):
     """
     A node is something that is "connectible", e.g. has a send and recv
     method as well as an optional broadcast mechanism. Subclasses of this
     node type do it through a reference to the primary network object.
     """
 
-    def __init__(self):
+    def __init__(self, env):
         # The network is associated when being connected.
         self.network = None
+        super(Node, self).__init__(env)
 
     @property
     def connections(self):
@@ -91,6 +92,13 @@ class Node(object):
         """
         for target in self.connections:
             self.send(target, value)
+
+    def run(self):
+        """
+        Nodes are themselves simulation processes, but by default don't do
+        anything except make themselves available to send and recv messages.
+        """
+        yield self.env.event()
 
 
 ##########################################################################

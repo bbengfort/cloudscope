@@ -1,4 +1,4 @@
-# cloudscope.simulation.replica
+# cloudscope.simulation.replica.base
 # Base functionality for a replica on a personal cloud storage system.
 #
 # Author:   Benjamin Bengfort <bengfort@cs.umd.edu>
@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: replica.py [] benjamin@bengfort.com $
+# ID: base.py [] benjamin@bengfort.com $
 
 """
 Base functionality for a replica on a personal cloud storage system.
@@ -54,12 +54,12 @@ class Replica(Node):
     # Autoincrementing ID
     counter = Sequence()
 
-    def __init__(self, parent, **kwargs):
+    def __init__(self, sim, **kwargs):
         # Initialze Node
-        super(Replica, self).__init__()
+        super(Replica, self).__init__(sim.env)
 
         # Simulation Environment
-        self.sim = parent
+        self.sim = sim
 
         # Replica Properties
         self.id    = kwargs.get('id', 'r{}'.format(self.counter.next()))
@@ -70,10 +70,6 @@ class Replica(Node):
         self.consistency = kwargs.get(
             'consistency', settings.simulation.default_consistency
         )
-
-    @property
-    def env(self):
-        return self.sim.env
 
     def send(self, target, value):
         message = self.pack(target, value)
@@ -122,58 +118,3 @@ class Replica(Node):
 
     def __str__(self):
         return self.label
-
-##########################################################################
-## Version Objects
-##########################################################################
-
-class Version(object):
-    """
-    Implements a representation of the tree structure for a file version.
-    """
-
-    # Autoincrementing ID
-    counter = Sequence()
-
-    def __init__(self, replica, parent=None, **kwargs):
-        """
-        Creation of an initial version for the version tree.
-        """
-        self.writer   = replica
-        self.parent   = parent
-        self.version  = self.counter.next()
-        self.level    = kwargs.get('level', replica.consistency)
-        self.created  = kwargs.get('created', replica.env.now)
-        self.updated  = kwargs.get('updated', replica.env.now)
-
-    def fork(self, replica, **kwargs):
-        """
-        Creates a fork of this version
-        """
-        return Version(
-            replica, parent=self, level=self.level, created=self.created
-        )
-
-    def contiguous(self):
-        """
-        Counts the number of contiguous versions between the parent and this
-        version; use this method to detect conflicts between different forks.
-        """
-        if self.parent:
-            # Is the parent one less than this version?
-            if self.parent.version == self.version - 1:
-                return self.parent.contiguous() + 1
-        return -1
-
-    def __str__(self):
-        if self.parent:
-            root = self.parent
-            contiguous = self.contiguous()
-            if contiguous:
-                for idx in xrange(contiguous):
-                    root = root.parent
-            return "{}-[{}]-{}".format(root, contiguous, self.version)
-        return "Version {}".format(self.version)
-
-    def __repr__(self):
-        return repr(str(self))
