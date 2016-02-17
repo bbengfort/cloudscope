@@ -17,6 +17,8 @@ Helper functions for creating output vizualiations from simulations.
 ## Imports
 ##########################################################################
 
+import networkx as nx
+
 from operator import itemgetter
 from collections import defaultdict
 from cloudscope.config import settings
@@ -111,3 +113,29 @@ def plot_workload(results, devices=False, **kwargs):
         return plt.savefig(outpath, format='svg', dpi=1200)
 
     return plt
+
+
+def draw_topology(G):
+    """
+    Draws a network topology as loaded from a JSON file.
+    """
+    cmap = {
+        'strong': '#91cf60',
+        'medium': '#ffffbf',
+        'low': '#fc8d59',
+    }
+
+    lmap = {
+        'constant': 'solid',
+        'variable': 'dashed',
+    }
+
+    # Compute the colors and links for the topology
+    colors = [cmap[n[1]['consistency']] for n in G.nodes(data=True)]
+    links  = [lmap[n[2]['connection']] for n in G.edges(data=True)]
+
+    return nx.draw_circular(
+        G, with_labels=True, font_weight='bold',
+        node_size=800, node_color=colors,
+        style=links, edge_color='#333333'
+    )
