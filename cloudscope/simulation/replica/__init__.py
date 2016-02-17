@@ -20,6 +20,7 @@ Functionality for different replica types in the cloud storage system.
 from .base import *
 from .store import *
 from .raft import RaftReplica
+from .eventual import EventualReplica
 
 from cloudscope.config import settings
 
@@ -30,7 +31,7 @@ from cloudscope.config import settings
 ReplicaTypes = {
     Consistency.STRONG: RaftReplica,
     Consistency.MEDIUM: Replica,
-    Consistency.LOW: Replica,
+    Consistency.LOW: EventualReplica,
 }
 
 def replica_factory(simulation, **kwargs):

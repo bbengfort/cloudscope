@@ -123,7 +123,7 @@ class Workload(Process):
         if self.do_move.get() or self.location is None:
             if self.move():
                 self.sim.logger.info(
-                    "User has moved to {} on their {}.".format(
+                    "user has moved to {} on their {}.".format(
                         self.location, self.device
                     )
                 )
@@ -133,7 +133,7 @@ class Workload(Process):
         if self.do_switch.get() or self.device is None:
             if self.switch():
                 self.sim.logger.info(
-                    "User has switched devices to their {} ({})".format(
+                    "user has switched devices to their {} ({})".format(
                         self.device, self.location
                     )
                 )
@@ -144,9 +144,8 @@ class Workload(Process):
 
     def run(self):
 
-        # Initialze location, device, and version
+        # Initialze location and device
         self.update()
-        self.version = Version(self.device)
 
         # TODO: write the initial version
         # self.device.broadcast(self.version)
@@ -158,24 +157,16 @@ class Workload(Process):
 
             # Initiate an access after the interval is complete.
             access = READ if self.do_read.get() else WRITE
+            # Log timeseries
+            self.sim.results.update(
+                access, (self.device.id, self.location, self.env.now)
+            )
 
             if access == WRITE:
-                # TODO: Perform appropriate device write
-                # self.version = self.version.fork(self.device)
-                # self.device.broadcast(self.version)
-
-                # Log timeseries
-                self.sim.results.update(
-                    WRITE, (self.env.now, self.location, self.device.label)
-                )
+                self.device.write()
 
             if access == READ:
-                # TODO: Perform appropriate device read
-
-                # Log timeseries
-                self.sim.results.update(
-                    READ, (self.env.now, self.location, self.device.label)
-                )
+                self.device.read()
 
             # Debug log the read/write access
             self.sim.logger.debug(

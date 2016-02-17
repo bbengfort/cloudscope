@@ -38,9 +38,18 @@ class Version(object):
         self.writer   = replica
         self.parent   = parent
         self.version  = self.counter.next()
+
+        # This seems very tightly coupled, should we do something different?
         self.level    = kwargs.get('level', replica.consistency)
         self.created  = kwargs.get('created', replica.env.now)
         self.updated  = kwargs.get('updated', replica.env.now)
+
+    def is_stale(self):
+        """
+        Compares the version of this object to the global counter to determine
+        if this vesion is the latest or not.
+        """
+        return not self.version == self.counter.value
 
     def fork(self, replica, **kwargs):
         """
@@ -63,13 +72,27 @@ class Version(object):
 
     def __str__(self):
         if self.parent:
-            root = self.parent
-            contiguous = self.contiguous()
-            if contiguous:
-                for idx in xrange(contiguous):
-                    root = root.parent
-            return "{}-[{}]-{}".format(root, contiguous, self.version)
-        return "Version {}".format(self.version)
+            return "{}->{}".format(self.parent.version, self.version)
+        return "root->{}".format(self.version)
 
     def __repr__(self):
         return repr(str(self))
+
+    ## Version comparison methods
+    def __lt__(self, other):
+        return self.version < other.version
+
+    def __le__(self, other):
+        return self.version <= other.version
+
+    def __eq__(self, other):
+        return self.version == other.version and self.parent == other.parent
+
+    def __ne__(self, other):
+        return not self == other
+
+    def __gt__(self, other):
+        return self.version > other.version
+
+    def __ge__(self, other):
+        return self.version >= other.version

@@ -1,5 +1,5 @@
-# tests.test_simulation.test_replica
-# Tests the replica functionality in the simulation.
+# tests.test_simulation.test_store
+# Tests the store functionality in the simulation.
 #
 # Author:   Benjamin Bengfort <bengfort@cs.umd.edu>
 # Created:  Tue Jan 26 12:40:47 2016 -0500
@@ -7,10 +7,10 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: test_replica.py [] benjamin@bengfort.com $
+# ID: test_store.py [] benjamin@bengfort.com $
 
 """
-Tests the replica functionality in the simulation.
+Tests the store functionality in the simulation.
 """
 
 ##########################################################################

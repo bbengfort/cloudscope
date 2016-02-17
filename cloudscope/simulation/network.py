@@ -78,13 +78,22 @@ class Node(Process):
         """
         The send messsage interface required by connectible objects.
         """
-        raise NotImplementedError("Subclasses must handle sending messages.")
+        # Create a message named tuple
+        message = self.pack(target, value)
 
-    def recv(self, message):
+        # Add the message as a value to a timeout with a callback
+        event = self.env.timeout(message.delay, value=message)
+        event.callbacks.append(target.recv)
+
+        # Return the event timeout 
+        return event
+
+    def recv(self, event):
         """
         The recv message interface required by connectible objects.
         """
-        raise NotImplementedError("Subclasses must handle received messages.")
+        # Unpack the message from the timeout event
+        return event.value
 
     def broadcast(self, value):
         """

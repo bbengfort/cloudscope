@@ -66,15 +66,16 @@ class Replica(Node):
         self.type  = kwargs.get('type', settings.simulation.default_replica)
         self.label = kwargs.get('label', "{}-{}".format(self.type, self.id))
         self.location    = kwargs.get('location', Location.UNKNOWN)
-        self.versions    = {}
         self.consistency = kwargs.get(
             'consistency', settings.simulation.default_consistency
         )
 
     def send(self, target, value):
-        message = self.pack(target, value)
-        event = self.env.timeout(message.delay, value=message)
-        event.callbacks.append(target.recv)
+        """
+        Simply logs that the message has been sent.
+        """
+        event = super(Replica, self).send(target, value)
+        message = event.value
 
         self.sim.logger.debug(
             "message sent at {} from {} to {}".format(
@@ -85,38 +86,30 @@ class Replica(Node):
         return event
 
     def recv(self, event):
-        message = event.value
+        """
+        Simply logs that the message has been received.
+        """
+        # Get the unpacked message from the event.
+        message = super(Replica, self).recv(event)
+
         self.sim.logger.debug(
-            "{!r} received by {} at {} from {} ({}ms delayed)".format(
-                message.value, message.target, self.env.now, message.source, message.delay
+            "protocol {!r} received by {} from {} ({}ms delayed)".format(
+                message.value.__class__.__name__,
+                message.target, message.source, message.delay
             )
         )
 
-        # Implemented straight from the simulation
-        if message.value == "ACK":
-            return
-
-        # Send acknowledgement to the sender
-        self.send(message.source, "ACK")
-
-        vers = message.value
-        if vers.version not in self.versions:
-            self.versions[vers.version] = vers
-
-            # Send updates to everyone else.
-            for target in self.connections:
-                if target != message.source:
-                    self.send(target, vers)
+        return message
 
     def read(self):
         """
-        Performs a read of the latest version either locally or across cloud.
+        Performs a read of the local latest version.
         """
         pass
 
-    def write(self, version):
+    def write(self):
         """
-        Performs a write of the passed in version, locally or across cloud.
+        Performs a write to the local version.
         """
         pass
 
