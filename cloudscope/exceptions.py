@@ -60,3 +60,10 @@ class NetworkError(SimulationException):
     Could not send or receive a message between two nodes.
     """
     pass
+
+
+class RaftRPCException(SimulationException):
+    """
+    Something went wrong in the Raft RPC scheme.
+    """
+    pass

@@ -1,7 +1,7 @@
 {
     "meta": {
-        "constant": "500ms",
-        "variable": "300-1500ms",
+        "constant": "15ms",
+        "variable": "N/A",
         "seed": null,
         "title": "Raft Quorum",
         "description": "Single Consistency Type: Strong Raft Consensus."
@@ -49,15 +49,15 @@
         }
     ],
     "links": [
-        {"source": 0, "target": 1, "connection": "constant", "latency": 500},
-        {"source": 0, "target": 2, "connection": "constant", "latency": 500},
-        {"source": 0, "target": 3, "connection": "constant", "latency": 500},
-        {"source": 0, "target": 4, "connection": "constant", "latency": 500},
-        {"source": 1, "target": 2, "connection": "constant", "latency": 500},
-        {"source": 1, "target": 3, "connection": "constant", "latency": 500},
-        {"source": 1, "target": 4, "connection": "constant", "latency": 500},
-        {"source": 2, "target": 3, "connection": "constant", "latency": 500},
-        {"source": 2, "target": 4, "connection": "constant", "latency": 500},
-        {"source": 3, "target": 4, "connection": "constant", "latency": 500}
+        {"source": 0, "target": 1, "connection": "constant", "latency": 15},
+        {"source": 0, "target": 2, "connection": "constant", "latency": 15},
+        {"source": 0, "target": 3, "connection": "constant", "latency": 15},
+        {"source": 0, "target": 4, "connection": "constant", "latency": 15},
+        {"source": 1, "target": 2, "connection": "constant", "latency": 15},
+        {"source": 1, "target": 3, "connection": "constant", "latency": 15},
+        {"source": 1, "target": 4, "connection": "constant", "latency": 15},
+        {"source": 2, "target": 3, "connection": "constant", "latency": 15},
+        {"source": 2, "target": 4, "connection": "constant", "latency": 15},
+        {"source": 3, "target": 4, "connection": "constant", "latency": 15}
     ]
 }
