@@ -44,6 +44,10 @@ class ConsistencySimulation(Simulation):
         if fobj is not None:
             data = json.load(fobj)
 
+            # Add simulation meta information
+            csim.name = data['meta']['title']
+            csim.description = data['meta']['description']
+
             # Add replicas to the simulation
             for node in data['nodes']:
                 csim.replicas.append(replica_factory(csim, **node))
@@ -62,6 +66,13 @@ class ConsistencySimulation(Simulation):
         # Primary simulation variables.
         self.replicas = []
         self.network  = Network()
+
+    def complete(self):
+        """
+        Ensure the topology is part of the results
+        """
+        self.results.topology = self.serialize()
+        super(ConsistencySimulation, self).complete()
 
     def script(self):
         self.workload = Workload(self.env, self)
@@ -82,9 +93,10 @@ class ConsistencySimulation(Simulation):
             'meta':  {
                 'seed': self.random_seed,
                 'title': self.name,
+                'description': getattr(self, 'description', None),
 
                 # Latency Labels
-                'constant': '{}ms'.format(latency['constant'][0]),
-                'variable': '{}-{}ms'.format(*latency['variable']),
+                'constant': '{}ms'.format(latency.get('constant', ('N/A ', None))[0]),
+                'variable': '{}-{}ms'.format(*latency.get('variable')),
             },
         }

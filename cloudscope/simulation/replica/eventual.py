@@ -102,15 +102,37 @@ class EventualReplica(Replica):
                 "stale read of version {} on {}".format(self.current, self)
             )
 
-    def write(self):
+    def write(self, version=None):
         """
-        Performs a write of the passed in version, locally or across cloud.
+        Performs a write to the current version. If no version is passed in,
+        the write is assumed to be local, and the current version will be
+        forked. If the version is passed in, the write is assumed to be
+        remote, and the version will be updated accordingly.
         """
+        # If version is None, that means a local write
+        if version is None:
+            # Log the local write
+            self.sim.logger.info(
+                "write version {} on {}".format(self.current, self)
+            )
+            if self.current is None:
+                # A new version!
+                version = Version(self)
+            else:
+                # A fork of an earlier version.
+                version = self.current.fork(self)
+        else:
+            # Log the remote write
+            self.sim.logger.debug(
+                "remote write version {} on {}".format(self.current, self)
+            )
+
         # Write the new version to the local data store
-        self.current = Version(self) if self.current is None else self.current.fork(self)
+        self.current = version
         self.storage.append(self.current)
 
-        self.sim.logger.info("write version {} on {}".format(self.current, self))
+        # Update the version to track visibility latency
+        version.update(self)
 
     def gossip(self):
         """
@@ -171,8 +193,9 @@ class EventualReplica(Replica):
         response = None
 
         if self.current is None or rpc.current > self.current:
-            self.current = rpc.current
-            self.storage.append(rpc.current)
+            self.write(rpc.current)
+            response = Response(self.current, True)
+        elif rpc.current == self.current:
             response = Response(self.current, True)
         else:
             response = Response(self.current, False)
@@ -186,5 +209,4 @@ class EventualReplica(Replica):
         """
         rpc = message.value
         if not rpc.success:
-            self.current = rpc.latest
-            self.storage.append(self.current)
+            self.write(rpc.latest)

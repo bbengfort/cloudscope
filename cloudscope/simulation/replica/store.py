@@ -40,9 +40,29 @@ class Version(object):
         self.version  = self.counter.next()
 
         # This seems very tightly coupled, should we do something different?
+        self.replicas = set([replica.id])
         self.level    = kwargs.get('level', replica.consistency)
         self.created  = kwargs.get('created', replica.env.now)
         self.updated  = kwargs.get('updated', replica.env.now)
+
+    def update(self, replica):
+        """
+        Replicas call this to update on remote writes.
+        This method also tracks visibility latency for right now.
+        """
+        self.updated  = replica.env.now
+
+        if replica.id not in self.replicas:
+            self.replicas.add(replica.id)
+
+            # Is this version completely replicated?
+            if len(self.replicas) == len(replica.sim.replicas):
+                # Track the visibility latency
+                self.writer.sim.results.update(
+                    'visibility latency',
+                    (self.writer.id, str(self), self.created, self.updated)
+                )
+
 
     def is_stale(self):
         """
@@ -56,7 +76,7 @@ class Version(object):
         Creates a fork of this version
         """
         return Version(
-            replica, parent=self, level=self.level, created=self.created
+            replica, parent=self, level=self.level
         )
 
     def contiguous(self):
@@ -86,7 +106,11 @@ class Version(object):
         return self.version <= other.version
 
     def __eq__(self, other):
-        return self.version == other.version and self.parent == other.parent
+        if self.version == other.version:
+            if self.parent is None:
+                return other.parent is None
+            return self.parent.version == other.parent.version
+        return False
 
     def __ne__(self, other):
         return not self == other

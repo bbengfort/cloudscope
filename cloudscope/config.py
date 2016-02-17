@@ -112,6 +112,7 @@ class SimulationConfiguration(Configuration):
     election_timeout   = [150, 300]
     heartbeat_interval = 75  # Usually half the minimum election timeout
 
+
 class VisualizationConfiguration(Configuration):
 
     style         = "whitegrid"
