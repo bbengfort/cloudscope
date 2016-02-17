@@ -108,6 +108,18 @@ class Replica(Node):
                 if target != message.source:
                     self.send(target, vers)
 
+    def read(self):
+        """
+        Performs a read of the latest version either locally or across cloud.
+        """
+        pass
+
+    def write(self, version):
+        """
+        Performs a write of the passed in version, locally or across cloud.
+        """
+        pass
+
     def serialize(self):
         return dict([
             (attr, getattr(self, attr))

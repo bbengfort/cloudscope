@@ -59,6 +59,9 @@ simulation:
     access_stddev: 512  # standard deviation of delay (milliseconds) between accesses
     read_prob: 0.8      # probability of read access; write probability is 1 - read_prob
 
+    # Raft Parameters
+    election_timeout: [150, 300]    # Range to randomly select the election timeout
+    heartbeat_interval: 75          # Usually half the minimum election timeout
 
 ## Visualization parameters
 vizualization:

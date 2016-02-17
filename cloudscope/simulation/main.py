@@ -23,9 +23,9 @@ import simpy
 from cloudscope.config import settings
 from cloudscope.simulation import Simulation
 from cloudscope.simulation.network import Network
-from cloudscope.simulation.replica import Replica
 from cloudscope.simulation.workload import Workload
 from cloudscope.utils.serialize import JSONEncoder
+from cloudscope.simulation.replica import replica_factory
 
 ##########################################################################
 ## Primary Simulation
@@ -46,7 +46,7 @@ class ConsistencySimulation(Simulation):
 
             # Add replicas to the simulation
             for node in data['nodes']:
-                csim.replicas.append(Replica(csim, **node))
+                csim.replicas.append(replica_factory(csim, **node))
 
             # Add edges to the network graph
             for link in data['links']:

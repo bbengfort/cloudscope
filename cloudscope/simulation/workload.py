@@ -147,7 +147,9 @@ class Workload(Process):
         # Initialze location, device, and version
         self.update()
         self.version = Version(self.device)
-        self.device.broadcast(self.version)
+
+        # TODO: write the initial version
+        # self.device.broadcast(self.version)
 
         while True:
             # Wait for the next access interval

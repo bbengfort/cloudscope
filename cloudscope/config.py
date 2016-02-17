@@ -103,6 +103,9 @@ class SimulationConfiguration(Configuration):
     access_stddev   = 512   # stddev of delay between accesses (milliseconds)
     read_prob       = 0.8   # probability of read access (write is 1-read_prob)
 
+    # Raft Parameters
+    election_timeout = [150, 300]
+    heartbeat_interval = 75 # Usually half the minimum election timeout
 
 class VisualizationConfiguration(Configuration):
 
