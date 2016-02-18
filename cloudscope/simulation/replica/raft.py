@@ -21,7 +21,7 @@ from .base import Replica, Consistency
 from cloudscope.config import settings
 from cloudscope.dynamo import Uniform
 from cloudscope.simulation.timer import Timer
-from cloudscope.exceptions import RaftRPCException
+from cloudscope.exceptions import RaftRPCException, SimulationException
 
 from collections import defaultdict
 from collections import namedtuple
@@ -43,6 +43,7 @@ ELECTION_TIMEOUT   = settings.simulation.election_timeout
 AppendEntries = namedtuple('AppendEntries', 'term, leaderId, prevLogIndex, prevLogTerm, entries, leaderCommit')
 RequestVote = namedtuple('RequestVote', 'term, candidateId, lastLogIndex, lastLogTerm')
 Response = namedtuple('Response', 'term, success')
+RemoteWrite = namedtuple('RemoteWrite', 'term')
 
 
 ##########################################################################
@@ -88,7 +89,8 @@ class RaftReplica(Replica):
         self.current_term = 0
         self.voted_for = None
         self.log = [(None, 0)]
-        self.timeout = ElectionTimer(self)
+        self.timeout   = ElectionTimer(self)
+        self.heartbeat = Timer(self.env, HEARTBEAT_INTERVAL, self.on_heartbeat_timeout)
 
         # Volatile state
         self.commit_index = 0
@@ -97,6 +99,56 @@ class RaftReplica(Replica):
         # Leader state
         self.next_index   = None
         self.match_index  = None
+
+    @property
+    def n_majority(self):
+        """
+        Computes the number of votes required for a majority vote.
+        """
+        # Filter only connections that are strong
+        is_strong = lambda r: r.consistency == Consistency.STRONG
+
+        # Quorum is # of strong nodes connected, plus local node
+        nodes = len(filter(is_strong, self.connections)) + 1
+
+        # Majority is integer division by 2 + 1.
+        return (nodes / 2) + 1
+
+    @property
+    def state(self):
+        """
+        Manages the state of the node when being set.
+        """
+        return self._state
+
+    @state.setter
+    def state(self, state):
+        """
+        Setting the state decides how the Raft node will interact.
+        """
+        if state == FOLLOWER:
+            self.voted_for = None
+        elif state == CANDIDATE:
+            pass
+        elif state == LEADER:
+            pass
+        else:
+            raise SimulationException(
+                "Unknown Raft State: {!r} set on {}".format(state, self)
+            )
+
+        self._state = state
+
+    def on_heartbeat_timeout(self):
+        """
+        Callback for when a heartbeat timeout occurs, for AppendEntries RPC.
+        """
+        if not self.state == LEADER:
+            return
+
+        self.broadcast(
+            AppendEntries(self.current_term, self.id, self.last_applied, self.log[self.last_applied][1], [], self.commit_index)
+        )
 
     def on_election_timeout(self):
         """
@@ -111,7 +163,7 @@ class RaftReplica(Replica):
             RequestVote(self.current_term, self.id, self.last_applied, self.log[self.last_applied][1])
         )
 
-        self.sim.logger.debug(
+        self.sim.logger.info(
             "{} is now a leader candidate".format(self)
         )
 
@@ -119,7 +171,6 @@ class RaftReplica(Replica):
         """
         Callback for RequestVote RPC call.
         """
-        self.state = 9
         rpc = msg.value
 
         if rpc.term < self.current_term:
@@ -131,15 +182,53 @@ class RaftReplica(Replica):
             if self.log[-1][1] < rpc.lastLogTerm or (
                 self.log[-1][1] == rpc.lastLogTerm and rpc.lastLogIndex >= (len(self.log) - 1)
             ):
-                self.sim.logger.info("{} stopping election timeout".format(self))
+                self.sim.logger.debug("{} stopping election timeout".format(self))
                 self.timeout.stop()
-                self.sim.logger.debug(
+                self.sim.logger.info(
                     "{} voting for {}".format(self, rpc.candidateId)
                 )
                 self.voted_for = rpc.candidateId
                 self.send(
                     msg.source, Response(self.current_term, True)
                 )
+
+    def on_append_entries(self, msg):
+        """
+        Callback for the AppendEntries RPC call.
+        """
+        rpc = msg.value
+
+        # Reply false if term < current term
+        if rpc.term < self.current_term:
+            return self.send(
+                msg.source, Response(self.current_term, False)
+            )
+
+        # Reply false if log doesn't contain an entry at prevLogIndex whose
+        # term matches previous log term.
+        if len(self.log) <= rpc.prevLogIndex or self.log[rpc.prevLogIndex][1] != rpc.prevLogTerm:
+            return self.send(
+                msg.source, Response(self.current_term, False)
+            )
+
+        # At this point AppendEntries RPC is accepted
+        if rpc.entries:
+            if len(self.log) > rpc.prevLogIndex:
+                # If existing entry conflicts with new one (same index, different terms)
+                # Delete the existin entry and all that follow it.
+                if self.log[rpc.prevLogIndex][1] != rpc.entries[0][1]:
+                    self.log = self.log[:rpc.prevLogIndex]
+
+            # Append any new entries not already in the log.
+            for entry in rpc.entries:
+                self.log.append(entry)
+
+        # If leaderCommit > commitIndex, update commit Index
+        if rpc.leaderCommit > self.commit_index:
+            self.commit_index = min(rpc.leaderCommit, len(self.log) - 1)
+
+        # Stop the election timeout
+        self.timeout.stop()
 
     def on_rpc_response(self, msg):
         """
@@ -152,12 +241,9 @@ class RaftReplica(Replica):
                 self.current_term = rpc.term
 
             self.votes[msg.source.id] = rpc.success
-            # majority = len(filter(lambda r: r.consistency == Consistency.STRONG, self.connections))
-            majority = 3
-            print majority
 
-            if sum(1 for v in self.votes.values() if v) >= majority:
-                self.sim.logger.info("{} stopping election timeout".format(self))
+            if sum(1 for v in self.votes.values() if v) >= self.n_majority:
+                self.sim.logger.debug("{} stopping election timeout".format(self))
                 self.timeout.stop()
                 self.sim.logger.info(
                     "{} has become raft leader".format(self)
@@ -179,9 +265,18 @@ class RaftReplica(Replica):
         """
         message = event.value
         rpc = message.value
+
+        # If RPC request or response contains term > current_term
+        # Set current_term to term and conver to follower.
+        if rpc.term > self.current_term:
+            self.state = FOLLOWER
+            self.current_term = rpc.term
+
         handler = {
             "RequestVote": self.on_request_vote,
             "Response": self.on_rpc_response,
+            'AppendEntries': self.on_append_entries,
+            "RemoteWrite": self.write,
         }[rpc.__class__.__name__]
 
         handler(message)
@@ -192,8 +287,53 @@ class RaftReplica(Replica):
         """
         while True:
             if self.state in {FOLLOWER, CANDIDATE}:
-                self.sim.logger.info("{} starting election timeout".format(self))
                 yield self.timeout.start()
 
-            if self.state == LEADER:
-                break
+            elif self.state == LEADER:
+                yield self.heartbeat.start()
+
+            else:
+                raise SimulationException(
+                    "Unknown Raft State: {!r} on {}".format(self.state, self)
+                )
+
+    def write(self, message=None):
+        """
+        Forks the current version if it exists or creates a new version.
+        Appends the version to the log and gets ready for AppendEntries.
+
+        If this node is not the leader, then it simply forwards the write to
+        the leader via a remote write call (e.g. sending a message with the
+        write request, though this will have to be considered in more detail).
+        """
+        if not self.state == LEADER:
+            leaders = [node for node in self.connections if node.state == LEADER]
+            if len(leaders) > 1:
+                raise SimulationException("MutipleLeaders?!")
+            elif len(leaders) < 1:
+                self.logging.info("no leader: dropped write at {}".format(self))
+                return False
+            else:
+                # Forward the write to the leader
+                return self.send(
+                    leaders[0], RemoteWrite(self.current_term)
+                )
+
+        # Get the current version
+        version = self.log[-1][0]
+
+        # Write to the version
+        version = Version(self) if version is None else version.fork(self)
+
+        # Log the write
+        self.sim.logger.info(
+            "write version {} on {}".format(version, self)
+        )
+
+        # Write the new version to the local data store
+        self.log.append((version, self.current_term))
+
+        # Update the version to track visibility latency
+        version.update(self)
+
+        # Now do AppendEntries ...

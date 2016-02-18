@@ -47,7 +47,7 @@ class ConsistencySimulation(Simulation):
             # Add simulation meta information
             csim.name = data['meta']['title']
             csim.description = data['meta']['description']
-            csim.users = data['meta']['users']
+            csim.users = data['meta'].get('users', csim.users)
 
             # Add replicas to the simulation
             for node in data['nodes']:
@@ -104,6 +104,6 @@ class ConsistencySimulation(Simulation):
 
                 # Latency Labels
                 'constant': '{}ms'.format(latency.get('constant', ('N/A ', None))[0]),
-                'variable': '{}-{}ms'.format(*latency.get('variable')),
+                'variable': '{}-{}ms'.format(*latency.get('variable', ('N/A','N/A'))),
             },
         }
