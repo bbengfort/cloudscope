@@ -78,6 +78,11 @@ class MultipleSimulationsCommand(Command):
             'default': mp.cpu_count(),
             'help': 'number of concurrent simulation task to run',
         },
+        '--crazy': {
+            'action': 'store_true',
+            'default': False,
+            'help': 'rerun lots of experiments with variations',
+        },
         ('-n', '--count'): {
             'type': int,
             'metavar': 'NUM',
@@ -102,10 +107,7 @@ class MultipleSimulationsCommand(Command):
         logger.disabled = True
 
         # TODO: Change the below to just accept multiple topologies
-        experiments = [
-            experiment for experiment in
-            generate_latency_variation_experiment(args.topology[0], args.count)
-        ]
+        experiments = self.get_experiments(args)
 
         # Create a pool of processes and begin to execute experiments
         with Timer() as timer:
@@ -136,6 +138,32 @@ class MultipleSimulationsCommand(Command):
             output[0]['simulation'], args.output.name
         )
 
+    def get_experiments(self, args):
+        if args.crazy:
+            import random
+            from itertools import chain
+
+            def inner(args):
+                args.topology[0].seek(0)
+                yield [
+                    experiment for experiment in
+                    generate_latency_variation_experiment(
+                        args.topology[0], args.count,
+                        random.randint(5, 100), random.randint(2000, 5000), random.randint(100, 1800)
+                )]
+
+            return list(chain(*
+                chain(*[
+                    list(inner(args))
+                    for x in xrange(args.count)
+                ])
+            ))
+
+        return [
+            experiment for experiment in
+            generate_latency_variation_experiment(args.topology[0], args.count)
+        ]
+
 
 ##########################################################################
 ## Helper Functions
@@ -159,7 +187,7 @@ def spread(n, start, stop, width=None):
         yield [start, start + width]
         start += width + gap
 
-def generate_latency_variation_experiment(fobj, n, min_latency=5, max_latency=3000, max_range=1200):
+def generate_latency_variation_experiment(fobj, n, min_latency=5, max_latency=6000, max_range=1200):
     """
     Reads a topology from a JSON file and creates n experimental files with
     a variation in the minimum and maximum latency across all connections.
