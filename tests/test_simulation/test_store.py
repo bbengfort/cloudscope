@@ -46,12 +46,12 @@ class VersionTests(unittest.TestCase):
         replica = Replica(simulation)
         version = Version(replica)
 
-        self.assertEqual(str(version), "Version 1")
+        self.assertEqual(str(version), "root->1")
 
         for idx in xrange(100):
             version = version.fork(replica)
 
-        self.assertEqual(str(version), "Version 1-[99]-101")
+        self.assertEqual(str(version), "100->101")
 
     @unittest.skip("Not implemented correctly yet.")
     def test_forked_version_string(self):

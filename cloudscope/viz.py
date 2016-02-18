@@ -52,6 +52,10 @@ def configure(**kwargs):
     return kwargs
 
 
+##########################################################################
+## Seaborn Drawing Utilities
+##########################################################################
+
 def plot_kde(series, **kwargs):
     """
     Helper function to plot a density estimate of some distribution.
@@ -114,6 +118,9 @@ def plot_workload(results, devices=False, **kwargs):
 
     return plt
 
+##########################################################################
+## NetworkX Drawing Utilities
+##########################################################################
 
 def draw_topology(G):
     """
