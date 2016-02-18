@@ -21,6 +21,7 @@ from .base import Replica, Consistency
 from cloudscope.config import settings
 from cloudscope.dynamo import Uniform
 from cloudscope.simulation.timer import Timer
+from cloudscope.simulation.replica.store import Version
 from cloudscope.exceptions import RaftRPCException, SimulationException
 
 from collections import defaultdict
@@ -105,11 +106,8 @@ class RaftReplica(Replica):
         """
         Computes the number of votes required for a majority vote.
         """
-        # Filter only connections that are strong
-        is_strong = lambda r: r.consistency == Consistency.STRONG
-
         # Quorum is # of strong nodes connected, plus local node
-        nodes = len(filter(is_strong, self.connections)) + 1
+        nodes = sum(1 for node in self.quorum)
 
         # Majority is integer division by 2 + 1.
         return (nodes / 2) + 1
@@ -126,18 +124,34 @@ class RaftReplica(Replica):
         """
         Setting the state decides how the Raft node will interact.
         """
-        if state == FOLLOWER:
-            self.voted_for = None
+        if state in (FOLLOWER, CANDIDATE):
+            self.voted_for    = None
+            self.next_index   = None
+            self.match_index  = None
         elif state == CANDIDATE:
             pass
         elif state == LEADER:
-            pass
+            self.next_index   = {node: self.last_applied + 1 for node in self.quorum if node != self}
+            self.match_index  = {node: 0 for node in self.quorum if node != self}
         else:
             raise SimulationException(
                 "Unknown Raft State: {!r} set on {}".format(state, self)
             )
 
         self._state = state
+
+    @property
+    def quorum(self):
+        """
+        Returns the nodes in the Raft quorum.
+        """
+        # Filter only connections that are strong
+        is_strong = lambda r: r.consistency == Consistency.STRONG
+        for node in filter(is_strong, self.connections):
+            yield node
+
+        # Don't forget to yield self!
+        yield self
 
     def on_heartbeat_timeout(self):
         """
@@ -198,6 +212,9 @@ class RaftReplica(Replica):
         """
         rpc = msg.value
 
+        # Stop the election timeout
+        self.timeout.stop()
+
         # Reply false if term < current term
         if rpc.term < self.current_term:
             return self.send(
@@ -223,18 +240,22 @@ class RaftReplica(Replica):
             for entry in rpc.entries:
                 self.log.append(entry)
 
+            # Set the current log index
+            # TODO: create a log data structure that does this for us
+            self.last_applied = len(self.log) - 1
+
         # If leaderCommit > commitIndex, update commit Index
         if rpc.leaderCommit > self.commit_index:
-            self.commit_index = min(rpc.leaderCommit, len(self.log) - 1)
-
-        # Stop the election timeout
-        self.timeout.stop()
+            self.commit_index = min(rpc.leaderCommit, self.last_applied)
 
     def on_rpc_response(self, msg):
         """
         Callback for AppendEntries and RequestVote RPC response.
         """
         rpc = msg.value
+
+        if self.state == FOLLOWER:
+            return
 
         if self.state == CANDIDATE:
             if self.current_term < rpc.term:
@@ -252,7 +273,25 @@ class RaftReplica(Replica):
                 self.state = LEADER
 
         elif self.state == LEADER:
-            pass
+
+            if rpc.success:
+                self.next_index[msg.source]  = self.last_applied + 1
+                self.match_index[msg.source] = self.last_applied
+
+            else:
+                self.next_index[msg.source] -= 1
+                nidx = self.next_index[msg.source]
+                entries = self.log[nidx:]
+                self.send(
+                    msg.source, AppendEntries(self.current_term, self.id, self.last_applied, self.log[self.last_applied][1], entries, self.commit_index)
+                )
+
+            for n in xrange(self.last_applied, self.commit_index, -1):
+                if sum(1 for v in self.match_index.values() if v >= n) >= self.n_majority:
+                    if self.log[n][1] == self.current_term:
+                        self.commit_index = n
+                        break
+
         else:
             raise RaftRPCException(
                 "Response in unknown state: '{}'".format(self.state)
@@ -332,8 +371,18 @@ class RaftReplica(Replica):
 
         # Write the new version to the local data store
         self.log.append((version, self.current_term))
+        self.last_applied = len(self.log) - 1
 
         # Update the version to track visibility latency
         version.update(self)
 
         # Now do AppendEntries ...
+        for follower, nidx in self.next_index.iteritems():
+            if self.last_applied >= nidx:
+                entries = self.log[nidx:]
+                self.send(
+                    follower, AppendEntries(self.current_term, self.id, self.last_applied, self.log[self.last_applied][1], entries, self.commit_index)
+                )
+
+        # Also interrupt the heartbeat since we just sent AppendEntries
+        self.heartbeat.stop()
