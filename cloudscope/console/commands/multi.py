@@ -134,7 +134,7 @@ class MultipleSimulationsCommand(Command):
             "{} simulations ({} seconds) run by {} tasks in {}\n"
             "Results for {} written to {}"
         ).format(
-            args.count, duration, args.tasks, timer,
+            len(experiments), duration, args.tasks, timer,
             output[0]['simulation'], args.output.name
         )
 
@@ -187,7 +187,7 @@ def spread(n, start, stop, width=None):
         yield [start, start + width]
         start += width + gap
 
-def generate_latency_variation_experiment(fobj, n, min_latency=5, max_latency=6000, max_range=1200):
+def generate_latency_variation_experiment(fobj, n, min_latency=5, max_latency=6000, max_range=1200, max_users=6, user_step=2):
     """
     Reads a topology from a JSON file and creates n experimental files with
     a variation in the minimum and maximum latency across all connections.
@@ -196,13 +196,16 @@ def generate_latency_variation_experiment(fobj, n, min_latency=5, max_latency=60
     data  = json.load(fobj)
     width = min(max_range, max_latency / n)
 
-    for latency in spread(n, min_latency, max_latency, width):
-        mean_latency = int(sum(map(float, latency)) / len(latency))
+    for users in xrange(1, max_users+1, user_step):
+        for latency in spread(n, min_latency, max_latency, width):
+            mean_latency = int(sum(map(float, latency)) / len(latency))
 
-        for link in data['links']:
-            if link['connection'] == 'variable':
-                link['latency'] = latency
-            else:
-                link['latency'] = mean_latency
+            for link in data['links']:
+                if link['connection'] == 'variable':
+                    link['latency'] = latency
+                else:
+                    link['latency'] = mean_latency
 
-        yield json.dumps(data, fobj)
+            data['meta']['users'] = users
+
+            yield json.dumps(data, fobj)

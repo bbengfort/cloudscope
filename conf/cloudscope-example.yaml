@@ -45,6 +45,7 @@ simulation:
     default_consistency: strong
 
     # Workload Parameters
+    users: 1            # number of simulated users creating traces
     valid_locations:    # locations to allow user to move to.
         - home
         - work

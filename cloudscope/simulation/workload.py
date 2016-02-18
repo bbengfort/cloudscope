@@ -18,7 +18,7 @@ Defines the generators that create versions or "work" in the simulation.
 ##########################################################################
 
 from cloudscope.config import settings
-from cloudscope.simulation.base import Process
+from cloudscope.simulation.base import NamedProcess
 from cloudscope.dynamo import BoundedNormal, Bernoulli, Discrete
 from cloudscope.utils.decorators import memoized
 from cloudscope.simulation.replica import Location, Replica, Version
@@ -39,7 +39,11 @@ WRITE = "write"
 ## Initial Workload Generator
 ##########################################################################
 
-class Workload(Process):
+class Workload(NamedProcess):
+    """
+    Represents a single user that is moving around and accessing devices by
+    making reads and writes to the simulation.
+    """
 
     # TODO: add this to settings rather than hard code.
     valid_locations = frozenset(settings.simulation.valid_locations)
@@ -68,6 +72,10 @@ class Workload(Process):
 
         # Initialize the Process
         super(Workload, self).__init__(env)
+
+    @memoized
+    def name(self):
+        return "user {}".format(self._id)
 
     @memoized
     def locations(self):
@@ -123,8 +131,8 @@ class Workload(Process):
         if self.do_move.get() or self.location is None:
             if self.move():
                 self.sim.logger.info(
-                    "user has moved to {} on their {}.".format(
-                        self.location, self.device
+                    "{} has moved to {} on their {}.".format(
+                        self.name, self.location, self.device
                     )
                 )
                 return True
@@ -133,8 +141,8 @@ class Workload(Process):
         if self.do_switch.get() or self.device is None:
             if self.switch():
                 self.sim.logger.info(
-                    "user has switched devices to their {} ({})".format(
-                        self.device, self.location
+                    "{} has switched devices to their {} ({})".format(
+                        self.name, self.device, self.location
                     )
                 )
                 return True
@@ -170,8 +178,8 @@ class Workload(Process):
 
             # Debug log the read/write access
             self.sim.logger.debug(
-                "{} access by {} (at {}) after {}".format(
-                    access, self.device, self.location,
+                "{} access by {} on {} (at {}) after {}".format(
+                    access, self.name, self.device, self.location,
                     humanizedelta(milliseconds=wait)
                 )
             )

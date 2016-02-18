@@ -87,6 +87,7 @@ class SimulationConfiguration(Configuration):
     default_consistency = "strong"
 
     # Workload Parameters
+    users           = 1       # number of simulated users creating traces
     # Locations to allow users to move to
     valid_locations = [
         "home", "work", "mobile"
