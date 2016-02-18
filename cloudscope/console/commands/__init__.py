@@ -20,3 +20,4 @@ Commands for the Scope CLI utility
 from .serve import ServeCommand
 from .simulate import SimulateCommand
 from .viz import VisualizeCommand
+from .multi import MultipleSimulationsCommand

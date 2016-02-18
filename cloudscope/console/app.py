@@ -35,6 +35,7 @@ COMMANDS    = [
     ServeCommand,
     SimulateCommand,
     VisualizeCommand,
+    MultipleSimulationsCommand,
 ]
 
 ##########################################################################

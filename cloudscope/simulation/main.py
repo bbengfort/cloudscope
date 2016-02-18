@@ -47,6 +47,7 @@ class ConsistencySimulation(Simulation):
             # Add simulation meta information
             csim.name = data['meta']['title']
             csim.description = data['meta']['description']
+            csim.users = data['meta']['users']
 
             # Add replicas to the simulation
             for node in data['nodes']:
@@ -64,18 +65,24 @@ class ConsistencySimulation(Simulation):
         super(ConsistencySimulation, self).__init__(**kwargs)
 
         # Primary simulation variables.
+        self.users    = kwargs.get('users', settings.simulation.users)
         self.replicas = []
         self.network  = Network()
 
     def complete(self):
         """
-        Ensure the topology is part of the results
+        Ensure the topology is part of the results, as well as any configured
+        variables on that don't match the settings.
         """
+        self.results.settings['users'] = self.users
         self.results.topology = self.serialize()
         super(ConsistencySimulation, self).complete()
 
     def script(self):
-        self.workload = Workload(self.env, self)
+        self.workload = [
+            Workload(self.env, self)
+            for user in xrange(self.users)
+        ]
 
     def dump(self, fobj, **kwargs):
         """

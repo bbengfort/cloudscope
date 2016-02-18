@@ -60,7 +60,9 @@ class SimulateCommand(Command):
 
         # Dump the output data to a file.
         if args.output is None:
-            path = "{}-{}.json".format(sim.name, sim.results.finished.strftime('%Y%m%d'))
+            path = "{}-{}.json".format(
+                sim.name, sim.results.finished.strftime('%Y%m%d')
+            ).replace(" ", "-").lower()
             args.output = open(path, 'w')
         sim.results.dump(args.output)
 
