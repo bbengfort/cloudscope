@@ -76,10 +76,11 @@ class Replica(Node):
         """
         event = super(Replica, self).send(target, value)
         message = event.value
+        mtype = message.value.__class__.__name__ if message.value else "None"
 
         self.sim.logger.debug(
-            "message sent at {} from {} to {}".format(
-                self.env.now, message.source, message.target
+            "message {} sent at {} from {} to {}".format(
+                mtype, self.env.now, message.source, message.target
             )
         )
 
@@ -122,4 +123,4 @@ class Replica(Node):
         ])
 
     def __str__(self):
-        return self.label
+        return "{} ({})".format(self.label, self.id)

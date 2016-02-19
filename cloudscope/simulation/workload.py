@@ -140,11 +140,11 @@ class Workload(NamedProcess):
 
         if self.do_switch.get() or self.device is None:
             if self.switch():
-                self.sim.logger.info(
-                    "{} has switched devices to their {} ({})".format(
-                        self.name, self.device, self.location
-                    )
-                )
+                # self.sim.logger.info(
+                #     "{} has switched devices to their {} ({})".format(
+                #         self.name, self.device, self.location
+                #     )
+                # )
                 return True
             return False
 
