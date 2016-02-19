@@ -64,8 +64,11 @@ class RaftReplica(Replica):
         self.log         = WriteLog()
 
         ## Timers for work
-        self.timeout   = ElectionTimer.fromReplica(self, ELECTION_TIMEOUT)
-        self.heartbeat = Timer(self.env, HEARTBEAT_INTERVAL, self.on_heartbeat_timeout)
+        eto = kwargs.get('election_timeout', ELECTION_TIMEOUT)
+        hbt = kwargs.get('heartbeat_interval', HEARTBEAT_INTERVAL)
+
+        self.timeout     = ElectionTimer.fromReplica(self, eto)
+        self.heartbeat   = Timer(self.env, hbt, self.on_heartbeat_timeout)
 
         ## Leader state
         self.nextIndex   = None
@@ -228,7 +231,8 @@ class RaftReplica(Replica):
                 self.log.append(*entry)
 
                 # Update the versions to compute visibilities
-                entry[0].update(self)
+                if entry[0]: # TODO Remove this line, is a bug!
+                    entry[0].update(self)
 
             # Log the last write from the append entries.
             self.sim.logger.debug(
@@ -347,7 +351,7 @@ class RaftReplica(Replica):
             if len(leaders) > 1:
                 raise SimulationException("MutipleLeaders?!")
             elif len(leaders) < 1:
-                self.logging.info("no leader: dropped write at {}".format(self))
+                self.sim.logger.info("no leader: dropped write at {}".format(self))
                 return False
             else:
                 # Forward the write to the leader
@@ -356,13 +360,13 @@ class RaftReplica(Replica):
                 )
 
         # Get the current version
-        version = self.log[-1][0]
+        version = self.log.lastVersion
 
         # Write to the version
         version = Version(self) if version is None else version.fork(self)
 
         # Log the write
-        self.sim.logger.info(
+        self.sim.logger.debug(
             "write version {} on {}".format(version, self)
         )
 

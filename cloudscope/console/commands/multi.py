@@ -45,20 +45,29 @@ def runner(data):
     fobj = StringIO(data)
     fobj.seek(0)
 
-    sim = ConsistencySimulation.load(fobj)
-    sim.run()
+    try:
+        sim = ConsistencySimulation.load(fobj)
+        sim.run()
 
-    # Dump the output data to a file.
-    output = StringIO()
-    sim.results.dump(output)
+        # Dump the output data to a file.
+        output = StringIO()
+        sim.results.dump(output)
 
-    # Report completion back to the comamnd line
-    logger.info(
-        "{!r} simulation completed in {}".format(sim.name, sim.results.timer)
-    )
+        # Report completion back to the comamnd line
+        logger.info(
+            "{!r} simulation completed in {}".format(sim.name, sim.results.timer)
+        )
 
-    # Return the string value of the JSON results.
-    return output.getvalue()
+        # Return the string value of the JSON results.
+        return output.getvalue()
+    except Exception as e:
+        logger.error(str(e))
+
+        import traceback, sys
+        return json.dumps({
+            'success': False,
+            'traceback': "".join(traceback.format_exception(*sys.exc_info())),
+        })
 
 
 class MultipleSimulationsCommand(Command):
@@ -200,6 +209,12 @@ def generate_latency_variation_experiment(fobj, n, min_latency=5, max_latency=60
         for latency in spread(n, min_latency, max_latency, width):
             mean_latency = int(sum(map(float, latency)) / len(latency))
 
+            for node in data['nodes']:
+                if node['consistency'] == 'strong':
+                    # Add raft-specific information
+                    node['election_timeout'] = [mean_latency * 10, mean_latency * 20]
+                    node['heartbeat_interval'] = mean_latency * 5
+
             for link in data['links']:
                 if link['connection'] == 'variable':
                     link['latency'] = latency
@@ -208,4 +223,4 @@ def generate_latency_variation_experiment(fobj, n, min_latency=5, max_latency=60
 
             data['meta']['users'] = users
 
-            yield json.dumps(data, fobj)
+            yield json.dumps(data)
