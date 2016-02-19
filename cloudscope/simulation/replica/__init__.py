@@ -19,7 +19,7 @@ Functionality for different replica types in the cloud storage system.
 
 from .base import *
 from .store import *
-from .raft import RaftReplica
+from .consensus import RaftReplica
 from .eventual import EventualReplica
 
 from cloudscope.config import settings
