@@ -122,7 +122,7 @@ def plot_workload(results, devices=False, **kwargs):
 ## NetworkX Drawing Utilities
 ##########################################################################
 
-def draw_topology(G):
+def draw_topology(G, layout='circular'):
     """
     Draws a network topology as loaded from a JSON file.
     """
@@ -137,11 +137,20 @@ def draw_topology(G):
         'variable': 'dashed',
     }
 
+    draw = {
+        'circular': nx.draw_circular,
+        'random': nx.draw_random,
+        'spectral': nx.draw_spectral,
+        'spring': nx.draw_spring,
+        'shell': nx.draw_shell,
+        'graphviz': nx.draw_graphviz,
+    }[layout]
+
     # Compute the colors and links for the topology
     colors = [cmap[n[1]['consistency']] for n in G.nodes(data=True)]
     links  = [lmap[n[2]['connection']] for n in G.edges(data=True)]
 
-    return nx.draw_circular(
+    return draw(
         G, with_labels=True, font_weight='bold',
         node_size=800, node_color=colors,
         style=links, edge_color='#333333'

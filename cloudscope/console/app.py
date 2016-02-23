@@ -36,6 +36,7 @@ COMMANDS    = [
     SimulateCommand,
     VisualizeCommand,
     MultipleSimulationsCommand,
+    GenerateCommand,
 ]
 
 ##########################################################################

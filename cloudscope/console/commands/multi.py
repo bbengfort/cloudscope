@@ -17,25 +17,24 @@ Multiprocess runner for running many simulations simultaneously.
 ## Imports
 ##########################################################################
 
+import json
 import logging
 import argparse
 import multiprocessing as mp
 
 from commis import Command
+from cStringIO import StringIO
 from cloudscope.config import settings
 from cloudscope.utils.decorators import Timer
+from cloudscope.utils.timez import humanizedelta
 from cloudscope.simulation.main import ConsistencySimulation
 
-# TODO: Remove below
-import json
-import networkx as nx
-from cStringIO import StringIO
 
 ##########################################################################
 ## Command
 ##########################################################################
 
-def runner(data):
+def runner(idx, data):
     """
     Takes an open file-like object and runs the simulation, returning a
     string containing the dumped JSON results, which can be dumped to disk.
@@ -45,20 +44,33 @@ def runner(data):
     fobj = StringIO(data)
     fobj.seek(0)
 
-    sim = ConsistencySimulation.load(fobj)
-    sim.run()
+    try:
+        sim = ConsistencySimulation.load(fobj)
+        logger.info(
+            "Starting simulation {}: \"{}\"".format(idx, sim.name)
+        )
 
-    # Dump the output data to a file.
-    output = StringIO()
-    sim.results.dump(output)
+        sim.run()
 
-    # Report completion back to the comamnd line
-    logger.info(
-        "{!r} simulation completed in {}".format(sim.name, sim.results.timer)
-    )
+        # Dump the output data to a file.
+        output = StringIO()
+        sim.results.dump(output)
 
-    # Return the string value of the JSON results.
-    return output.getvalue()
+        # Report completion back to the command line
+        logger.info(
+            "Simulation {}: \"{}\" completed in {}".format(idx, sim.name, sim.results.timer)
+        )
+
+        # Return the string value of the JSON results.
+        return output.getvalue()
+    except Exception as e:
+        logger.error(str(e))
+
+        import traceback, sys
+        return json.dumps({
+            'success': False,
+            'traceback': "".join(traceback.format_exception(*sys.exc_info())),
+        })
 
 
 class MultipleSimulationsCommand(Command):
@@ -78,19 +90,8 @@ class MultipleSimulationsCommand(Command):
             'default': mp.cpu_count(),
             'help': 'number of concurrent simulation task to run',
         },
-        '--crazy': {
-            'action': 'store_true',
-            'default': False,
-            'help': 'rerun lots of experiments with variations',
-        },
-        ('-n', '--count'): {
-            'type': int,
-            'metavar': 'NUM',
-            'required': True,
-            'help': 'total number of simulations to run'
-        },
         'topology': {
-            'nargs': 1,
+            'nargs': "+",
             'type': argparse.FileType('r'),
             'default': None,
             'metavar': 'topology.json',
@@ -113,7 +114,8 @@ class MultipleSimulationsCommand(Command):
         with Timer() as timer:
             pool    = mp.Pool(processes=args.tasks)
             results = [
-                pool.apply_async(runner, args=(x,)) for x in experiments
+                pool.apply_async(runner, args=(i+1,x))
+                for i, x in enumerate(experiments)
             ]
 
             output   = [json.loads(p.get()) for p in results]
@@ -131,81 +133,16 @@ class MultipleSimulationsCommand(Command):
         json.dump(output, args.output)
 
         return (
-            "{} simulations ({} seconds) run by {} tasks in {}\n"
+            "{} simulations ({} compute time) run by {} tasks in {}\n"
             "Results for {} written to {}"
         ).format(
-            len(experiments), duration, args.tasks, timer,
+            len(results), humanizedelta(seconds=duration), args.tasks, timer,
             output[0]['simulation'], args.output.name
         )
 
     def get_experiments(self, args):
-        if args.crazy:
-            import random
-            from itertools import chain
-
-            def inner(args):
-                args.topology[0].seek(0)
-                yield [
-                    experiment for experiment in
-                    generate_latency_variation_experiment(
-                        args.topology[0], args.count,
-                        random.randint(5, 100), random.randint(2000, 5000), random.randint(100, 1800)
-                )]
-
-            return list(chain(*
-                chain(*[
-                    list(inner(args))
-                    for x in xrange(args.count)
-                ])
-            ))
-
-        return [
-            experiment for experiment in
-            generate_latency_variation_experiment(args.topology[0], args.count)
-        ]
-
-
-##########################################################################
-## Helper Functions
-##########################################################################
-
-def spread(n, start, stop, width=None):
-    """
-    Given n slices, divide the range between start and stop; factored by
-    width. E.g. if width is not given, just give the even n splits.
-
-    If width is given, spread n width wide ranges over the start/stop with
-    overlap or gaps depending on how n width wide ranges fits between.
-    """
-
-    if width is None:
-        width = stop / n
-
-    gap = (stop / n) - width
-
-    for idx in xrange(n):
-        yield [start, start + width]
-        start += width + gap
-
-def generate_latency_variation_experiment(fobj, n, min_latency=5, max_latency=6000, max_range=1200, max_users=6, user_step=2):
-    """
-    Reads a topology from a JSON file and creates n experimental files with
-    a variation in the minimum and maximum latency across all connections.
-    """
-    # TODO: This is just a stub, replace soon with better code!
-    data  = json.load(fobj)
-    width = min(max_range, max_latency / n)
-
-    for users in xrange(1, max_users+1, user_step):
-        for latency in spread(n, min_latency, max_latency, width):
-            mean_latency = int(sum(map(float, latency)) / len(latency))
-
-            for link in data['links']:
-                if link['connection'] == 'variable':
-                    link['latency'] = latency
-                else:
-                    link['latency'] = mean_latency
-
-            data['meta']['users'] = users
-
-            yield json.dumps(data, fobj)
+        """
+        Converts the topologies into JSON data to serialize across processes.
+        """
+        for topology in args.topology:
+            yield topology.read()
