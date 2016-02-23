@@ -24,6 +24,7 @@ import multiprocessing as mp
 from commis import Command
 from cloudscope.config import settings
 from cloudscope.utils.decorators import Timer
+from cloudscope.experiment import LatencyVariation
 from cloudscope.simulation.main import ConsistencySimulation
 
 # TODO: Remove below
@@ -156,7 +157,7 @@ class MultipleSimulationsCommand(Command):
                 args.topology[0].seek(0)
                 yield [
                     experiment for experiment in
-                    generate_latency_variation_experiment(
+                    LatencyVariation(
                         args.topology[0], args.count,
                         random.randint(5, 100), random.randint(2000, 5000), random.randint(100, 1800)
                 )]
@@ -170,57 +171,5 @@ class MultipleSimulationsCommand(Command):
 
         return [
             experiment for experiment in
-            generate_latency_variation_experiment(args.topology[0], args.count)
+            LatencyVariation(args.topology[0], count=args.count)
         ]
-
-
-##########################################################################
-## Helper Functions
-##########################################################################
-
-def spread(n, start, stop, width=None):
-    """
-    Given n slices, divide the range between start and stop; factored by
-    width. E.g. if width is not given, just give the even n splits.
-
-    If width is given, spread n width wide ranges over the start/stop with
-    overlap or gaps depending on how n width wide ranges fits between.
-    """
-
-    if width is None:
-        width = stop / n
-
-    gap = (stop / n) - width
-
-    for idx in xrange(n):
-        yield [start, start + width]
-        start += width + gap
-
-def generate_latency_variation_experiment(fobj, n, min_latency=5, max_latency=6000, max_range=1200, max_users=6, user_step=2):
-    """
-    Reads a topology from a JSON file and creates n experimental files with
-    a variation in the minimum and maximum latency across all connections.
-    """
-    # TODO: This is just a stub, replace soon with better code!
-    data  = json.load(fobj)
-    width = min(max_range, max_latency / n)
-
-    for users in xrange(1, max_users+1, user_step):
-        for latency in spread(n, min_latency, max_latency, width):
-            mean_latency = int(sum(map(float, latency)) / len(latency))
-
-            for node in data['nodes']:
-                if node['consistency'] == 'strong':
-                    # Add raft-specific information
-                    node['election_timeout'] = [mean_latency * 10, mean_latency * 20]
-                    node['heartbeat_interval'] = mean_latency * 5
-
-            for link in data['links']:
-                if link['connection'] == 'variable':
-                    link['latency'] = latency
-                else:
-                    link['latency'] = mean_latency
-
-            data['meta']['users'] = users
-
-            yield json.dumps(data)
