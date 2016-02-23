@@ -1,4 +1,4 @@
-# cloudscope.simulation.replica.consensus.election
+# cloudscope.replica.consensus.election
 # Data structures for handling elections and election timeouts.
 #
 # Author:   Benjamin Bengfort <bengfort@cs.umd.edu>

@@ -25,7 +25,7 @@ from cloudscope.simulation import Simulation
 from cloudscope.simulation.network import Network
 from cloudscope.simulation.workload import Workload
 from cloudscope.utils.serialize import JSONEncoder
-from cloudscope.simulation.replica import replica_factory
+from cloudscope.replica import replica_factory
 
 ##########################################################################
 ## Primary Simulation

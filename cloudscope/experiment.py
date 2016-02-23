@@ -22,7 +22,7 @@ import collections
 
 from copy import deepcopy
 from cloudscope.exceptions import CannotGenerateExperiments
-from cloudscope.simulation.replica.base import Consistency
+from cloudscope.replica.base import Consistency
 
 ##########################################################################
 ## Helper Functions

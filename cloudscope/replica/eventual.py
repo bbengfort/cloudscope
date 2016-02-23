@@ -1,4 +1,4 @@
-# cloudscope.simulation.replica.eventual
+# cloudscope.replica.eventual
 # Implements the anti-entropy and eventual consistency policies on a replica.
 #
 # Author:   Benjamin Bengfort <bengfort@cs.umd.edu>

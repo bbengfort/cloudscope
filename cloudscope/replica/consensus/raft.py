@@ -1,4 +1,4 @@
-# cloudscope.simulation.replica.consensus.raft
+# cloudscope.replica.consensus.raft
 # Implements strong consistency using Raft consensus.
 #
 # Author:   Benjamin Bengfort <bengfort@cs.umd.edu>
@@ -19,11 +19,12 @@ Implements strong consistency using Raft consensus.
 
 from cloudscope.config import settings
 from cloudscope.simulation.timer import Timer
-from cloudscope.simulation.replica.store import Version
-from cloudscope.simulation.replica import Replica, Consistency
-from cloudscope.simulation.replica.consensus.log import WriteLog
+from cloudscope.replica.store import Version
+from cloudscope.replica import Replica, Consistency
 from cloudscope.exceptions import RaftRPCException, SimulationException
-from cloudscope.simulation.replica.consensus.election import ElectionTimer, Election
+
+from .log import WriteLog
+from .election import ElectionTimer, Election
 
 from collections import defaultdict
 from collections import namedtuple

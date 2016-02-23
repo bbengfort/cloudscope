@@ -1,4 +1,4 @@
-# cloudscope.simulation.replica.consensus
+# cloudscope.replica.consensus
 # Implements strong consistency using consensus protocols.
 #
 # Author:   Benjamin Bengfort <bengfort@cs.umd.edu>

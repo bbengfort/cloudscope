@@ -1,4 +1,4 @@
-# cloudscope.simulation.replica.base
+# cloudscope.simulation.base
 # Base functionality for a replica on a personal cloud storage system.
 #
 # Author:   Benjamin Bengfort <bengfort@cs.umd.edu>

@@ -1,4 +1,4 @@
-# cloudscope.simulation.replica
+# cloudscope.replica
 # Functionality for different replica types in the cloud storage system.
 #
 # Author:   Benjamin Bengfort <bengfort@cs.umd.edu>
