@@ -33,14 +33,6 @@ from SimpleHTTPServer import SimpleHTTPRequestHandler
 
 
 ##########################################################################
-## Module Constants
-##########################################################################
-
-ADDR   = settings.server.address
-PORT   = settings.server.port
-
-
-##########################################################################
 ## CloudScope Request Handler
 ##########################################################################
 
@@ -115,7 +107,10 @@ class CloudScopeWebServer(HTTPServer):
                 "Web docs root, {!r} is not a directory!".format(self.htdocs)
             )
 
-        HTTPServer.__init__(self, (ADDR, PORT), CloudScopeHandler)
+        self.addr = kwargs.get('addr', settings.server.address)
+        self.port = kwargs.get('port', settings.server.port)
+
+        HTTPServer.__init__(self, (self.addr, self.port), CloudScopeHandler)
 
     def run(self):
         """
@@ -123,7 +118,7 @@ class CloudScopeWebServer(HTTPServer):
         """
         # Log startup
         self.logger.info(
-            "Starting webserver at http://{}:{}".format(ADDR, PORT)
+            "Starting webserver at http://{}:{}".format(self.addr, self.port)
         )
 
         try:

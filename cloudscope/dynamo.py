@@ -19,6 +19,7 @@ events or other sequences that we will use in our processes.
 ## Imports
 ##########################################################################
 
+import bisect
 import random
 
 from cloudscope.viz import plot_kde
@@ -111,7 +112,7 @@ class Distribution(Dynamo):
         """
         Vizualizes the density estimate of the distribution.
         """
-        random.seed(kwargs.get('random_seed', settings.random_seed))
+        random.seed(kwargs.pop('random_seed', settings.simulation.random_seed))
         series = [self.get() for x in xrange(n)]
         axe = plot_kde(series, **kwargs)
 
@@ -181,3 +182,85 @@ class NormalDistribution(Distribution):
 
 ## Alias for Normal Distribution
 Normal = NormalDistribution
+
+
+class BoundedNormalDistribution(NormalDistribution):
+    """
+    A normal distribution with a hard floor and/or ceiling.
+    """
+
+    def __init__(self, mean, stddev, floor=None, ceil=None):
+        self.floor = floor
+        self.ceil  = ceil
+        super(BoundedNormalDistribution, self).__init__(mean, stddev)
+
+    def next(self):
+        val = super(BoundedNormalDistribution, self).next()
+        if self.floor is not None:
+            val = max(val, self.floor)
+
+        if self.ceil is not None:
+            val = min(val, self.ceil)
+
+        return val
+
+
+## Alias for Bounded Normal Distribution
+BoundedNormal = BoundedNormalDistribution
+
+
+class DiscreteDistribution(Distribution):
+    """
+    Generates a random selection from a possible list of values, and is
+    basically a wrapper for `random.choice`. By default each possible outcome
+    has a uniform probability, however weights can be supplied as an
+    extra list to change the distribution properties.
+    """
+
+    def __init__(self, values, weights=None):
+        if weights is None:
+            weights = [1 for _ in xrange(len(values))]
+
+        self.values  = values
+        self.weights = map(float, weights)
+
+        # Create a cumulative distribution
+        self.total = 0.0
+        self.cumulative = []
+
+        for w in weights:
+            self.total += w
+            self.cumulative.append(self.total)
+
+    @property
+    def probabilities(self):
+        return dict([
+            (value, self.weights[idx] / self.total)
+            for idx, value in enumerate(self.values)
+        ])
+
+    def next(self):
+        x = random.random() * self.total
+        i = bisect.bisect(self.cumulative, x)
+        return self.values[i]
+
+## Alias for Discrete Distribution
+Discrete = DiscreteDistribution
+
+
+class BernoulliDistribution(Distribution):
+    """
+    The probability distribution of a random variable which is True with the
+    success probability of p and False with the probability of 1-p. By default
+    this is a coin toss with probability p=0.5.
+    """
+
+    def __init__(self, p=0.5):
+        self.p = p
+        self.q = 1 - p
+
+    def next(self):
+        return random.random() < self.p
+
+## Alias for Bernoulli Distribution
+Bernoulli = BernoulliDistribution

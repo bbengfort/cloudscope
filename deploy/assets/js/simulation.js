@@ -82,10 +82,10 @@
 
           // Add the minimum and maximum latency to the legend
           $("#constantLatencyLegend").text(
-            $("#constantLatencyLegend").text() + ": " + data.meta.constant
+            "Constant Latency: " + data.meta.constant
           );
           $("#variableLatencyLegend").text(
-            $("#variableLatencyLegend").text() + ": " + data.meta.variable
+            "Variable Latency: " + data.meta.variable
           );
 
           console.log("Simulation loaded from " + self.url);
@@ -138,6 +138,20 @@
       var sbox = $('#state rect.infobox', this.svg);
       var sh = this.height(true) - sbox.attr("y");
       sbox.attr('height', sh);
+    };
+
+    // Removes all nodes and links from the visualization.
+    this.clear = function() {
+      // Remove the nodes.
+      _.each(this.nodes, function(node) {
+        node.clear();
+      });
+
+      // Remove the network.
+      $("#network", this.svg).empty();
+
+      // Delete the nodes in the simulation listing.
+      this.nodes = [];
     };
 
     // Computes the ring dimensions to create a layout

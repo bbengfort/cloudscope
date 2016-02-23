@@ -60,3 +60,12 @@ target/
 # Configuration
 conf/*
 !conf/cloudscope-example.yaml
+
+# iPython
+.ipynb_checkpoints
+
+# Fixtures and results
+fixtures/*
+!fixtures/*.gz
+!fixtures/*.zip
+!fixtures/*.tgz

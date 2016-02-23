@@ -43,3 +43,35 @@ class UnknownType(CloudScopeException):
     An unknown type was passed causing a TypeError of some kind.
     """
     pass
+
+
+class CannotGenerateExperiments(CloudScopeException):
+    """
+    Errors during the experiment generation process.
+    """
+    pass
+    
+
+##########################################################################
+## Simulation Exception Hierarchy
+##########################################################################
+
+class SimulationException(CloudScopeException):
+    """
+    Something went wrong in a simulation.
+    """
+    pass
+
+
+class NetworkError(SimulationException):
+    """
+    Could not send or receive a message between two nodes.
+    """
+    pass
+
+
+class RaftRPCException(SimulationException):
+    """
+    Something went wrong in the Raft RPC scheme.
+    """
+    pass

@@ -73,17 +73,16 @@ class Simulation(object):
         """
         Instantiates the simpy environment and other configurations.
         """
-        random.seed(kwargs.get('random_seed', settings.simulation.random_seed))
+        # Set the random seed for replaying simulations
+        self.random_seed = kwargs.get('random_seed', settings.simulation.random_seed)
+        random.seed(self.random_seed)
 
         self.max_sim_time = kwargs.get('max_sim_time', settings.simulation.max_sim_time)
         self.env = simpy.Environment()
 
-    @memoized
-    def name(self):
-        """
-        Override to set a specific name for the simulation.
-        """
-        return self.__class__.__name__
+        # Set the description of the simulation
+        self.name = kwargs.get('name', self.__class__.__name__)
+        self.description = kwargs.get('description', None)
 
     @memoized
     def results(self):

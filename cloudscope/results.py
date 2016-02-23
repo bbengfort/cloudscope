@@ -25,6 +25,7 @@ from cloudscope.utils.serialize import JSONEncoder
 from cloudscope.utils.decorators import Timer, memoized
 from cloudscope.utils.timez import HUMAN_DATETIME
 from cloudscope.utils.timez import epochptime
+from cloudscope.viz import plot_workload
 
 from collections import defaultdict
 
@@ -53,6 +54,7 @@ class Results(object):
         self.version    = cloudscope.get_version()
         self.randseed   = settings.simulation.random_seed
         self.timesteps  = settings.simulation.max_sim_time
+        self.settings   = dict(settings.simulation.options())
 
         # Set any properties that need to be serialized (override above)
         for key, val in kwargs.iteritems():
@@ -89,13 +91,19 @@ class Results(object):
         """
         raise NotImplementedError("Plotting the results not implemented yet.")
 
+    def plot_workload(self, **kwargs):
+        """
+        Hook for cloudscope.viz.plot_workload
+        """
+        return plot_workload(self, **kwargs)
+
     @memoized
     def title(self):
         """
         Returns a pretty title for the results.
         """
         return '{} Simulation on {}'.format(
-            self.simulation.rstrip('Simulation'), self.finished.strftime(HUMAN_DATETIME)
+            self.simulation.rstrip('Simulation').rstrip(), self.finished.strftime(HUMAN_DATETIME)
         )
 
     @memoized

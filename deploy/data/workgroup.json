@@ -1,0 +1,139 @@
+{
+    "meta": {
+        "constant": "500ms",
+        "variable": "100-1000ms",
+        "seed": null,
+        "title": "Eventual/Strong Workgroup",
+        "description": "Multiple eventual groups (users) progressing with a strong quroum to coordinate."
+    },
+    "nodes": [
+        {
+            "id": "rA",
+            "label": "Raft A",
+            "type": "storage",
+            "consistency": "strong",
+            "location": "alpha-site"
+        },
+        {
+            "id": "a1",
+            "label": "Alpha 1",
+            "type": "laptop",
+            "consistency": "low",
+            "location": "alpha-site"
+        },
+        {
+            "id": "a2",
+            "label": "Alpha 2",
+            "type": "laptop",
+            "consistency": "low",
+            "location": "alpha-site"
+        },
+        {
+            "id": "rB",
+            "label": "Raft B",
+            "type": "storage",
+            "consistency": "strong",
+            "location": "bravo-site"
+        },
+        {
+            "id": "b1",
+            "label": "Bravo 1",
+            "type": "laptop",
+            "consistency": "low",
+            "location": "bravo-site"
+        },
+        {
+            "id": "b2",
+            "label": "Bravo 2",
+            "type": "laptop",
+            "consistency": "low",
+            "location": "bravo-site"
+        },
+        {
+            "id": "rC",
+            "label": "Raft C",
+            "type": "storage",
+            "consistency": "strong",
+            "location": "charlie-site"
+        },
+        {
+            "id": "c1",
+            "label": "Charlie 1",
+            "type": "laptop",
+            "consistency": "low",
+            "location": "charlie-site"
+        },
+        {
+            "id": "c2",
+            "label": "Charlie 2",
+            "type": "laptop",
+            "consistency": "low",
+            "location": "charlie-site"
+        },
+        {
+            "id": "rD",
+            "label": "Raft D",
+            "type": "storage",
+            "consistency": "strong",
+            "location": "delta-site"
+        },
+        {
+            "id": "d1",
+            "label": "Delta 1",
+            "type": "laptop",
+            "consistency": "low",
+            "location": "delta-site"
+        },
+        {
+            "id": "d2",
+            "label": "Delta 2",
+            "type": "laptop",
+            "consistency": "low",
+            "location": "delta-site"
+        },
+        {
+            "id": "rE",
+            "label": "Raft E",
+            "type": "storage",
+            "consistency": "strong",
+            "location": "echo-site"
+        },
+        {
+            "id": "e1",
+            "label": "Echo 1",
+            "type": "laptop",
+            "consistency": "low",
+            "location": "echo-site"
+        },
+        {
+            "id": "e2",
+            "label": "Echo 2",
+            "type": "laptop",
+            "consistency": "low",
+            "location": "echo-site"
+        }
+    ],
+    "links": [
+        {"source": 0, "target": 3, "connection": "constant", "latency": 500},
+        {"source": 0, "target": 6, "connection": "constant", "latency": 500},
+        {"source": 0, "target": 9, "connection": "constant", "latency": 500},
+        {"source": 0, "target": 12, "connection": "constant", "latency": 500},
+        {"source": 3, "target": 6, "connection": "constant", "latency": 500},
+        {"source": 3, "target": 9, "connection": "constant", "latency": 500},
+        {"source": 3, "target": 12, "connection": "constant", "latency": 500},
+        {"source": 6, "target": 9, "connection": "constant", "latency": 500},
+        {"source": 6, "target": 12, "connection": "constant", "latency": 500},
+        {"source": 9, "target": 12, "connection": "constant", "latency": 500},
+
+        {"source": 1, "target": 0, "connection": "variable", "latency": [100, 1000]},
+        {"source": 2, "target": 0, "connection": "variable", "latency": [100, 1000]},
+        {"source": 4, "target": 3, "connection": "variable", "latency": [100, 1000]},
+        {"source": 5, "target": 3, "connection": "variable", "latency": [100, 1000]},
+        {"source": 7, "target": 6, "connection": "variable", "latency": [100, 1000]},
+        {"source": 8, "target": 6, "connection": "variable", "latency": [100, 1000]},
+        {"source": 10, "target": 9, "connection": "variable", "latency": [100, 1000]},
+        {"source": 11, "target": 9, "connection": "variable", "latency": [100, 1000]},
+        {"source": 13, "target": 12, "connection": "variable", "latency": [100, 1000]},
+        {"source": 14, "target": 12, "connection": "variable", "latency": [100, 1000]}
+    ]
+}

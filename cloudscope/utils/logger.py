@@ -38,6 +38,10 @@ configuration = {
             'format':  settings.logging.logfmt,
             'datefmt': settings.logging.datefmt,
         },
+        'simulation': {
+            'format':  "[%(time)7d] %(message)s",
+            'datefmt': settings.logging.datefmt,
+        },
     },
 
     'handlers': {
@@ -49,6 +53,11 @@ configuration = {
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
+        },
+        'simulation': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simulation',
         },
     },
 
@@ -65,7 +74,7 @@ configuration = {
         },
         'cloudscope.simulation': {
             'level': settings.logging.level,
-            'handlers': ['console',],
+            'handlers': ['simulation',],
             'propagate': False,
         },
         'py.warnings': {
