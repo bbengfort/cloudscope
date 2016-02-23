@@ -103,7 +103,7 @@ class Results(object):
         Returns a pretty title for the results.
         """
         return '{} Simulation on {}'.format(
-            self.simulation.rstrip('Simulation'), self.finished.strftime(HUMAN_DATETIME)
+            self.simulation.rstrip('Simulation').rstrip(), self.finished.strftime(HUMAN_DATETIME)
         )
 
     @memoized
