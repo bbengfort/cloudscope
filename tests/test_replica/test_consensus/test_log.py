@@ -19,7 +19,7 @@ Testing the data structures and helpers for a Raft write log.
 
 import unittest
 
-from cloudscope.simulation.replica.consensus.log import WriteLog
+from cloudscope.replica.consensus.log import WriteLog
 
 ##########################################################################
 ## TestCase

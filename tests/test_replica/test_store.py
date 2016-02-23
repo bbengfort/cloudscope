@@ -1,4 +1,4 @@
-# tests.test_simulation.test_store
+# tests.test_store
 # Tests the store functionality in the simulation.
 #
 # Author:   Benjamin Bengfort <bengfort@cs.umd.edu>
@@ -20,7 +20,7 @@ Tests the store functionality in the simulation.
 import unittest
 
 from cloudscope.dynamo import Sequence
-from cloudscope.simulation.replica import Replica, Version
+from cloudscope.replica import Replica, Version
 
 try:
     from unittest import mock
