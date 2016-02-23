@@ -17,6 +17,7 @@ Multiprocess runner for running many simulations simultaneously.
 ## Imports
 ##########################################################################
 
+import os
 import json
 import logging
 import argparse
@@ -28,28 +29,27 @@ from cloudscope.config import settings
 from cloudscope.utils.decorators import Timer
 from cloudscope.utils.timez import humanizedelta
 from cloudscope.simulation.main import ConsistencySimulation
+from commis.exceptions import ConsoleError
 
 
 ##########################################################################
 ## Command
 ##########################################################################
 
-def runner(idx, data):
+def runner(idx, path):
     """
     Takes an open file-like object and runs the simulation, returning a
     string containing the dumped JSON results, which can be dumped to disk.
     """
     logger = logging.getLogger('cloudscope')
 
-    fobj = StringIO(data)
-    fobj.seek(0)
-
     try:
-        sim = ConsistencySimulation.load(fobj)
+        with open(path, 'r') as fobj:
+            sim = ConsistencySimulation.load(fobj)
+
         logger.info(
             "Starting simulation {}: \"{}\"".format(idx, sim.name)
         )
-
         sim.run()
 
         # Dump the output data to a file.
@@ -90,9 +90,10 @@ class MultipleSimulationsCommand(Command):
             'default': mp.cpu_count(),
             'help': 'number of concurrent simulation task to run',
         },
+        # Note: can't use argparse.FileType('r') here because of too many open files error!
         'topology': {
             'nargs': "+",
-            'type': argparse.FileType('r'),
+            'type': str,
             'default': None,
             'metavar': 'topology.json',
             'help': 'simulation description file to load'
@@ -145,4 +146,11 @@ class MultipleSimulationsCommand(Command):
         Converts the topologies into JSON data to serialize across processes.
         """
         for topology in args.topology:
-            yield topology.read()
+            path = os.path.abspath(topology)
+
+            if not os.path.exists(path) or not os.path.isfile(path):
+                raise ConsoleError(
+                    "Could not find topology file at '{}'".format(topology)
+                )
+
+            yield path

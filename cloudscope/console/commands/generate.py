@@ -24,6 +24,7 @@ import argparse
 from commis import Command
 from commis.exceptions import ConsoleError
 from cloudscope.experiment import LatencyVariation
+from cloudscope.experiment import AntiEntropyVariation
 
 
 ##########################################################################
@@ -45,6 +46,11 @@ def csv(type=int):
 
     return parser
 
+## Experiment Generators
+generators = {
+    'latency': LatencyVariation,
+    'entropy': AntiEntropyVariation,
+}
 
 ##########################################################################
 ## Command
@@ -77,6 +83,12 @@ class GenerateCommand(Command):
             'default': 12,
             'help': 'total number of permutations to generate',
         },
+        ('-g', '--generator'): {
+            'type': str,
+            'choices': generators.keys(),
+            'default': 'latency',
+            'help': 'the experiment generator to use'
+        },
         '--users': {
             'type': csv(int),
             'default': (1,5,2),
@@ -88,6 +100,12 @@ class GenerateCommand(Command):
             'default': (5,3000,1200),
             'metavar': 'min,max,width',
             'help': 'specify the latency range in experiments',
+        },
+        '--anti-entropy': {
+            'type': csv(int),
+            'default': (100,1000),
+            'metavar': 'min,max',
+            'help': 'specify the anti-entropy delay range in experiments',
         },
         'topology': {
             'nargs': 1,
@@ -124,10 +142,12 @@ class GenerateCommand(Command):
         Handle to perform the experiment generation on the comamnd line.
         """
         # Get experimental arguments
-        latency  = dict(zip(('minimum', 'maximum', 'max_range'), args.latency))
-        users    = dict(zip(('minimum', 'maximum', 'step'), args.users))
-        generate = LatencyVariation.load(
-            topology, count=args.count, latency=latency, users=users
+        Generator = generators[args.generator]
+        latency   = dict(zip(('minimum', 'maximum', 'max_range'), args.latency))
+        users     = dict(zip(('minimum', 'maximum', 'step'), args.users))
+        aentropy  = dict(zip(('minimum', 'maximum'), args.anti_entropy))
+        generate  = Generator.load(
+            topology, count=args.count, latency=latency, users=users, anti_entropy=aentropy
         )
 
         for experiment in generate:

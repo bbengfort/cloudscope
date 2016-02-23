@@ -21,6 +21,7 @@ import json
 import collections
 
 from copy import deepcopy
+from cloudscope.config import settings
 from cloudscope.exceptions import CannotGenerateExperiments
 from cloudscope.replica.base import Consistency
 
@@ -162,7 +163,6 @@ class LatencyVariation(ExperimentGenerator):
             mean = int(sum(map(float, latency)) / len(latency))
             yield latency, mean
 
-
     def generate(self, n=None):
         n = n or self.count
         if not n:
@@ -194,4 +194,50 @@ class LatencyVariation(ExperimentGenerator):
 
                 experiment['meta']['users'] = n_users
 
+                yield experiment
+
+
+class AntiEntropyVariation(LatencyVariation):
+    """
+    Generate experiments with variation in the anti-entropy delay.
+    """
+
+    def get_defaults(self, options):
+        """
+        Update the LatencyVariation defaults with anti-entropy options.
+        """
+        defaults = nested_update({
+            'anti_entropy': {
+                'minimum': settings.simulation.anti_entropy_delay,
+                'maximum': settings.simulation.anti_entropy_delay,
+            }
+        }, options)
+
+        return super(LatencyVariation, self).get_defaults(defaults)
+
+    def ae_delays(self, n):
+        """
+        Returns a generator of anti-entropy delays if a range is passed in.
+        """
+        low   = self.options['anti_entropy']['minimum']
+        high  = self.options['anti_entropy']['maximum']
+
+        if low == high:
+            yield low
+        else:
+            for delay in spread(n, low, high):
+                yield int(sum(map(float, delay)) / len(delay))
+
+    def generate(self, n=None):
+        n = n or self.count
+        for experiment in super(AntiEntropyVariation, self).generate(n):
+            for ae_delay in self.ae_delays(n):
+
+                # Update the nodes with latency-specific settings.
+                for node in experiment['nodes']:
+                    if node['consistency'] == Consistency.LOW:
+                        # Add eventual-specific information
+                        node['anti_entropy_delay'] = ae_delay
+
+                experiment['meta']['anti_entropy_delay'] = ae_delay
                 yield experiment

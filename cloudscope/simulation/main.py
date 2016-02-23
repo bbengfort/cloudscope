@@ -76,6 +76,15 @@ class ConsistencySimulation(Simulation):
         """
         self.results.settings['users'] = self.users
         self.results.topology = self.serialize()
+
+        # Compute Anti-Entropy
+        aedelays = map(float, [
+            node.ae_delay for node in
+            filter(lambda n: n.consistency =="low", self.replicas)
+        ])
+
+        self.results.settings['anti_entropy_delay'] = int(sum(aedelays) / len(aedelays))
+
         super(ConsistencySimulation, self).complete()
 
     def script(self):
