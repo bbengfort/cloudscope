@@ -25,7 +25,7 @@ from cloudscope.simulation import Simulation
 from cloudscope.simulation.network import Network
 from cloudscope.simulation.workload import Workload
 from cloudscope.utils.serialize import JSONEncoder
-from cloudscope.simulation.replica import replica_factory
+from cloudscope.replica import replica_factory
 
 ##########################################################################
 ## Primary Simulation
@@ -76,6 +76,15 @@ class ConsistencySimulation(Simulation):
         """
         self.results.settings['users'] = self.users
         self.results.topology = self.serialize()
+
+        # Compute Anti-Entropy
+        aedelays = map(float, [
+            node.ae_delay for node in
+            filter(lambda n: n.consistency =="low", self.replicas)
+        ])
+
+        self.results.settings['anti_entropy_delay'] = int(sum(aedelays) / len(aedelays))
+
         super(ConsistencySimulation, self).complete()
 
     def script(self):

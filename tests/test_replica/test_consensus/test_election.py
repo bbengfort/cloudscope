@@ -1,4 +1,4 @@
-# tests.test_simulation.test_replica.test_consensus.test_election
+# tests.test_replica.test_consensus.test_election
 # Testing the data structures and helpers for an election.
 #
 # Author:   Benjamin Bengfort <bengfort@cs.umd.edu>
@@ -19,7 +19,7 @@ Testing the data structures and helpers for an election.
 
 import unittest
 
-from cloudscope.simulation.replica.consensus.election import Election
+from cloudscope.replica.consensus.election import Election
 
 ##########################################################################
 ## TestCase

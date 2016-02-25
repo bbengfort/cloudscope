@@ -1,4 +1,4 @@
-# cloudscope.simulation.replica.conensus.log
+# cloudscope.replica.conensus.log
 # Implements a "write-ahead" log for Raft storage.
 #
 # Author:   Benjamin Bengfort <bengfort@cs.umd.edu>

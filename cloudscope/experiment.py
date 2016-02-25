@@ -21,8 +21,10 @@ import json
 import collections
 
 from copy import deepcopy
+from cloudscope.dynamo import Uniform
+from cloudscope.config import settings
 from cloudscope.exceptions import CannotGenerateExperiments
-from cloudscope.simulation.replica.base import Consistency
+from cloudscope.replica.base import Consistency
 
 ##########################################################################
 ## Helper Functions
@@ -59,6 +61,20 @@ def nested_update(d, u):
         else:
             d[k] = u[k]
     return d
+
+
+def nested_randomize(d):
+    """
+    Expects a data structure of nested dictionaries whose leaf values are
+    tuples that can be passed to a uniform random distribution.
+    """
+    r = deepcopy(d)
+    for k,v in d.iteritems():
+        if isinstance(v, dict):
+            r[k] = nested_randomize(v)
+        else:
+            r[k] = Uniform(*v).get()
+    return r
 
 
 ##########################################################################
@@ -114,6 +130,31 @@ class ExperimentGenerator(object):
             "Generate is specific to othe type of experiment generator!"
         )
 
+    def jitter(self, n=1, **options):
+        """
+        Returns a generator of n copies of the current experiment generator,
+        such that the options passsed in are randomized (all other options
+        will remain fixed).
+
+        The options passed into the jitter function should be a tuple which
+        specifies the range of the random selection. A `Uniform` distribution
+        is used, so either floats or integers can be used.
+
+        Note: right now this is assume a single nested dictionary structure.
+        """
+        # Copy the options set on the generator
+        defaults = deepcopy(self.options)
+        defaults['count'] = self.count
+
+        # Get the class of this experiment generator
+        klass = self.__class__
+
+        for idx in xrange(n):
+            # Create a set of options that has been jittered
+            jopts  = nested_randomize(options)
+            kwargs = nested_update(defaults, jopts)
+            yield klass(self.template, **kwargs)
+
     def __iter__(self):
         for experiment in self.generate():
             yield experiment
@@ -162,7 +203,6 @@ class LatencyVariation(ExperimentGenerator):
             mean = int(sum(map(float, latency)) / len(latency))
             yield latency, mean
 
-
     def generate(self, n=None):
         n = n or self.count
         if not n:
@@ -194,4 +234,50 @@ class LatencyVariation(ExperimentGenerator):
 
                 experiment['meta']['users'] = n_users
 
+                yield experiment
+
+
+class AntiEntropyVariation(LatencyVariation):
+    """
+    Generate experiments with variation in the anti-entropy delay.
+    """
+
+    def get_defaults(self, options):
+        """
+        Update the LatencyVariation defaults with anti-entropy options.
+        """
+        defaults = nested_update({
+            'anti_entropy': {
+                'minimum': settings.simulation.anti_entropy_delay,
+                'maximum': settings.simulation.anti_entropy_delay,
+            }
+        }, options)
+
+        return super(AntiEntropyVariation, self).get_defaults(defaults)
+
+    def ae_delays(self, n):
+        """
+        Returns a generator of anti-entropy delays if a range is passed in.
+        """
+        low   = self.options['anti_entropy']['minimum']
+        high  = self.options['anti_entropy']['maximum']
+
+        if low == high:
+            yield low
+        else:
+            for delay in spread(n, low, high):
+                yield int(sum(map(float, delay)) / len(delay))
+
+    def generate(self, n=None):
+        n = n or self.count
+        for experiment in super(AntiEntropyVariation, self).generate(n):
+            for ae_delay in self.ae_delays(n):
+
+                # Update the nodes with latency-specific settings.
+                for node in experiment['nodes']:
+                    if node['consistency'] == Consistency.LOW:
+                        # Add eventual-specific information
+                        node['anti_entropy_delay'] = ae_delay
+
+                experiment['meta']['anti_entropy_delay'] = ae_delay
                 yield experiment

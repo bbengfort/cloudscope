@@ -30,5 +30,5 @@ def get_mock_simulation(**kwargs):
     return simulation
 
 def get_mock_replica(**kwargs):
-    from cloudscope.simulation.replica import Replica
+    from cloudscope.replica import Replica
     return Replica(get_mock_simulation())

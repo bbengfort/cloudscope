@@ -56,7 +56,7 @@ The versioning uses a three part version system, "a.b.c" - "a" represents a majo
 * **deployment**: Tuesday, February 23, 2016
 * **commit**: (see tag)
 
-This version implements the initial simulation prototype, and in particular handles eventual consistency and Raft quorum consistency. The two simulations that have been run and validated are homogenous consistency topologies (e.g. all eventual or all Raft). This version highlights the motivating examples for our work. 
+This version implements the initial simulation prototype, and in particular handles eventual consistency and Raft quorum consistency. The two simulations that have been run and validated are homogenous consistency topologies (e.g. all eventual or all Raft). This version highlights the motivating examples for our work.
 
 ### Early Releases
 

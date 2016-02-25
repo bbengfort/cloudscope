@@ -1,4 +1,4 @@
-# cloudscope.simulation.replica.store
+# cloudscope.replica.store
 # Definition of what a replica actually stores and manages (data objects).
 #
 # Author:   Benjamin Bengfort <bengfort@cs.umd.edu>

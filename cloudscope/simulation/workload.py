@@ -21,7 +21,7 @@ from cloudscope.config import settings
 from cloudscope.simulation.base import NamedProcess
 from cloudscope.dynamo import BoundedNormal, Bernoulli, Discrete
 from cloudscope.utils.decorators import memoized
-from cloudscope.simulation.replica import Location, Replica, Version
+from cloudscope.replica import Location, Replica, Version
 from cloudscope.exceptions import UnknownType
 from cloudscope.utils.timez import humanizedelta
 
