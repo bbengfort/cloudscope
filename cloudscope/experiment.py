@@ -21,6 +21,7 @@ import json
 import collections
 
 from copy import deepcopy
+from cloudscope.dynamo import Uniform
 from cloudscope.config import settings
 from cloudscope.exceptions import CannotGenerateExperiments
 from cloudscope.replica.base import Consistency
@@ -60,6 +61,20 @@ def nested_update(d, u):
         else:
             d[k] = u[k]
     return d
+
+
+def nested_randomize(d):
+    """
+    Expects a data structure of nested dictionaries whose leaf values are
+    tuples that can be passed to a uniform random distribution.
+    """
+    r = deepcopy(d)
+    for k,v in d.iteritems():
+        if isinstance(v, dict):
+            r[k] = nested_randomize(v)
+        else:
+            r[k] = Uniform(*v).get()
+    return r
 
 
 ##########################################################################
@@ -114,6 +129,31 @@ class ExperimentGenerator(object):
         raise NotImplementedError(
             "Generate is specific to othe type of experiment generator!"
         )
+
+    def jitter(self, n=1, **options):
+        """
+        Returns a generator of n copies of the current experiment generator,
+        such that the options passsed in are randomized (all other options
+        will remain fixed).
+
+        The options passed into the jitter function should be a tuple which
+        specifies the range of the random selection. A `Uniform` distribution
+        is used, so either floats or integers can be used.
+
+        Note: right now this is assume a single nested dictionary structure.
+        """
+        # Copy the options set on the generator
+        defaults = deepcopy(self.options)
+        defaults['count'] = self.count
+
+        # Get the class of this experiment generator
+        klass = self.__class__
+
+        for idx in xrange(n):
+            # Create a set of options that has been jittered
+            jopts  = nested_randomize(options)
+            kwargs = nested_update(defaults, jopts)
+            yield klass(self.template, **kwargs)
 
     def __iter__(self):
         for experiment in self.generate():
@@ -213,7 +253,7 @@ class AntiEntropyVariation(LatencyVariation):
             }
         }, options)
 
-        return super(LatencyVariation, self).get_defaults(defaults)
+        return super(AntiEntropyVariation, self).get_defaults(defaults)
 
     def ae_delays(self, n):
         """

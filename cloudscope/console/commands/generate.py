@@ -21,6 +21,7 @@ import os
 import json
 import argparse
 
+from copy import deepcopy
 from commis import Command
 from commis.exceptions import ConsoleError
 from cloudscope.experiment import LatencyVariation
@@ -147,11 +148,32 @@ class GenerateCommand(Command):
         users     = dict(zip(('minimum', 'maximum', 'step'), args.users))
         aentropy  = dict(zip(('minimum', 'maximum'), args.anti_entropy))
         generate  = Generator.load(
-            topology, count=args.count, latency=latency, users=users, anti_entropy=aentropy
+            topology, count=args.count, latency=latency,
+            users=users, anti_entropy=aentropy
         )
 
-        for experiment in generate:
-            yield experiment
+        # Create an iterable of generators if jittering is required.
+        generate = [generate] if not args.jitter else self.jitter(args.count, generate)
+
+        # Yield experiments from all generators.
+        for generator in generate:
+            for experiment in generator:
+                yield experiment
+
+    def jitter(self, n, generate):
+        """
+        Randomizes the latency and the anti-entropy delay.
+        """
+        opts = deepcopy(generate.options)
+        latency = opts['latency']
+        aedelay = opts['anti_entropy']
+
+        # Create +/- jitter in latency and aedelay
+        for opt in (latency, aedelay):
+            for k, v in opt.iteritems():
+                opt[k] = (max(1, v-100), v+100)
+
+        return generate.jitter(n, latency=latency, anti_entropy=aedelay)
 
     def get_output_directory(self, path, force=False):
         """
