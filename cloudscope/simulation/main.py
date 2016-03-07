@@ -83,7 +83,8 @@ class ConsistencySimulation(Simulation):
             filter(lambda n: n.consistency =="low", self.replicas)
         ])
 
-        self.results.settings['anti_entropy_delay'] = int(sum(aedelays) / len(aedelays))
+        if aedelays:
+            self.results.settings['anti_entropy_delay'] = int(sum(aedelays) / len(aedelays))
 
         super(ConsistencySimulation, self).complete()
 

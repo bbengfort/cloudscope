@@ -35,17 +35,19 @@ class Version(object):
         """
         Creation of an initial version for the version tree.
         """
-        self.writer   = replica
-        self.parent   = parent
-        self.version  = self.counter.next()
+        self.writer    = replica
+        self.parent    = parent
+        self.version   = self.counter.next()
+        self.committed = False
 
         # This seems very tightly coupled, should we do something different?
-        self.replicas = set([replica.id])
-        self.level    = kwargs.get('level', replica.consistency)
-        self.created  = kwargs.get('created', replica.env.now)
-        self.updated  = kwargs.get('updated', replica.env.now)
+        self.replicas  = set([replica.id])
+        self.level     = kwargs.get('level', replica.consistency)
 
-    def update(self, replica):
+        self.created   = kwargs.get('created', replica.env.now)
+        self.updated   = kwargs.get('updated', replica.env.now)
+
+    def update(self, replica, commit=False):
         """
         Replicas call this to update on remote writes.
         This method also tracks visibility latency for right now.
@@ -62,6 +64,13 @@ class Version(object):
                     'visibility latency',
                     (self.writer.id, str(self), self.created, self.updated)
                 )
+
+        if commit and not self.committed:
+            self.committed = True
+            self.writer.sim.results.update(
+                'commit latency',
+                (self.writer.id, str(self), self.created, self.updated)
+            )
 
 
     def is_stale(self):

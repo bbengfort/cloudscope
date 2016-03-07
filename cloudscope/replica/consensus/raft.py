@@ -46,7 +46,7 @@ ELECTION_TIMEOUT   = settings.simulation.election_timeout
 AppendEntries = namedtuple('AppendEntries', 'term, leaderId, prevLogIndex, prevLogTerm, entries, leaderCommit')
 RequestVote   = namedtuple('RequestVote', 'term, candidateId, lastLogIndex, lastLogTerm')
 Response      = namedtuple('Response', 'term, success')
-RemoteWrite   = namedtuple('RemoteWrite', 'term')
+RemoteWrite   = namedtuple('RemoteWrite', 'term, version')
 
 ##########################################################################
 ## Raft Replica
@@ -291,6 +291,12 @@ class RaftReplica(Replica):
                     commit.vote(k, v >= n)
 
                 if commit.has_passed() and self.log[n][1] == self.currentTerm:
+                    # Commit all versions from the last log entry to now.
+                    for idx in xrange(self.log.commitIndex, n+1):
+                        if self.log[idx][0] is None: continue 
+                        self.log[idx][0].update(self, commit=True)
+
+                    # Set the commit index and break
                     self.log.commitIndex = n
                     break
 
@@ -299,6 +305,12 @@ class RaftReplica(Replica):
                 "Response in unknown state: '{}'".format(self.state)
             )
 
+    def on_remote_write(self, msg):
+        """
+        Unpacks the version from the remote write and initiates a local write.
+        """
+        rpc = msg.value
+        self.write(rpc.version)
 
     def recv(self, event):
         """
@@ -317,7 +329,7 @@ class RaftReplica(Replica):
             "RequestVote": self.on_request_vote,
             "Response": self.on_rpc_response,
             'AppendEntries': self.on_append_entries,
-            "RemoteWrite": self.write,
+            "RemoteWrite": self.on_remote_write,
         }[rpc.__class__.__name__]
 
         handler(message)
@@ -338,7 +350,7 @@ class RaftReplica(Replica):
                     "Unknown Raft State: {!r} on {}".format(self.state, self)
                 )
 
-    def write(self, message=None):
+    def write(self, version=None):
         """
         Forks the current version if it exists or creates a new version.
         Appends the version to the log and gets ready for AppendEntries.
@@ -347,6 +359,26 @@ class RaftReplica(Replica):
         the leader via a remote write call (e.g. sending a message with the
         write request, though this will have to be considered in more detail).
         """
+        # Create the version if not passed in
+        if version is None:
+            # Get the current version
+            version = self.log.lastVersion
+
+            # Write to the version
+            version = Version(self) if version is None else version.fork(self)
+
+            # Log the write
+            self.sim.logger.debug(
+                "write version {} on {}".format(version, self)
+            )
+
+        else:
+            # Log the remote write
+            self.sim.logger.debug(
+                "remote write version {} on {}".format(version, self)
+            )
+
+        # If not leader, remote write to the leader
         if not self.state == LEADER:
             leaders = [node for node in self.connections if node.state == LEADER]
             if len(leaders) > 1:
@@ -357,20 +389,10 @@ class RaftReplica(Replica):
             else:
                 # Forward the write to the leader
                 return self.send(
-                    leaders[0], RemoteWrite(self.currentTerm)
+                    leaders[0], RemoteWrite(self.currentTerm, version)
                 )
 
-        # Get the current version
-        version = self.log.lastVersion
-
-        # Write to the version
-        version = Version(self) if version is None else version.fork(self)
-
-        # Log the write
-        self.sim.logger.debug(
-            "write version {} on {}".format(version, self)
-        )
-
+        # Otherwise, we are the leader
         # Get previous term and entry
         prevLogIndex = self.log.lastApplied
         prevLogTerm  = self.log.lastTerm
