@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: experiment.py [] benjamin@bengfort.com $
+# ID: experiment.py [26c65a7] benjamin@bengfort.com $
 
 """
 Takes a topology as a template and generates experiments from it.

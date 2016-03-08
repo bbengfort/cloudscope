@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: simulate.py [] benjamin@bengfort.com $
+# ID: simulate.py [123e7af] benjamin@bengfort.com $
 
 """
 Runs the CloudScope simulation with the configuration.

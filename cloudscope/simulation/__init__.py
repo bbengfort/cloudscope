@@ -7,7 +7,7 @@
 # Copyright (C) 2015 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: __init__.py [] benjamin@bengfort.com $
+# ID: __init__.py [d0f0ca1] benjamin@bengfort.com $
 
 """
 Implements the simulation constructs for CloudScope

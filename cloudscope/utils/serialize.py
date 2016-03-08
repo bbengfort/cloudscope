@@ -7,7 +7,7 @@
 # Copyright (C) 2015 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: serialize.py [] benjamin@bengfort.com $
+# ID: serialize.py [d0f0ca1] benjamin@bengfort.com $
 
 """
 Provides helpers for JSON serialization to disk.

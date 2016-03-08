@@ -7,7 +7,7 @@
 # Copyright (C) 2015 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: test_dynamo.py [] benjamin@bengfort.com $
+# ID: test_dynamo.py [7298a29] benjamin@bengfort.com $
 
 """
 Tests for the dynamo sequence generators and utilities.

@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: app.py [] benjamin@bengfort.com $
+# ID: app.py [123e7af] benjamin@bengfort.com $
 
 """
 Definition of the Scope app utility and commands.

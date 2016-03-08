@@ -7,7 +7,7 @@
 # Copyright (C) 2015 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: dynamo.py [] benjamin@bengfort.com $
+# ID: dynamo.py [d0f0ca1] benjamin@bengfort.com $
 
 """
 These utilities are "generators" e.g. classes that produce things. These are

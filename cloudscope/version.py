@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: version.py [] benjamin@bengfort.com $
+# ID: version.py [123e7af] benjamin@bengfort.com $
 
 """
 Maintains version and package information for deployment.

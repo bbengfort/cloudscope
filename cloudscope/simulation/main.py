@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: main.py [] benjamin@bengfort.com $
+# ID: main.py [945ecd7] benjamin@bengfort.com $
 
 """
 The primary consistency fragmentation simulation.

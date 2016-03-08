@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: multi.py [] benjamin@bengfort.com $
+# ID: multi.py [3b32635] benjamin@bengfort.com $
 
 """
 Multiprocess runner for running many simulations simultaneously.

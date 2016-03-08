@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: timer.py [] benjamin@bengfort.com $
+# ID: timer.py [6a38557] benjamin@bengfort.com $
 
 """
 Implements a timer process for SimPy simulations. See:

@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: test_decorators.py [] benjamin@bengfort.com $
+# ID: test_decorators.py [8d16e6c] benjamin@bengfort.com $
 
 """
 Testing the decorators utility package.

@@ -7,7 +7,7 @@
 # Copyright (C) 2015 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: __init__.py [] benjamin@bengfort.com $
+# ID: __init__.py [2a66be9] benjamin@bengfort.com $
 
 """
 Visualization of distributed systems and communications.

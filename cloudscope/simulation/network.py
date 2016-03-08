@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: network.py [] benjamin@bengfort.com $
+# ID: network.py [945ecd7] benjamin@bengfort.com $
 
 """
 Implements the networking interface for the simulation.

@@ -7,7 +7,7 @@
 # Copyright (C) 2015 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: exceptions.py [] benjamin@bengfort.com $
+# ID: exceptions.py [9c488d4] benjamin@bengfort.com $
 
 """
 Exceptions hierarchy for cloudscope

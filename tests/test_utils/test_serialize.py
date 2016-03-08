@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: test_serialize.py [] benjamin@bengfort.com $
+# ID: test_serialize.py [8d16e6c] benjamin@bengfort.com $
 
 """
 Test the serialize utility module.

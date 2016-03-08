@@ -7,7 +7,7 @@
 # Copyright (C) 2015 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: test_experiment.py [] benjamin@bengfort.com $
+# ID: test_experiment.py [26c65a7] benjamin@bengfort.com $
 
 """
 Tests for the experiment generation utility.

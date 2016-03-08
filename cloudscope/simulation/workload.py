@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: cloudscope.simulation.workload.py [] benjamin@bengfort.com $
+# ID: workload.py [b9507c0] benjamin@bengfort.com $
 
 """
 Defines the generators that create versions or "work" in the simulation.

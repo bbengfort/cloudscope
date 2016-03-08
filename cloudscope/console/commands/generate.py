@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: generate.py [] benjamin@bengfort.com $
+# ID: generate.py [26c65a7] benjamin@bengfort.com $
 
 """
 Command-line utility to generate a set of experiments from a file.

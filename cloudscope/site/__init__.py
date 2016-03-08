@@ -7,7 +7,7 @@
 # Copyright (C) 2015 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: __init__.py [] benjamin@bengfort.com $
+# ID: __init__.py [5300aa5] benjamin@bengfort.com $
 
 """
 Uses Jinja2 to render HTML from templates in this package.

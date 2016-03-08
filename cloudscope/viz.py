@@ -7,7 +7,7 @@
 # Copyright (C) 2015 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: viz.py [] benjamin@bengfort.com $
+# ID: viz.py [d0f0ca1] benjamin@bengfort.com $
 
 """
 Helper functions for creating output vizualiations from simulations.

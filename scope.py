@@ -8,7 +8,7 @@
 # Copyright (C) 2015 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: scope.py [] benjamin@bengfort.com $
+# ID: scope.py [26b95c0] benjamin@bengfort.com $
 
 """
 Management and administration script for CloudScope

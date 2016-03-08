@@ -7,7 +7,7 @@
 # Copyright (C) 2015 Bengfort.com
 # For license information, see LICENSE.txt
 #
-# ID: decorators.py [] benjamin@bengfort.com $
+# ID: decorators.py [d0f0ca1] benjamin@bengfort.com $
 
 """
 Decorators and other functional utilities

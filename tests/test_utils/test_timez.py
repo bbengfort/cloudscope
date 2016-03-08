@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: test_timez.py [] benjamin@bengfort.com $
+# ID: test_timez.py [33b572c] benjamin@bengfort.com $
 
 """
 Testing for the time and timezone utilities.

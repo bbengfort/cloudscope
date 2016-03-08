@@ -7,7 +7,7 @@
 # Copyright (C) 2015 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: results.py [] benjamin@bengfort.com $
+# ID: results.py [d0f0ca1] benjamin@bengfort.com $
 
 """
 Manages the serialization of experimental results and their reporting.
