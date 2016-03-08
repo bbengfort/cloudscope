@@ -75,18 +75,18 @@ def plot_time(series, **kwargs):
 def plot_workload(results, devices=False, **kwargs):
     """
     Helper function to make a timeline plot of reads/writes.
-    If devices is True, plots timeline by device, else location.
+    If devices is True, plots timeline by device, else Objects.
     """
     kwargs  = configure(**kwargs)
     outpath = kwargs.pop('savefig', None)
-    series  = 2 if devices else 1
+    series  = 0 if devices else 1
 
     read_color  = kwargs.pop('read_color', '#E20404')
     write_color = kwargs.pop('write_color', '#1E05D9')
     locations   = defaultdict(list)
 
     # Build the data from the read and write time series
-    for key in ('read', 'write'):
+    for key in ('tag read', 'tag write'):
         for item in results.results[key]:
             locations[item[series]].append(
                 item + [key]
@@ -97,26 +97,35 @@ def plot_workload(results, devices=False, **kwargs):
         locations[key].sort(key=itemgetter(0))
 
     # Create the visualization
-    x = []
-    y = []
-    c = []
+    rx = []
+    ry = []
+    wx = []
+    wy = []
 
-    for idx, (key, lst) in enumerate(locations.items()):
+    for idx, (key, lst) in enumerate(sorted(locations.items(), key=itemgetter(0), reverse=True)):
         for item in lst:
-            x.append(item[0])
-            y.append(idx)
-            c.append(read_color if item[-1] == 'read' else write_color)
+            if item[2] > 1000000: continue
+            if item[-1] == 'tag read':
+                rx.append(int(item[2]))
+                ry.append(idx)
+            else:
+                wx.append(int(item[2]))
+                wy.append(idx)
 
     plt.figure(figsize=(14,4))
     plt.ylim((-1,len(locations)))
-    plt.xlim((-1000, max(item[-1][0] for item in locations.values())+1000))
-    plt.yticks(range(len(locations)), locations.keys())
-    plt.scatter(x, y, color=c, alpha=0.5, s=10)
+    plt.xlim((-1000, max(max(rx), max(wx))+1000))
+    plt.yticks(range(len(locations)), sorted(locations.keys(), reverse=True))
+    plt.scatter(rx, ry, color=read_color, label="reads", alpha=0.5, s=10)
+    plt.scatter(wx, wy, color=write_color, label="writes", alpha=0.5, s=10)
+
+    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
 
     if outpath:
         return plt.savefig(outpath, format='svg', dpi=1200)
 
     return plt
+
 
 ##########################################################################
 ## NetworkX Drawing Utilities

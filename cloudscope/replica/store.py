@@ -17,7 +17,25 @@ Definition of what a replica actually stores and manages (data objects).
 ## Imports
 ##########################################################################
 
-from cloudscope.dynamo import Sequence
+from cloudscope.dynamo import Sequence, CharacterSequence
+
+
+##########################################################################
+## Object Factory
+##########################################################################
+
+class ObjectFactory(object):
+    """
+    Creates a new object class with versioning.
+    """
+
+    def __init__(self):
+        self.counter = CharacterSequence(upper=True)
+
+    def __call__(self):
+        return Version.new(self.counter.next())
+
+factory = ObjectFactory()
 
 ##########################################################################
 ## Version Objects
@@ -28,6 +46,15 @@ class Version(object):
     Implements a representation of the tree structure for a file version.
     """
 
+    @classmethod
+    def new(klass, name):
+        """
+        Returns a new subclass of the version for a specific object and
+        resets the global counter on the object, for multi-version systems.
+        """
+        return type(name, (klass,), {"counter": Sequence()})
+
+
     # Autoincrementing ID
     counter = Sequence()
 
@@ -35,17 +62,28 @@ class Version(object):
         """
         Creation of an initial version for the version tree.
         """
-        self.writer   = replica
-        self.parent   = parent
-        self.version  = self.counter.next()
+        self.writer    = replica
+        self.parent    = parent
+        self.version   = self.counter.next()
+        self.committed = False
 
         # This seems very tightly coupled, should we do something different?
-        self.replicas = set([replica.id])
-        self.level    = kwargs.get('level', replica.consistency)
-        self.created  = kwargs.get('created', replica.env.now)
-        self.updated  = kwargs.get('updated', replica.env.now)
+        self.replicas  = set([replica.id])
+        self.level     = kwargs.get('level', replica.consistency)
 
-    def update(self, replica):
+        self.created   = kwargs.get('created', replica.env.now)
+        self.updated   = kwargs.get('updated', replica.env.now)
+
+    @property
+    def name(self):
+        """
+        Returns the name if it was created via the new function.
+        (e.g. is not `Version`)
+        """
+        name = self.__class__.__name__
+        if name != "Version": return name
+
+    def update(self, replica, commit=False):
         """
         Replicas call this to update on remote writes.
         This method also tracks visibility latency for right now.
@@ -63,6 +101,25 @@ class Version(object):
                     (self.writer.id, str(self), self.created, self.updated)
                 )
 
+        if commit and not self.committed:
+            self.committed = True
+            self.writer.sim.results.update(
+                'commit latency',
+                (self.writer.id, str(self), self.created, self.updated)
+            )
+
+    def is_committed(self):
+        """
+        Alias for committed.
+        """
+        return self.committed
+
+    def is_visible(self):
+        """
+        Compares the set of replicas with the global replica set to determine
+        if the version is fully visible on the cluster. (Based on who updates)
+        """
+        return len(self.replicas) == len(self.writer.sim.replicas)
 
     def is_stale(self):
         """
@@ -75,7 +132,7 @@ class Version(object):
         """
         Creates a fork of this version
         """
-        return Version(
+        return self.__class__(
             replica, parent=self, level=self.level
         )
 
@@ -91,9 +148,14 @@ class Version(object):
         return -1
 
     def __str__(self):
+        def mkvers(item):
+            if item.name:
+                return "{}.{}".format(item.name, item.version)
+            return item.version
+
         if self.parent:
-            return "{}->{}".format(self.parent.version, self.version)
-        return "root->{}".format(self.version)
+            return "{}->{}".format(mkvers(self.parent), mkvers(self))
+        return "root->{}".format(mkvers(self))
 
     def __repr__(self):
         return repr(str(self))

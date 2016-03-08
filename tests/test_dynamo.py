@@ -17,10 +17,12 @@ Tests for the dynamo sequence generators and utilities.
 ## Imports
 ##########################################################################
 
+import math
 import unittest
 
 from cloudscope.dynamo import Sequence
 from cloudscope.dynamo import ExponentialSequence
+from cloudscope.dynamo import CharacterSequence
 from cloudscope.dynamo import NormalDistribution
 from cloudscope.dynamo import UniformDistribution
 from cloudscope.dynamo import BoundedNormalDistribution
@@ -41,7 +43,7 @@ class SequenceTests(unittest.TestCase):
 
     def test_unit_sequence(self):
         """
-        Ensure an "infinite" sequence works as expected.
+        Ensure an "infinite" sequence works as expected
         """
         sequence = Sequence()
         for idx in xrange(1, 100000):
@@ -49,7 +51,7 @@ class SequenceTests(unittest.TestCase):
 
     def test_step_sequence(self):
         """
-        Ensure that a stepped sequence works as expected.
+        Ensure that a stepped sequence works as expected
         """
         sequence = Sequence(step=10)
         for idx in xrange(10, 100000, 10):
@@ -57,16 +59,26 @@ class SequenceTests(unittest.TestCase):
 
     def test_limit_sequence(self):
         """
-        Ensure that a sequence can be limited.
+        Ensure that a sequence can be limited
         """
         with self.assertRaises(StopIteration):
             sequence = Sequence(limit=1000)
             for idx in xrange(1, 100000):
                 self.assertEqual(sequence.next(), idx)
 
+    def test_reset_sequence(self):
+        """
+        Ensure that a sequence can be reset
+        """
+        sequence = Sequence()
+        for idx in xrange(1, 100): sequence.next()
+        self.assertGreater(sequence.value, 1)
+        sequence.reset()
+        self.assertEqual(sequence.next(), 1)
+
     def test_exponential_unit_sequence(self):
         """
-        Ensure an "infinite" exponential sequence works as expected.
+        Ensure an "infinite" exponential sequence works as expected
         """
         sequence = ExponentialSequence()
         for idx in xrange(1, 1000):
@@ -74,7 +86,7 @@ class SequenceTests(unittest.TestCase):
 
     def test_exponential_base_sequence(self):
         """
-        Ensure that an exponential sequence with a different base works.
+        Ensure that an exponential sequence with a different base works
         """
         sequence = ExponentialSequence(base=10)
         for idx in xrange(1, 1000):
@@ -89,6 +101,53 @@ class SequenceTests(unittest.TestCase):
             for idx in xrange(1, 100000):
                 self.assertEqual(sequence.next(), 2**idx)
 
+    def test_reset_exponential_sequence(self):
+        """
+        Ensure that a sequence can be reset
+        """
+        sequence = ExponentialSequence()
+        for idx in xrange(1, 100): sequence.next()
+        self.assertGreater(sequence.value, 2)
+        sequence.reset()
+        self.assertEqual(sequence.next(), 2)
+
+    @unittest.skip("Haven't figured out how to test with log yet.")
+    def test_character_sequence(self):
+        """
+        Ensure that an "infinite" character sequence works as expected
+        """
+        letters = 'abcdefghijklmnopqrstuvwxyz'
+        sequence = CharacterSequence()
+        self.assertEqual(sequence.next(), 'a')
+
+        for idx in xrange(1, 1000):
+            val = sequence.next()
+            self.assertEqual(len(val), int(math.log(idx, 26)) + 1)
+            self.assertEqual(val[-1], letters[idx % 26])
+
+    @unittest.skip("Haven't figured out how to test with log yet.")
+    def test_character_sequence_upper(self):
+        """
+        Ensure that uppercase in the character sequence works as expected
+        """
+        letters = 'ABCDEFGHIJKLMNOPQRSTUVWYZ'
+        sequence = CharacterSequence(upper=True)
+        self.assertEqual(sequence.next(), 'A')
+
+        for idx in xrange(1, 1000):
+            val = sequence.next()
+            self.assertEqual(len(val), int(math.log(idx, 26)) + 1)
+            self.assertEqual(val[-1], letters[idx % 26])
+
+    def test_reset_character_sequence(self):
+        """
+        Ensure that a sequence can be reset
+        """
+        sequence = CharacterSequence()
+        for idx in xrange(27): sequence.next()
+        self.assertEqual(sequence.value, "aa")
+        sequence.reset()
+        self.assertEqual(sequence.next(), "a")
 
 ##########################################################################
 ## Distribution Tests
