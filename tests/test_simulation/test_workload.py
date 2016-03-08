@@ -103,3 +103,4 @@ class MultiVersionWorkloadTests(unittest.TestCase):
         self.assertEqual(len(work.versions), 10)
         for vers in work.versions:
             self.assertIsInstance(vers, Version)
+            

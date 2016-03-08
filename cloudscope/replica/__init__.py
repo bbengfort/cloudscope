@@ -20,6 +20,7 @@ Functionality for different replica types in the cloud storage system.
 from .base import *
 from .store import *
 from .consensus import RaftReplica
+from .consensus import TagReplica
 from .eventual import EventualReplica
 
 from cloudscope.config import settings
@@ -30,7 +31,7 @@ from cloudscope.config import settings
 
 ReplicaTypes = {
     Consistency.STRONG: RaftReplica,
-    Consistency.MEDIUM: Replica,
+    Consistency.MEDIUM: TagReplica,
     Consistency.LOW: EventualReplica,
 }
 

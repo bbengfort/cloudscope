@@ -99,7 +99,6 @@ class Workload(NamedProcess):
         """
         locations = defaultdict(list)
         for replica in self.sim.replicas:
-            print replica.location, replica.type
             if replica.location in self.valid_locations:
                 if replica.type not in self.invalid_types:
                     locations[replica.location].append(replica)
@@ -249,7 +248,7 @@ class MultiVersionWorkload(Workload):
 
         self.current = Discrete([
             version for version in self.versions
-            if version != self.current
+            if version is not self.current
         ]).get()
 
         return True
