@@ -293,7 +293,7 @@ class RaftReplica(Replica):
                 if commit.has_passed() and self.log[n][1] == self.currentTerm:
                     # Commit all versions from the last log entry to now.
                     for idx in xrange(self.log.commitIndex, n+1):
-                        if self.log[idx][0] is None: continue 
+                        if self.log[idx][0] is None: continue
                         self.log[idx][0].update(self, commit=True)
 
                     # Set the commit index and break
@@ -368,13 +368,13 @@ class RaftReplica(Replica):
             version = Version(self) if version is None else version.fork(self)
 
             # Log the write
-            self.sim.logger.debug(
+            self.sim.logger.info(
                 "write version {} on {}".format(version, self)
             )
 
         else:
             # Log the remote write
-            self.sim.logger.debug(
+            self.sim.logger.info(
                 "remote write version {} on {}".format(version, self)
             )
 
@@ -413,3 +413,19 @@ class RaftReplica(Replica):
 
         # Also interrupt the heartbeat since we just sent AppendEntries
         self.heartbeat.stop()
+
+    def read(self, version=None):
+        """
+        Performs a read of the most recent committed version.
+        """
+        version = self.log.lastCommit
+
+        if version and version.is_stale():
+            # Count the number of stale reads
+            self.sim.results.update(
+                'stale reads', (self.id, self.env.now)
+            )
+
+            self.sim.logger.info(
+                "stale read of version {} on {}".format(version, self)
+            )

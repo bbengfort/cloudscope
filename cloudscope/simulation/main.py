@@ -23,7 +23,7 @@ import simpy
 from cloudscope.config import settings
 from cloudscope.simulation import Simulation
 from cloudscope.simulation.network import Network
-from cloudscope.simulation.workload import Workload
+from cloudscope.simulation.workload import create as create_workload
 from cloudscope.utils.serialize import JSONEncoder
 from cloudscope.replica import replica_factory
 
@@ -90,7 +90,7 @@ class ConsistencySimulation(Simulation):
 
     def script(self):
         self.workload = [
-            Workload(self.env, self)
+            create_workload(self.env, self)
             for user in xrange(self.users)
         ]
 

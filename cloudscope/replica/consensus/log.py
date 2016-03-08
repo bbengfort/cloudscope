@@ -52,6 +52,13 @@ class WriteLog(object):
         """
         return self.log[-1][0]
 
+    @property
+    def lastCommit(self):
+        """
+        Returns the last version committed to the log.
+        """
+        return self.log[self.commitIndex][0]
+
     def append(self, version, term):
         """
         Appends a version and a term to the log.

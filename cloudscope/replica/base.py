@@ -102,15 +102,15 @@ class Replica(Node):
 
         return message
 
-    def read(self):
+    def read(self, version=None):
         """
-        Performs a read of the local latest version.
+        Performs a read of the local latest version or for the given version.
         """
         pass
 
-    def write(self):
+    def write(self, version=None):
         """
-        Performs a write to the local version.
+        Performs a write to the local version or writes the version to disk.
         """
         pass
 

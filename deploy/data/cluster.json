@@ -1,0 +1,128 @@
+{
+    "meta": {
+        "constant": "15ms",
+        "variable": "N/A",
+        "seed": null,
+        "title": "Single Strong Cluster",
+        "description": "Toplogy for single strong cluster experiments."
+    },
+    "nodes": [
+        {
+            "id": "r0",
+            "label": "Raft 1",
+            "type": "storage",
+            "consistency": "strong",
+            "location": "cloud"
+        },
+        {
+            "id": "r1",
+            "label": "Raft 2",
+            "type": "storage",
+            "consistency": "strong",
+            "location": "cloud"
+        },
+        {
+            "id": "r2",
+            "label": "Raft 3",
+            "type": "storage",
+            "consistency": "strong",
+            "location": "cloud"
+        },
+        {
+            "id": "r3",
+            "label": "Raft 4",
+            "type": "storage",
+            "consistency": "strong",
+            "location": "cloud"
+        },
+        {
+            "id": "r4",
+            "label": "Raft 5",
+            "type": "storage",
+            "consistency": "strong",
+            "location": "cloud"
+        },
+        {
+            "id": "r5",
+            "label": "Raft 6",
+            "type": "storage",
+            "consistency": "strong",
+            "location": "cloud"
+        },
+        {
+            "id": "r6",
+            "label": "Raft 7",
+            "type": "storage",
+            "consistency": "strong",
+            "location": "cloud"
+        },
+        {
+            "id": "r7",
+            "label": "Raft 8",
+            "type": "storage",
+            "consistency": "strong",
+            "location": "cloud"
+        },
+        {
+            "id": "r8",
+            "label": "Raft 9",
+            "type": "storage",
+            "consistency": "strong",
+            "location": "cloud"
+        },
+        {
+            "id": "r9",
+            "label": "Raft 10",
+            "type": "storage",
+            "consistency": "strong",
+            "location": "cloud"
+        }
+    ],
+    "links": [
+        {"source": 0, "target": 1, "connection": "constant", "latency": 15},
+        {"source": 0, "target": 2, "connection": "constant", "latency": 15},
+        {"source": 0, "target": 3, "connection": "constant", "latency": 15},
+        {"source": 0, "target": 4, "connection": "constant", "latency": 15},
+        {"source": 0, "target": 5, "connection": "constant", "latency": 15},
+        {"source": 0, "target": 6, "connection": "constant", "latency": 15},
+        {"source": 0, "target": 7, "connection": "constant", "latency": 15},
+        {"source": 0, "target": 8, "connection": "constant", "latency": 15},
+        {"source": 0, "target": 9, "connection": "constant", "latency": 15},
+        {"source": 1, "target": 2, "connection": "constant", "latency": 15},
+        {"source": 1, "target": 3, "connection": "constant", "latency": 15},
+        {"source": 1, "target": 4, "connection": "constant", "latency": 15},
+        {"source": 1, "target": 5, "connection": "constant", "latency": 15},
+        {"source": 1, "target": 6, "connection": "constant", "latency": 15},
+        {"source": 1, "target": 7, "connection": "constant", "latency": 15},
+        {"source": 1, "target": 8, "connection": "constant", "latency": 15},
+        {"source": 1, "target": 9, "connection": "constant", "latency": 15},
+        {"source": 2, "target": 3, "connection": "constant", "latency": 15},
+        {"source": 2, "target": 4, "connection": "constant", "latency": 15},
+        {"source": 2, "target": 5, "connection": "constant", "latency": 15},
+        {"source": 2, "target": 6, "connection": "constant", "latency": 15},
+        {"source": 2, "target": 7, "connection": "constant", "latency": 15},
+        {"source": 2, "target": 8, "connection": "constant", "latency": 15},
+        {"source": 2, "target": 9, "connection": "constant", "latency": 15},
+        {"source": 3, "target": 4, "connection": "constant", "latency": 15},
+        {"source": 3, "target": 5, "connection": "constant", "latency": 15},
+        {"source": 3, "target": 6, "connection": "constant", "latency": 15},
+        {"source": 3, "target": 7, "connection": "constant", "latency": 15},
+        {"source": 3, "target": 8, "connection": "constant", "latency": 15},
+        {"source": 3, "target": 9, "connection": "constant", "latency": 15},
+        {"source": 4, "target": 5, "connection": "constant", "latency": 15},
+        {"source": 4, "target": 6, "connection": "constant", "latency": 15},
+        {"source": 4, "target": 7, "connection": "constant", "latency": 15},
+        {"source": 4, "target": 8, "connection": "constant", "latency": 15},
+        {"source": 4, "target": 9, "connection": "constant", "latency": 15},
+        {"source": 5, "target": 6, "connection": "constant", "latency": 15},
+        {"source": 5, "target": 7, "connection": "constant", "latency": 15},
+        {"source": 5, "target": 8, "connection": "constant", "latency": 15},
+        {"source": 5, "target": 9, "connection": "constant", "latency": 15},
+        {"source": 6, "target": 7, "connection": "constant", "latency": 15},
+        {"source": 6, "target": 8, "connection": "constant", "latency": 15},
+        {"source": 6, "target": 9, "connection": "constant", "latency": 15},
+        {"source": 7, "target": 8, "connection": "constant", "latency": 15},
+        {"source": 7, "target": 9, "connection": "constant", "latency": 15},
+        {"source": 8, "target": 9, "connection": "constant", "latency": 15}
+    ]
+}

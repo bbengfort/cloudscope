@@ -84,7 +84,7 @@ class EventualReplica(Replica):
         self.current     = None
         self.timeout     = None
 
-    def read(self):
+    def read(self, version=None):
         """
         Performs a read of the latest version either locally or across cloud.
         """
