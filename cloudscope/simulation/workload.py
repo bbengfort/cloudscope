@@ -18,12 +18,11 @@ Defines the generators that create versions or "work" in the simulation.
 ##########################################################################
 
 from cloudscope.config import settings
+from cloudscope.dynamo import CharacterSequence
+from cloudscope.utils.decorators import memoized
+from cloudscope.utils.timez import humanizedelta
 from cloudscope.simulation.base import NamedProcess
 from cloudscope.dynamo import BoundedNormal, Bernoulli, Discrete
-from cloudscope.utils.decorators import memoized
-from cloudscope.replica import Location, Replica, Version, store
-from cloudscope.exceptions import UnknownType, ImproperlyConfigured
-from cloudscope.utils.timez import humanizedelta
 
 from collections import defaultdict
 
@@ -44,9 +43,9 @@ def create(env, sim, **kwargs):
     Returns the Workload or MultiVersionWorkload depending on the number of
     versions that are being managed by the simulation.
     """
-    versions = kwargs.get('versions', settings.simulation.max_objects_accessed)
+    versions = kwargs.get('objects', settings.simulation.max_objects_accessed)
     if versions > 1:
-        return MultiVersionWorkload(env, sim, **kwargs)
+        return MultiObjectWorkload(env, sim, **kwargs)
     return Workload(env, sim, **kwargs)
 
 ##########################################################################
@@ -75,7 +74,7 @@ class Workload(NamedProcess):
         # Current device, and location
         self.location  = None
         self.device    = None
-        self.current   = kwargs.get('version', None)
+        self.current   = kwargs.get('current', None)
 
         # Access interval for the version.
         self.next_access = BoundedNormal(
@@ -202,109 +201,60 @@ class Workload(NamedProcess):
 
 
 ##########################################################################
-## Multi Version Workload Generator
+## Multi Object Workload Generator
 ##########################################################################
 
-class MultiVersionWorkload(Workload):
+class MultiObjectWorkload(Workload):
     """
     Besides the user switching devices and locations, the user also works
     on multiple objects simultaneously in an ordered fashion.
     """
 
-    # Class storage of versions
-    # All instances should modify a global version store
-    versions = []
-
-    @classmethod
-    def reset(klass):
-        """
-        Resets the versions on the workload.
-        """
-        klass.versions = []
-
-    @classmethod
-    def sync_versions(klass, versions):
-        """
-        This method should be called from every instance to make sure that
-        their view of the versions class store is correct.
-
-        Versions can be either an int or a list of versions.
-
-        If versions is an int ensure that the list is long enough to contain
-        that many objects and set max_objs appropriately.
-
-        If versions is a list, then set the class versions to the list iff
-        versions is an empty list. Raise an exception if the list does not
-        match the list that is currently there, otherwise ignore.
-
-        Returns the amount of change to the global versions list (# of items)
-        """
-        # In the case that versions is an integer.
-        # Length check: having a length >= max objs is fine, otherwise extend.
-        if isinstance(versions, int):
-            if len(klass.versions) < versions:
-                extendby = versions - len(klass.versions)
-                klass.versions.extend([None for x in xrange(extendby)])
-                return len(klass.versions)
-
-        # If we have an empty list, just set the versions
-        if not klass.versions:
-            klass.versions = list(versions)
-            return len(klass.versions)
-
-        # Attempt to set the versions to the list
-        if len(klass.versions) == len(versions):
-            # Create a mirror list that replaces None or keeps if identical.
-            mirror = [
-                new for orig, new in zip(klass.versions, versions)
-                if orig is None or orig is new
-            ]
-
-            # If mirror is the same length as the original, set it.
-            if len(mirror) == len(klass.versions):
-                klass.versions = mirror
-                return len(mirror)
-
-        raise ImproperlyConfigured(
-            "Cannot merge global version list with local items for workload!"
-        )
-
     def __init__(self, env, sim, **kwargs):
         # Get the multi-version specific kwargs and instantiation
-        self.do_open  = Bernoulli(kwargs.get('object_prob', settings.simulation.object_prob))
-        self.max_objs = settings.simulation.max_objects_accessed
-        self.factory  = kwargs.get('factory', store.factory)
-
-        # Synchronize the class store versions with the local versions.
-        versions = kwargs.get('versions', self.max_objs)
-        self.max_objs = self.sync_versions(versions)
-
+        self.do_open = Bernoulli(kwargs.get('object_prob', settings.simulation.object_prob))
+        self.factory = kwargs.get('factory', None) or CharacterSequence(upper=True)
+        self.objects = kwargs.get('objects', settings.simulation.max_objects_accessed)
+        
         # Initialize the Workload
-        super(MultiVersionWorkload, self).__init__(env, sim, **kwargs)
+        super(MultiObjectWorkload, self).__init__(env, sim, **kwargs)
+
+    @property
+    def objects(self):
+        """
+        Objects is a frozenset of names that can be accessed in the workload.
+        """
+        if not hasattr(self, '_objects'):
+            self._objects = frozenset()
+        return self._objects
+
+    @objects.setter
+    def objects(self, num_or_list):
+        """
+        You can set a list of object names or a number of objects.
+        """
+
+        if isinstance(num_or_list, int):
+            # If it's an int, then we want to create a list of objects.
+            num_or_list = [
+                self.factory.next() for idx in xrange(num_or_list)
+            ]
+
+        self._objects = frozenset(num_or_list)
 
     def open(self):
         """
         Like move and switch, this simulates opening a new file.
         """
-        if len(self.versions) == 1 or len(filter(None, self.versions)) == 0:
-            # Ensure that the item is not None
-            if self.versions[0] is None:
-                self.versions[0] = self.factory()(self.device)
-
+        if len(self.objects) == 1:
             # There is only one choice, no switching!
-            self.current = self.versions[0]
+            self.current = self.objects[0]
             return False
 
         self.current = Discrete([
-            version for version in self.versions
-            if version is not self.current
+            obj for obj in self.objects
+            if obj != self.current
         ]).get()
-
-        # If the selection was None, update a new value then continue
-        if self.current is None:
-            idx = self.versions.index(None)
-            self.versions[idx] = self.factory()(self.device)
-            self.current = self.versions[idx]
 
         return True
 
@@ -315,13 +265,13 @@ class MultiVersionWorkload(Workload):
         version being worked on by the user.
         """
         # Super call must come first to have a device!
-        is_updated = super(MultiVersionWorkload, self).update()
+        is_updated = super(MultiObjectWorkload, self).update()
 
         # Randomly change object to be accessed.
         if self.current is None or self.do_open.get():
             if self.open():
                 self.sim.logger.debug(
-                    "{} has opened a new version {}".format(
+                    "{} has opened a new object: '{}'".format(
                         self.name, self.current
                     )
                 )
