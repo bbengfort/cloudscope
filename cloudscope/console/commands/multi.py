@@ -45,7 +45,7 @@ def runner(idx, path):
 
     try:
         with open(path, 'r') as fobj:
-            sim = ConsistencySimulation.load(fobj)
+            sim = ConsistencySimulation.load(fobj, trace=args.trace)
 
         logger.info(
             "Starting simulation {}: \"{}\"".format(idx, sim.name)
@@ -89,6 +89,12 @@ class MultipleSimulationsCommand(Command):
             'metavar': 'NUM',
             'default': mp.cpu_count(),
             'help': 'number of concurrent simulation task to run',
+        },
+        ('-T', '--trace'): {
+            'type': str,
+            'default': None,
+            'metavar': 'PATH',
+            'help': 'specify the path to the trace file with accesses',
         },
         # Note: can't use argparse.FileType('r') here because of too many open files error!
         'topology': {
