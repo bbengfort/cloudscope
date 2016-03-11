@@ -84,6 +84,11 @@ class Replica(Node):
             )
         )
 
+        if settings.simulation.count_messages:
+            self.sim.results.update(
+                "sent", (self.id, self.env.now)
+            )
+
         return event
 
     def recv(self, event):
@@ -99,6 +104,11 @@ class Replica(Node):
                 message.target, message.source, message.delay
             )
         )
+
+        if settings.simulation.count_messages:
+            self.sim.results.update(
+                "recv", (self.id, self.env.now)
+            )
 
         return message
 

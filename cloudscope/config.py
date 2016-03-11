@@ -82,6 +82,7 @@ class SimulationConfiguration(Configuration):
     max_sim_time    = 4320000
 
     # Network Parameters
+    count_messages  = False
     default_latency = 800
     default_replica      = "storage"
     default_consistency  = "strong"
@@ -116,7 +117,7 @@ class SimulationConfiguration(Configuration):
     heartbeat_interval = 75   # Usually half the minimum election timeout
 
     # Tag Parameters
-    session_timeout    = 4096 # Related to the mean delay between accesses   
+    session_timeout    = 4096 # Related to the mean delay between accesses
 
 class VisualizationConfiguration(Configuration):
 
