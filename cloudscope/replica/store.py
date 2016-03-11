@@ -168,6 +168,7 @@ class Version(object):
         return self.version <= other.version
 
     def __eq__(self, other):
+        if other is None: return False
         if self.version == other.version:
             if self.parent is None:
                 return other.parent is None

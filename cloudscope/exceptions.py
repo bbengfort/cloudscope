@@ -50,7 +50,7 @@ class CannotGenerateExperiments(CloudScopeException):
     Errors during the experiment generation process.
     """
     pass
-    
+
 
 ##########################################################################
 ## Simulation Exception Hierarchy
@@ -73,5 +73,12 @@ class NetworkError(SimulationException):
 class RaftRPCException(SimulationException):
     """
     Something went wrong in the Raft RPC scheme.
+    """
+    pass
+
+
+class TagRPCException(SimulationException):
+    """
+    Something went wrong in the Tag Consensus RPC scheme.
     """
     pass

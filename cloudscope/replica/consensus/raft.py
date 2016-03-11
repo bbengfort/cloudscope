@@ -259,7 +259,7 @@ class RaftReplica(Replica):
 
         if self.state == CANDIDATE:
 
-            self.votes.vote(msg.source, rpc.success)
+            self.votes.vote(msg.source.id, rpc.success)
             if self.votes.has_passed():
                 ## Become the leader
                 self.state = LEADER

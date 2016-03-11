@@ -71,6 +71,9 @@ simulation:
     election_timeout: [150, 300]    # Range to randomly select the election timeout
     heartbeat_interval: 75          # Usually half the minimum election timeout
 
+    # Tag Parameters
+    session_timeout: 4096           # Related to the mean delay between accesses 
+
 ## Visualization parameters
 vizualization:
     # The Seaborn style can be one of darkgrid, whitegrid, dark, white, ticks
