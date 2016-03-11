@@ -2,7 +2,7 @@
     "meta": {
         "constant": "500ms",
         "variable": "300-1500ms",
-        "seed": null,
+        "seed": 42,
         "title": "Test Simulation",
         "description": "A test file with simulation configuration data."
     },

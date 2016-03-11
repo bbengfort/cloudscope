@@ -31,7 +31,7 @@ except ImportError:
 from cloudscope.dynamo import CharacterSequence
 from cloudscope.simulation.workload import Workload
 from cloudscope.simulation.workload import MultiObjectWorkload
-from cloudscope.simulation.workload import Access, TracesWorkload
+from cloudscope.simulation.workload import Access, TracesWorkload, READ, WRITE
 from tests.test_simulation import get_mock_simulation, get_mock_replica
 from cloudscope.exceptions import WorkloadException
 
@@ -118,7 +118,7 @@ class MultiObjectWorkloadTests(unittest.TestCase):
         work = MultiObjectWorkload(sim.env, sim, objects=20)
 
         self.assertEqual(len(work.objects), 20)
-        self.assertEqual(work.objects, frozenset([
+        self.assertEqual(work.objects, tuple([
             char for char in CharacterSequence(limit="U", upper=True)
         ]))
 
@@ -132,7 +132,7 @@ class MultiObjectWorkloadTests(unittest.TestCase):
         ])
 
         self.assertEqual(len(work.objects), 5)
-        self.assertEqual(work.objects, frozenset([
+        self.assertEqual(work.objects, tuple([
             "foo", "bar", "baz", "qux", "zoo",
         ]))
 
@@ -154,7 +154,7 @@ class MultiObjectWorkloadTests(unittest.TestCase):
 
         work = MultiObjectWorkload(sim.env, sim, objects=5)
         self.assertEqual(len(work.objects), 5)
-        self.assertEqual(work.objects, frozenset(["A", "B", "C", "D", "E"]))
+        self.assertEqual(work.objects, tuple(["A", "B", "C", "D", "E"]))
 
         work.move()
         self.assertIsNotNone(work.location)
@@ -308,10 +308,10 @@ class TracesWorkloadTests(unittest.TestCase):
             device = devices[access.replica]
             method = None
 
-            if access.method == work.READ:
+            if access.method == READ:
                 method = device.read
 
-            if access.method == work.WRITE:
+            if access.method == WRITE:
                 method = device.write
 
             self.assertIn(access.timestep, method.history)

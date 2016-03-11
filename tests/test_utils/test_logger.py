@@ -36,6 +36,11 @@ class LoggerTests(unittest.TestCase):
     Basic loger tests.
     """
 
+    def setUp(self):
+        # Ensure logging is enabled
+        logging.disable(logging.NOTSET)
+        SimulationLogger.counter.reset()
+
     def test_wrapped_logger(self):
         """
         Test that the logger is appropriately wrapped.

@@ -241,7 +241,7 @@ class MultiObjectWorkload(Workload):
                 self.factory.next() for idx in xrange(num_or_list)
             ]
 
-        self._objects = frozenset(num_or_list)
+        self._objects = tuple(num_or_list)
 
     def open(self):
         """
