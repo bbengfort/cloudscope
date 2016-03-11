@@ -70,6 +70,13 @@ class NetworkError(SimulationException):
     pass
 
 
+class WorkloadException(SimulationException):
+    """
+    Something went wrong in the workload generation.
+    """
+    pass
+    
+
 class RaftRPCException(SimulationException):
     """
     Something went wrong in the Raft RPC scheme.

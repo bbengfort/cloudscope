@@ -52,7 +52,7 @@ RemoteAccess  = namedtuple('RemoteAccess', 'tagset, objects, access')
 AcquireTags   = namedtuple('AcquireTags', 'tagset, tags, candidate')
 ReleaseTags   = namedtuple('ReleaseTags', 'tagset, tags, candidate')
 Response      = namedtuple('Response', 'tagset, success, objects')
-AppendEntries = namedtuple('AppendEntries', 'tagset, owner, entries')
+AppendEntries = namedtuple('AppendEntries', 'tagset, tags, owner, entries')
 
 ##########################################################################
 ## Tag Replica
@@ -64,6 +64,12 @@ class TagReplica(Replica):
         ## Initialize the replica
         super(TagReplica, self).__init__(simulation, **kwargs)
 
+        ## Timers for work
+        self.session_timeout    = kwargs.get('session_timeout', SESSION_TIMEOUT)
+        self.heartbeat_interval = kwargs.get('heartbeat_interval', HEARTBEAT_INTERVAL)
+        self.session   = None
+        self.heartbeat = None
+
         ## Initialze the tag specific settings
         self.state  = READY
         self.tagset = 0
@@ -74,12 +80,6 @@ class TagReplica(Replica):
         ## Maps timestamp (of initial access) to object being accessed
         self.reads  = {}
         self.writes = {}
-
-        ## Timers for work
-        self.session_timeout    = kwargs.get('session_timeout', SESSION_TIMEOUT)
-        self.heartbeat_interval = kwargs.get('heartbeat_interval', HEARTBEAT_INTERVAL)
-        self.session   = None
-        self.heartbeat = None
 
     @property
     def neighbors(self):
@@ -122,6 +122,9 @@ class TagReplica(Replica):
             self.votes = None
             self.tag = None
 
+            # Also interrupt the heartbeat
+            if self.heartbeat: self.heartbeat.stop()
+
         elif state == TAGGING:
             # Convert to tag acquisition/release
             self.tagset += 1
@@ -130,6 +133,8 @@ class TagReplica(Replica):
             self.votes = Election([node.id for node in self.quorum])
             self.votes.vote(self.id)
 
+            # Also interrupt the heartbeat
+            if self.heartbeat: self.heartbeat.stop()
         else:
             raise SimulationException(
                 "Unknown Tag Replica State: {!r} set on {}".format(state, self)
@@ -216,7 +221,11 @@ class TagReplica(Replica):
         """
         Time to send a heartbeat message to all tags.
         """
-        pass
+        # Now do AppendEntries
+        for neighbor in self.neighbors:
+            self.send(
+                neighbor, AppendEntries(self.tagset, self.view[self], self.id, [])
+            )
 
     def on_session_timeout(self, started):
         """
@@ -238,7 +247,21 @@ class TagReplica(Replica):
         self.release()
 
     def on_remote_access(self, msg):
-        raise NotImplementedError()
+        rpc  = msg.value
+        name = rpc.objects
+
+        if rpc.access == WRITE:
+            name = rpc.objects.name
+
+        if name in self.view[self]:
+            return self.send(
+                msg.source, Response(self.tagset, True, self.log[name].lastCommit)
+            )
+
+        return self.send(
+            msg.source, Response(self.tagset, False, None)
+        )
+
 
     def on_acquire_tags(self, msg):
         """
@@ -265,6 +288,8 @@ class TagReplica(Replica):
 
     def on_append_entries(self, msg):
         rpc = msg.value
+
+        self.view[msg.source] = rpc.tags
 
         if rpc.entries:
             for version, tagset in rpc.entries:
@@ -407,11 +432,11 @@ class TagReplica(Replica):
             # Now do AppendEntries
             for neighbor in self.neighbors:
                 self.send(
-                    neighbor, AppendEntries(self.tagset, self.id, [(version, self.tagset)])
+                    neighbor, AppendEntries(self.tagset, self.view[self], self.id, [(version, self.tagset)])
                 )
 
             # Also interrupt the heartbeat
-            # self.heartbeat.stop()
+            self.heartbeat.stop()
 
             return
 
@@ -428,3 +453,13 @@ class TagReplica(Replica):
 
         # Request the ownership of the tag
         self.acquire(name)
+
+    def run(self):
+        while True:
+            if self.state == READY and self.view[self]:
+                self.heartbeat = Timer(
+                    self.env, self.heartbeat_interval, self.on_heartbeat_timeout
+                )
+                yield self.heartbeat.start()
+            else:
+                yield self.env.timeout(1)

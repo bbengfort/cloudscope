@@ -23,9 +23,10 @@ from cloudscope.utils.decorators import memoized
 from cloudscope.utils.timez import humanizedelta
 from cloudscope.simulation.base import NamedProcess
 from cloudscope.dynamo import BoundedNormal, Bernoulli, Discrete
+from cloudscope.exceptions import WorkloadException
 
 from collections import defaultdict
-
+from collections import namedtuple
 
 ##########################################################################
 ## Module Constants
@@ -215,7 +216,7 @@ class MultiObjectWorkload(Workload):
         self.do_open = Bernoulli(kwargs.get('object_prob', settings.simulation.object_prob))
         self.factory = kwargs.get('factory', None) or CharacterSequence(upper=True)
         self.objects = kwargs.get('objects', settings.simulation.max_objects_accessed)
-        
+
         # Initialize the Workload
         super(MultiObjectWorkload, self).__init__(env, sim, **kwargs)
 
@@ -279,3 +280,130 @@ class MultiObjectWorkload(Workload):
 
         # No changes made?
         return False or is_updated
+
+
+##########################################################################
+## Traces Workload
+##########################################################################
+
+Access = namedtuple("Access", "timestep, replica, object, method")
+
+class TracesWorkload(NamedProcess):
+    """
+    Deterministic method of providing a workload through traces - a TSV file
+    that contains the timestamp, the replica ID, the object name and the
+    access method (read/write).
+    """
+
+    def __init__(self, path, env, sim, **kwargs):
+        self.path = path
+        self.sim  = sim
+
+        # Initialize the Process
+        super(TracesWorkload, self).__init__(env)
+
+    @memoized
+    def name(self):
+        return "user {}".format(self._id)
+
+    @memoized
+    def devices(self):
+        """
+        Mapping of replica IDs to device for easy selection.
+        """
+        return {
+            device.id: device
+            for device in self.sim.replicas
+        }
+
+    def parse(self, line):
+        """
+        Parses and validates a line from a traces file.
+        """
+        # Parse the line, splitting on whitespace
+        line = line.strip().split()
+
+        # If no object is specified, insert None
+        if len(line) == 3:
+            line.insert(2, None)
+
+        # Validate the length
+        if len(line) != 4:
+            raise WorkloadException(
+                "Unparsable line: '{}'".format(" ".join(line))
+            )
+
+        # Validate the access
+        if line[3] not in {READ, WRITE}:
+            raise WorkloadException(
+                "Unknown access '{}' must be read or write".format(line[3])
+            )
+
+        # Parse the various fields
+        line[0] = int(float(line[0]))
+        line[3] = line[3].lower()
+
+        return Access(*line)
+
+    def accesses(self):
+        """
+        Reads the traces and yields the access tuple. Assumes a file format:
+
+            timestep    replica    object    method
+
+        If the row is length three instead of length for a None is inserted
+        for the object in the 2nd position.
+        """
+        with open(self.path, 'r') as fobj:
+            for line in fobj:
+                yield self.parse(line)
+
+    def run(self):
+        """
+        Reads in the accesses (which must be ordered by timestep) and updates
+        the environment with delays and calls as required.
+        """
+        clock = 0 # maintain the time since last access
+
+        # read through accesses in an ordered fashion.
+        for access in self.accesses():
+
+            # validate that the access occurs now or at the clock
+            if access.timestep < clock:
+                raise WorkloadException(
+                    "Unordered access '{}' occurred at clock {}".format(access, clock)
+                )
+
+            # wait until timestep for access occurs
+            wait = access.timestep - clock
+            yield self.env.timeout(wait)
+            clock = self.env.now
+
+            # get the appropriate device to trigger the access
+            device = self.devices.get(access.replica, None)
+
+            # ensure that the device exists
+            if device is None:
+                raise WorkloadException(
+                    "Unknown device with replica id '{}'".format(access.replica)
+                )
+
+            # perform the access
+            if access.method == READ:
+                device.read(access.object)
+
+            if access.method == WRITE:
+                device.write(access.object)
+
+            # record the access to the results timeseries
+            self.sim.results.update(
+                access.method, (device.id, device.location, self.env.now)
+            )
+
+            # debug log the read/write access
+            self.sim.logger.debug(
+                "{} access by {} on {} (at {}) after {}".format(
+                    access.method, self.name, device, device.location,
+                    humanizedelta(milliseconds=wait)
+                )
+            )
