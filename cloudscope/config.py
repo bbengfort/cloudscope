@@ -113,8 +113,10 @@ class SimulationConfiguration(Configuration):
 
     # Raft Parameters
     election_timeout   = [150, 300]
-    heartbeat_interval = 75  # Usually half the minimum election timeout
+    heartbeat_interval = 75   # Usually half the minimum election timeout
 
+    # Tag Parameters
+    session_timeout    = 4096 # Related to the mean delay between accesses   
 
 class VisualizationConfiguration(Configuration):
 

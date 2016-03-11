@@ -63,8 +63,9 @@ class Timer(Process):
         Starts the timer
         """
         if not self.running:
-            self.running = True
-            self.action  = self.env.process(self.wait())
+            self.running  = True
+            self.canceled = False
+            self.action   = self.env.process(self.wait())
         return self.action
 
     def stop(self):
@@ -73,17 +74,21 @@ class Timer(Process):
         """
         if self.running:
             self.action.interrupt()
-            self.action = None
+            self.action   = None
         return self.action
 
     def reset(self):
         """
-        Interupts the current timer and restarts.
-
-        TODO: This actually doesn't work.
+        Interupts the current timer and starts/returns a completely new timer
+        with the same properties as the current timer. Kind of a hack, but it
+        works!
         """
         self.stop()
-        return self.start()
+
+        timer = self.__class__(self.env, self.delay, self.callback)
+        timer.start()
+
+        return timer
 
     def run(self):
         raise SimulationException(
@@ -108,7 +113,6 @@ class Interval(Timer):
         while True:
             try:
                 yield self.env.timeout(self.delay)
-                self.running = False
                 self.callback()
             except simpy.Interrupt as i:
                 self.canceled = True
