@@ -66,10 +66,11 @@ class ConsistencySimulation(Simulation):
         super(ConsistencySimulation, self).__init__(**kwargs)
 
         # Primary simulation variables.
-        self.users    = kwargs.get('users', settings.simulation.users)
-        self.trace    = kwargs.get('trace', None)
-        self.replicas = []
-        self.network  = Network()
+        self.users     = kwargs.get('users', settings.simulation.users)
+        self.trace     = kwargs.get('trace', None)
+        self.n_objects = kwargs.get('objects', settings.simulation.max_objects_accessed)
+        self.replicas  = []
+        self.network   = Network()
 
     def complete(self):
         """
@@ -98,7 +99,7 @@ class ConsistencySimulation(Simulation):
         # Otherwise, generate a random workload with the number of users.
         else:
             self.workload = [
-                create_workload(self.env, self)
+                create_workload(self.env, self, objects=self.n_objects)
                 for user in xrange(self.users)
             ]
 

@@ -78,7 +78,7 @@ class SimulationTests(unittest.TestCase):
 
         metrics = [
             u'tag size', u'session length', u'read', u'read latency',
-            u'write', u'visibility latency', u'sent'
+            u'write', u'visibility latency',
         ]
 
         for metric in metrics:
@@ -137,7 +137,9 @@ class SimulationTests(unittest.TestCase):
         """
         # Load the simulation
         with open(TAG, 'r') as fobj:
-            sim = ConsistencySimulation.load(fobj, max_sim_time=100000)
+            sim = ConsistencySimulation.load(
+                fobj, max_sim_time=100000, objects=10
+            )
 
         # Run the simulation
         sim.run()
