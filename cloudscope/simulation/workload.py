@@ -295,9 +295,6 @@ class TracesWorkload(NamedProcess):
     access method (read/write).
     """
 
-    READ  = "read"
-    WRITE = "write"
-
     def __init__(self, path, env, sim, **kwargs):
         self.path = path
         self.sim  = sim
@@ -337,7 +334,7 @@ class TracesWorkload(NamedProcess):
             )
 
         # Validate the access
-        if line[3] not in {self.READ, self.WRITE}:
+        if line[3] not in {READ, WRITE}:
             raise WorkloadException(
                 "Unknown access '{}' must be read or write".format(line[3])
             )
@@ -392,10 +389,10 @@ class TracesWorkload(NamedProcess):
                 )
 
             # perform the access
-            if access.method == self.READ:
+            if access.method == READ:
                 device.read(access.object)
 
-            if access.method == self.WRITE:
+            if access.method == WRITE:
                 device.write(access.object)
 
             # record the access to the results timeseries

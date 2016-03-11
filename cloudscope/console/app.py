@@ -37,6 +37,7 @@ COMMANDS    = [
     VisualizeCommand,
     MultipleSimulationsCommand,
     GenerateCommand,
+    TracesCommand,
 ]
 
 ##########################################################################

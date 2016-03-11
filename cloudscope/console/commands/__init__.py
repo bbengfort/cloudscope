@@ -22,3 +22,4 @@ from .simulate import SimulateCommand
 from .viz import VisualizeCommand
 from .multi import MultipleSimulationsCommand
 from .generate import GenerateCommand
+from .traces import TracesCommand
