@@ -1,2 +1,11 @@
 site_name: CloudScope
 theme: readthedocs
+repo_name: GitHub
+repo_url: https://github.com/bbengfort/cloudscope
+site_description: Simulation and visualization of distributed systems and communications.
+site_author: University of Maryland
+copyright: "&copy; 2016 University of Maryland, All Rights Reserved"
+
+pages:
+    - "Introduction": index.md
+    - "Workload": workload.md
