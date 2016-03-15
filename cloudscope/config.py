@@ -101,14 +101,14 @@ class SimulationConfiguration(Configuration):
     ]
 
     move_prob       = 0.2     # probability of moving locations
-    switch_prob     = 0.4     # probability of switching devices
+    switch_prob     = 0.3     # probability of switching devices
     object_prob     = 0.3     # probability of switching the currently accessed object
     access_mean     = 1800    # mean delay between accesses (milliseconds)
     access_stddev   = 512     # stddev of delay between accesses (milliseconds)
-    read_prob       = 0.8     # probability of read access (write is 1-read_prob)
+    read_prob       = 0.6     # probability of read access (write is 1-read_prob)
 
     # Eventual Parameters
-    anti_entropy_delay = 3000 # delay in milliseconds (20x per minute)
+    anti_entropy_delay = 600  # delay in milliseconds (20x per minute)
     do_gossip   = True        # perform gossip protocol
     do_rumoring = True        # perform rumor mongering
 

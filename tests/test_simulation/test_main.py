@@ -43,6 +43,20 @@ EVENTUAL = os.path.join(FIXTURES, "eventual.json")
 TAG      = os.path.join(FIXTURES, "tag.json")
 
 
+def load_simulation(path, **kwargs):
+    """
+    Helper function for loading a simulation consistently.
+    """
+    defaults = {
+        'max_sim_time': 100000,
+        'objects': 10,
+    }
+    defaults.update(kwargs)
+
+    with open(path, 'r') as fobj:
+        return ConsistencySimulation.load(fobj, **defaults)
+
+
 ##########################################################################
 ## Simulation Tests
 ##########################################################################
@@ -101,11 +115,8 @@ class SimulationTests(unittest.TestCase):
         """
         Run the eventually consistent simulation without errors
         """
-        # Load the simulation
-        with open(EVENTUAL, 'r') as fobj:
-            sim = ConsistencySimulation.load(fobj, max_sim_time=100000)
-
-        # Run the simulation
+        # Load & Run the simulation
+        sim = load_simulation(EVENTUAL)
         sim.run()
 
         # Dump the results for testing
@@ -123,11 +134,8 @@ class SimulationTests(unittest.TestCase):
         """
         Run the raft consensus simulation without errors
         """
-        # Load the simulation
-        with open(RAFT, 'r') as fobj:
-            sim = ConsistencySimulation.load(fobj, max_sim_time=100000)
-
-        # Run the simulation
+        # Load & Run the simulation
+        sim = load_simulation(RAFT)
         sim.run()
 
         # Dump the results for testing
@@ -145,13 +153,8 @@ class SimulationTests(unittest.TestCase):
         """
         Run the tag consensus simulation without errors
         """
-        # Load the simulation
-        with open(TAG, 'r') as fobj:
-            sim = ConsistencySimulation.load(
-                fobj, max_sim_time=100000, objects=10
-            )
-
-        # Run the simulation
+        # Load & Run the simulation
+        sim = load_simulation(TAG)
         sim.run()
 
         # Dump the results for testing
