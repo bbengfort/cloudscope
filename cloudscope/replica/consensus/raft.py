@@ -23,7 +23,7 @@ from cloudscope.replica.store import Version
 from cloudscope.replica import Replica, Consistency
 from cloudscope.exceptions import RaftRPCException, SimulationException
 
-from .log import WriteLog
+from .log import MultiObjectWriteLog
 from .election import ElectionTimer, Election
 
 from collections import defaultdict
@@ -62,7 +62,7 @@ class RaftReplica(Replica):
         self.state       = FOLLOWER
         self.currentTerm = 0
         self.votedFor    = None
-        self.log         = WriteLog()
+        self.log         = MultiObjectWriteLog()
 
         ## Timers for work
         eto = kwargs.get('election_timeout', ELECTION_TIMEOUT)
@@ -350,7 +350,33 @@ class RaftReplica(Replica):
                     "Unknown Raft State: {!r} on {}".format(self.state, self)
                 )
 
-    def write(self, version=None):
+    def read(self, name=None):
+        """
+        Performs a read of the most recent committed version for the name
+        passed in (or just a read for the most recent version, period).
+        """
+        name = name.name if isinstance(name, Version) else name
+        vers = self.log.get_latest_commit(name)
+
+        if vers and vers.is_stale():
+            # Count the number of stale reads
+            self.sim.results.update(
+                'stale reads', (self.id, self.env.now)
+            )
+
+            # Log the stale read
+            self.sim.logger.info(
+                "stale read of version {} on {}".format(vers, self)
+            )
+
+        # Record the read latency as zero in raft (or we could do remote reads)
+        self.sim.results.update(
+            'read latency', (self.id, 0)
+        )
+
+        return vers
+
+    def write(self, name=None):
         """
         Forks the current version if it exists or creates a new version.
         Appends the version to the log and gets ready for AppendEntries.
@@ -359,23 +385,27 @@ class RaftReplica(Replica):
         the leader via a remote write call (e.g. sending a message with the
         write request, though this will have to be considered in more detail).
         """
-        # Create the version if not passed in
-        if version is None:
-            # Get the current version
-            version = self.log.lastVersion
+        # Figure out what is being written to the replica
+        if isinstance(name, Version):
+            # Then this is a remote write
+            version = name
+            name = version.name
 
-            # Write to the version
-            version = Version(self) if version is None else version.fork(self)
+            # Log the remote write
+            self.sim.logger.debug(
+                "remote write version {} on {}".format(version, self)
+            )
+
+        else:
+            # This is a local write, fetch correct version from the store
+            version = self.log.get_latest_version(name) if name is not None else self.log.lastVersion
+
+            # Perform the fork for the write
+            version = Version.new(name)(self) if version is None else version.fork(self)
 
             # Log the write
             self.sim.logger.info(
                 "write version {} on {}".format(version, self)
-            )
-
-        else:
-            # Log the remote write
-            self.sim.logger.info(
-                "remote write version {} on {}".format(version, self)
             )
 
         # If not leader, remote write to the leader
@@ -413,19 +443,3 @@ class RaftReplica(Replica):
 
         # Also interrupt the heartbeat since we just sent AppendEntries
         self.heartbeat.stop()
-
-    def read(self, version=None):
-        """
-        Performs a read of the most recent committed version.
-        """
-        version = self.log.lastCommit
-
-        if version and version.is_stale():
-            # Count the number of stale reads
-            self.sim.results.update(
-                'stale reads', (self.id, self.env.now)
-            )
-
-            self.sim.logger.info(
-                "stale read of version {} on {}".format(version, self)
-            )

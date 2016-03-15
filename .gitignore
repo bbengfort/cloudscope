@@ -69,3 +69,4 @@ fixtures/*
 !fixtures/*.gz
 !fixtures/*.zip
 !fixtures/*.tgz
+!fixtures/traces/*

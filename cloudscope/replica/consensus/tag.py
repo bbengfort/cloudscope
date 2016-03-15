@@ -359,21 +359,22 @@ class TagReplica(Replica):
         """
         Performs a read for the named object.
         """
+        name = name.name if isinstance(name, Version) else name
 
         # Are we the owner of this tag?
         if self.owns(name):
 
             self.handle_session()
-            version = self.log[name].lastCommit
+            vers = self.log[name].lastCommit
 
-            if version and version.is_stale():
+            if vers and vers.is_stale():
                 # Count the number of stale reads
                 self.sim.results.update(
                     'stale reads', (self.id, self.env.now)
                 )
 
                 self.sim.logger.info(
-                    "stale read of version {} on {}".format(version, self)
+                    "stale read of version {} on {}".format(vers, self)
                 )
 
             # Record the read latency as zero
@@ -381,7 +382,7 @@ class TagReplica(Replica):
                 'read latency', (self.id, 0)
             )
 
-            return
+            return vers
 
         # We're going to have some read latency
         self.reads[int(self.env.now)] = name
@@ -462,4 +463,4 @@ class TagReplica(Replica):
                 )
                 yield self.heartbeat.start()
             else:
-                yield self.env.timeout(1)
+                yield self.env.timeout(35)

@@ -72,6 +72,10 @@ def plot_time(series, **kwargs):
     return sns.tsplot(np.array(series), **kwargs)
 
 
+##########################################################################
+## Traces Drawing Utilities
+##########################################################################
+
 def plot_workload(results, devices=False, **kwargs):
     """
     Helper function to make a timeline plot of reads/writes.
@@ -86,7 +90,7 @@ def plot_workload(results, devices=False, **kwargs):
     locations   = defaultdict(list)
 
     # Build the data from the read and write time series
-    for key in ('tag read', 'tag write'):
+    for key in ('read', 'write'):
         for item in results.results[key]:
             locations[item[series]].append(
                 item + [key]
@@ -105,14 +109,14 @@ def plot_workload(results, devices=False, **kwargs):
     for idx, (key, lst) in enumerate(sorted(locations.items(), key=itemgetter(0), reverse=True)):
         for item in lst:
             if item[2] > 1000000: continue
-            if item[-1] == 'tag read':
+            if item[-1] == 'read':
                 rx.append(int(item[2]))
                 ry.append(idx)
             else:
                 wx.append(int(item[2]))
                 wy.append(idx)
 
-    plt.figure(figsize=(14,4))
+    fig = plt.figure(figsize=(14,4))
     plt.ylim((-1,len(locations)))
     plt.xlim((-1000, max(max(rx), max(wx))+1000))
     plt.yticks(range(len(locations)), sorted(locations.keys(), reverse=True))
@@ -125,6 +129,32 @@ def plot_workload(results, devices=False, **kwargs):
         return plt.savefig(outpath, format='svg', dpi=1200)
 
     return plt
+
+
+def plot_message_traffic(messages):
+    """
+    Plots message traffic on a per-replica basis over time. Input data should
+    be an iterable of tuples of the form:
+
+        (replica, timestamp)
+
+    Which (handily) is exactly what is output to the results object.
+    """
+
+    # Create data frame from results.
+    tsize = pd.DataFrame(messages)
+    tsize.columns = ['replica', 'timestamp']
+
+    # Aggregate messages into a single count by replica
+    messages = tsize.groupby(['timestamp', 'replica']).agg(len).unstack('replica').fillna(0)
+
+    # Plot the bar chart
+    ax = messages.plot(figsize=(14, 6), kind='bar', stacked=True, colormap='nipy_spectral')
+
+    # Configure the figure
+    ax.set_ylabel('number of messages')
+    ax.set_title('Message Counts by Replica over Time')
+    return ax
 
 
 ##########################################################################

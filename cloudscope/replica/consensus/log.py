@@ -19,7 +19,7 @@ Implements a "write-ahead" log for Raft storage.
 
 
 ##########################################################################
-## Raft Write Log
+## Write Log
 ##########################################################################
 
 class WriteLog(object):
@@ -138,3 +138,42 @@ class WriteLog(object):
         if self.lastTerm == other.lastTerm:
             return self.lastApplied < other.lastApplied
         return self.lastTerm < other.lastTerm
+
+
+##########################################################################
+## Multi Object Write Log
+##########################################################################
+
+class MultiObjectWriteLog(WriteLog):
+    """
+    Provides added functionality for a single log that can store an entire
+    namespace of objects (not efficient, but practical).
+    """
+
+    def search(self, name, start=None):
+        """
+        Searches the log for the name in reverse order.
+        """
+        # Start from the last applied index, and search backward for the name
+        start = start or self.lastApplied
+        for idx in xrange(start, -1, -1):
+            item, term = self[idx]
+            if item is not None and item.name == name:
+                return item, term
+
+        # Return the null object if search comes up empty
+        return self[0]
+
+    def get_latest_version(self, name):
+        """
+        Get the latest version for the name given.
+        """
+        version, term = self.search(name)
+        return version
+
+    def get_latest_commit(self, name):
+        """
+        Get the latest name for the commit given.
+        """
+        version, term = self.search(name, self.commitIndex)
+        return version 

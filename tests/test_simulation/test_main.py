@@ -57,10 +57,11 @@ class SimulationTests(unittest.TestCase):
         # Re-enable logging
         logging.disable(logging.NOTSET)
 
-    def assertReliableResults(self, results):
+    def assertReliableResults(self, results, metrics=None):
         """
         Performs generic checking for the results object.
         """
+        metrics = metrics or set([])
 
         topkeys = [
             u'settings', u'results', u'randseed', u'simulation', u'version',
@@ -76,16 +77,26 @@ class SimulationTests(unittest.TestCase):
         self.assertEqual(len(results['topology'].get('links', [])), 3)
         self.assertIn('meta', results['topology'])
 
-        metrics = [
-            u'tag size', u'session length', u'read', u'read latency',
+        # Required Metrics
+        required = {
+            u'read', u'read latency',
             u'write', u'visibility latency',
-        ]
+        } | metrics
 
-        for metric in metrics:
-            self.assertIn(metric, results['results'])
+        # Optional Metrics
+        optional = {
+            u'sent', u'recv', u'commit latency',
+        }
+
+        for metric in required:
+            self.assertIn(metric, results['results'], "Missing '{}' metric from results".format(metric))
             self.assertGreater(len(results['results'][metric]), 0)
 
-    @unittest.skip("See issue #45")
+        for metric in results['results'].keys():
+            self.assertIn(metric, required | optional, "Unknown metric named '{}'".format(metric))
+
+
+    # @unittest.skip("See issue #45")
     def test_eventual_simulation(self):
         """
         Run the eventually consistent simulation without errors
@@ -108,7 +119,6 @@ class SimulationTests(unittest.TestCase):
         # Check the results
         self.assertReliableResults(results)
 
-    @unittest.skip("See issue #49")
     def test_raft_simulation(self):
         """
         Run the raft consensus simulation without errors
@@ -153,4 +163,5 @@ class SimulationTests(unittest.TestCase):
         results = json.load(output)
 
         # Check the results
-        self.assertReliableResults(results)
+        tag_metrics = {u'tag size', u'session length'}
+        self.assertReliableResults(results, metrics=tag_metrics)
