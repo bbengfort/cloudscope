@@ -17,9 +17,14 @@ Testing the data structures and helpers for a Raft write log.
 ## Imports
 ##########################################################################
 
+import random
 import unittest
 
+from cloudscope.replica.store import Version
 from cloudscope.replica.consensus.log import WriteLog
+from cloudscope.replica.consensus.log import MultiObjectWriteLog
+
+from tests.test_replica import get_mock_simulation
 
 ##########################################################################
 ## TestCase
@@ -119,3 +124,95 @@ class WriteLogTests(unittest.TestCase):
             self.assertNotEqual(uptodate, outofdate)
             self.assertGreater(uptodate, outofdate)
             self.assertLess(outofdate, uptodate)
+
+
+class MultiObjectWriteLogTests(unittest.TestCase):
+
+    def setUp(self):
+        # Replica fixture
+        simulation = get_mock_simulation()
+        replica = lambda: random.choice(simulation.replicas)
+
+        # Version fixtures
+        a = Version.new('A')(replica())
+        b = Version.new('B')(replica())
+        c = Version.new('C')(replica())
+        d = Version.new('D')(replica())
+
+        # Create mock log
+        self.log = MultiObjectWriteLog()
+        for obj in (a, b, c):
+            self.log.append(obj, 1)
+
+        # Create unordered log objects.
+        self.log.append(a.fork(replica()), 2)
+        self.log.append(a.fork(replica()), 2)
+        self.log.append(a.fork(replica()), 2)
+        self.log.append(a.fork(replica()), 3)
+        self.log.append(a.fork(replica()), 3)
+        self.log.append(b.fork(replica()), 3)
+        self.log.append(b.fork(replica()), 4)
+        self.log.append(b.fork(replica()), 4)
+        self.log.append(c.fork(replica()), 4)
+        self.log.append(d, 5)
+
+        self.log.commitIndex = 9
+
+    def tearDown(self):
+        self.log = None
+
+    def test_log_fixture(self):
+        """
+        Test the multi-object log fixture for completeness.
+        """
+        self.assertEqual(len(self.log), 14)
+        self.assertEqual(self.log.commitIndex, 9)
+        self.assertEqual(self.log.lastApplied, 13)
+
+    def test_search_functionality(self):
+        """
+        Test the multi-object log search mechanism
+        """
+
+        (a, t) = self.log.search('A')
+        self.assertEqual(a.version, 6)
+
+        (c, t) = self.log.search('C')
+        self.assertEqual(c.version, 2)
+
+        (c, t) = self.log.search('C', 5)
+        self.assertEqual(c.version, 1)
+
+    def test_latest_version(self):
+        """
+        Test the multi-object log latest version function
+        """
+
+        a = self.log.get_latest_version('A')
+        self.assertEqual(a.version, 6)
+
+        b = self.log.get_latest_version('B')
+        self.assertEqual(b.version, 4)
+
+        c = self.log.get_latest_version('C')
+        self.assertEqual(c.version, 2)
+
+        d = self.log.get_latest_version('D')
+        self.assertEqual(d.version, 1)
+
+    def test_latest_commit(self):
+        """
+        Test the multi-object log latest version function
+        """
+
+        a = self.log.get_latest_commit('A')
+        self.assertEqual(a.version, 6)
+
+        b = self.log.get_latest_commit('B')
+        self.assertEqual(b.version, 2)
+
+        c = self.log.get_latest_commit('C')
+        self.assertEqual(c.version, 1)
+
+        d = self.log.get_latest_commit('D')
+        self.assertIsNone(d)

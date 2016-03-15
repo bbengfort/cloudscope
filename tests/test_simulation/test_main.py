@@ -85,7 +85,7 @@ class SimulationTests(unittest.TestCase):
 
         # Optional Metrics
         optional = {
-            u'sent', u'recv',
+            u'sent', u'recv', u'commit latency',
         }
 
         for metric in required:
@@ -119,7 +119,6 @@ class SimulationTests(unittest.TestCase):
         # Check the results
         self.assertReliableResults(results)
 
-    @unittest.skip("See issue #49")
     def test_raft_simulation(self):
         """
         Run the raft consensus simulation without errors

@@ -103,13 +103,14 @@ class EventualReplica(Replica):
                 "stale read of version {} on {}".format(vers, self)
             )
 
-        # Record the read latency as zero
+        # Record the read latency as zero in eventual
         self.sim.results.update(
             'read latency', (self.id, 0)
         )
 
         # Set the current version as the latest read.
         self.current = vers
+        return vers
 
     def write(self, name=None):
         """
@@ -127,7 +128,7 @@ class EventualReplica(Replica):
 
             # Log the remote write
             self.sim.logger.debug(
-                "remote write version {} on {}".format(self.current, self)
+                "remote write version {} on {}".format(version, self)
             )
 
         else:
