@@ -53,6 +53,7 @@ from .store import Version
 from cloudscope.config import settings
 from cloudscope.simulation.timer import Timer
 
+from collections import defaultdict
 from collections import namedtuple
 
 # Anti Entropy Delay
@@ -80,56 +81,70 @@ class EventualReplica(Replica):
         self.do_rumoring = kwargs.get('do_rumoring', DO_RUMORING)
 
         # Storage of all versions in the replica and a pointer to the latest.
-        self.storage     = []
+        self.storage     = {}
         self.current     = None
         self.timeout     = None
 
-    def read(self, version=None):
+    def read(self, name=None):
         """
         Performs a read of the latest version either locally or across cloud.
         """
-        if self.current is None:
-            # a read doesn't make sense in this case
-            return
+        name = name.name if isinstance(name, Version) else name
+        vers = self.storage.get(name, None)
 
-        if self.current.is_stale():
+        if vers and vers.is_stale():
             # Count the number of stale reads
             self.sim.results.update(
                 'stale reads', (self.id, self.env.now)
             )
 
+            # Log the stale read
             self.sim.logger.info(
-                "stale read of version {} on {}".format(self.current, self)
+                "stale read of version {} on {}".format(vers, self)
             )
 
-    def write(self, version=None):
+        # Record the read latency as zero
+        self.sim.results.update(
+            'read latency', (self.id, 0)
+        )
+
+        # Set the current version as the latest read.
+        self.current = vers
+
+    def write(self, name=None):
         """
         Performs a write to the current version. If no version is passed in,
         the write is assumed to be local, and the current version will be
         forked. If the version is passed in, the write is assumed to be
         remote, and the version will be updated accordingly.
         """
-        # If version is None, that means a local write
-        if version is None:
-            # Log the local write
-            self.sim.logger.info(
-                "write version {} on {}".format(self.current, self)
-            )
-            if self.current is None:
-                # A new version!
-                version = Version(self)
-            else:
-                # A fork of an earlier version.
-                version = self.current.fork(self)
-        else:
+
+        # Figure out what is being written to the replica
+        if isinstance(name, Version):
+            # Then this is a remote write
+            version = name
+            name = version.name
+
             # Log the remote write
             self.sim.logger.debug(
                 "remote write version {} on {}".format(self.current, self)
             )
 
+        else:
+            # This is a local write, fetch correct version from the store.
+            version = self.storage.get(name, None) if name is not None else self.current
+
+            # Perform the fork for the write
+            version = Version.new(name)(self) if version is None else version.fork(self)
+
+            # Log the local write
+            self.sim.logger.info(
+                "write version {} on {}".format(self.current, self)
+            )
+
         # Write the new version to the local data store
         self.current = version
-        self.storage.append(self.current)
+        self.storage[name] = version
 
         # Update the version to track visibility latency
         version.update(self)

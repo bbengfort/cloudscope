@@ -462,4 +462,4 @@ class TagReplica(Replica):
                 )
                 yield self.heartbeat.start()
             else:
-                yield self.env.timeout(1)
+                yield self.env.timeout(35)
