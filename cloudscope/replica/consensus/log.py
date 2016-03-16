@@ -176,4 +176,4 @@ class MultiObjectWriteLog(WriteLog):
         Get the latest name for the commit given.
         """
         version, term = self.search(name, self.commitIndex)
-        return version 
+        return version

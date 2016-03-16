@@ -38,6 +38,11 @@ LEADER    = 0
 CANDIDATE = 1
 FOLLOWER  = 2
 
+## Response Type Enum
+VOTE  = 0
+ACK   = 1
+WRITE = 2
+
 # Timers and timing
 HEARTBEAT_INTERVAL = settings.simulation.heartbeat_interval
 ELECTION_TIMEOUT   = settings.simulation.election_timeout
@@ -45,7 +50,7 @@ ELECTION_TIMEOUT   = settings.simulation.election_timeout
 ## RPC Messages
 AppendEntries = namedtuple('AppendEntries', 'term, leaderId, prevLogIndex, prevLogTerm, entries, leaderCommit')
 RequestVote   = namedtuple('RequestVote', 'term, candidateId, lastLogIndex, lastLogTerm')
-Response      = namedtuple('Response', 'term, success')
+Response      = namedtuple('Response', 'term, success, type')
 RemoteWrite   = namedtuple('RemoteWrite', 'term, version')
 
 ##########################################################################
@@ -184,11 +189,11 @@ class RaftReplica(Replica):
                     self.timeout.stop()
                     self.votedFor = rpc.candidateId
                     return self.send(
-                        msg.source, Response(self.currentTerm, True)
+                        msg.source, Response(self.currentTerm, True, VOTE)
                     )
 
         return self.send(
-            msg.source, Response(self.currentTerm, False)
+            msg.source, Response(self.currentTerm, False, VOTE)
         )
 
     def on_append_entries(self, msg):
@@ -204,7 +209,7 @@ class RaftReplica(Replica):
         if rpc.term < self.currentTerm:
             self.sim.logger.info("{} doesn't accept write on term {}".format(self, self.currentTerm))
             return self.send(
-                msg.source, Response(self.currentTerm, False)
+                msg.source, Response(self.currentTerm, False, ACK)
             )
 
         # Reply false if log doesn't contain an entry at prevLogIndex whose
@@ -214,26 +219,29 @@ class RaftReplica(Replica):
                 self.sim.logger.info("{} doesn't accept write on index {} where last applied is {}".format(self, rpc.prevLogIndex, self.log.lastApplied))
             else:
                 self.sim.logger.info("{} doesn't accept write for term mismatch {} vs {}".format(self, rpc.prevLogTerm, self.log[rpc.prevLogIndex][1]))
+
+                import sys
+                sys.exit()
             return self.send(
-                msg.source, Response(self.currentTerm, False)
+                msg.source, Response(self.currentTerm, False, ACK)
             )
 
         # At this point AppendEntries RPC is accepted
         if rpc.entries:
             if self.log.lastApplied >= rpc.prevLogIndex:
                 # If existing entry conflicts with new one (same index, different terms)
-                # Delete the existin entry and all that follow it.
+                # Delete the existing entry and all that follow it.
                 if self.log[rpc.prevLogIndex][1] != rpc.prevLogTerm:
                     self.log.remove(rpc.prevLogTerm)
 
             # Append any new entries not already in the log.
             for entry in rpc.entries:
                 # Add the entry/term to the log
+                self.sim.logger.info("Appending {} to {} on {}".format(entry[0], entry[1], self))
                 self.log.append(*entry)
 
                 # Update the versions to compute visibilities
-                if entry[0]: # TODO Remove this line, is a bug!
-                    entry[0].update(self)
+                entry[0].update(self)
 
             # Log the last write from the append entries.
             self.sim.logger.debug(
@@ -246,7 +254,7 @@ class RaftReplica(Replica):
             self.log.commitIndex = min(rpc.leaderCommit, self.log.lastApplied)
 
         # Return success response.
-        return self.send(msg.source, Response(self.currentTerm, True))
+        return self.send(msg.source, Response(self.currentTerm, True, ACK))
 
     def on_rpc_response(self, msg):
         """
@@ -259,18 +267,37 @@ class RaftReplica(Replica):
 
         if self.state == CANDIDATE:
 
-            self.votes.vote(msg.source.id, rpc.success)
-            if self.votes.has_passed():
-                ## Become the leader
-                self.state = LEADER
-                self.timeout.stop()
+            # If it's append entries, decide whether or not to step down.
+            if rpc.type == ACK and rpc.term >= self.currentTerm:
+                ## Become a follower
+                self.state = FOLLOWER
 
-                ## Log the new leader
+                ## Log the failed election
                 self.sim.logger.info(
-                    "{} has become raft leader".format(self)
+                    "{} has stepped down as candidate".format(self)
                 )
 
+                return
+
+            if rpc.type == VOTE:
+                self.votes.vote(msg.source.id, rpc.success)
+                if self.votes.has_passed():
+                    ## Become the leader
+                    self.state = LEADER
+                    self.timeout.stop()
+
+                    ## Log the new leader
+                    self.sim.logger.info(
+                        "{} has become raft leader".format(self)
+                    )
+
+                return
+
         elif self.state == LEADER:
+
+            # Ignore votes after becoming leader
+            if rpc.type == VOTE:
+                return
 
             if rpc.success:
                 self.nextIndex[msg.source]  = self.log.lastApplied + 1
@@ -316,11 +343,14 @@ class RaftReplica(Replica):
         """
         Passes messages to their appropriate message handlers.
         """
+        # Record the received message
+        super(RaftReplica, self).recv(event)
+
         message = event.value
         rpc = message.value
 
         # If RPC request or response contains term > currentTerm
-        # Set currentTerm to term and conver to follower.
+        # Set currentTerm to term and convert to follower.
         if rpc.term > self.currentTerm:
             self.state = FOLLOWER
             self.currentTerm = rpc.term

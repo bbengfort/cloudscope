@@ -337,6 +337,9 @@ class TagReplica(Replica):
         """
         Passes messages to their appropriate message handlers.
         """
+        # Record the received message
+        super(RaftReplica, self).recv(event)
+        
         message = event.value
         rpc = message.value
 

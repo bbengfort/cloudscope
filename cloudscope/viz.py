@@ -142,8 +142,10 @@ def plot_message_traffic(messages):
     """
 
     # Create data frame from results.
-    tsize = pd.DataFrame(messages)
-    tsize.columns = ['replica', 'timestamp']
+    columns = ['replica', 'timestamp', 'type', 'latency']
+    tsize = pd.DataFrame([
+        dict(zip(columns, message)) for message in messages
+    ])
 
     # Aggregate messages into a single count by replica
     messages = tsize.groupby(['timestamp', 'replica']).agg(len).unstack('replica').fillna(0)

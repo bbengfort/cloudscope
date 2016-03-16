@@ -84,11 +84,14 @@ class Replica(Node):
             )
         )
 
+        # Track time series of sent messages
         if settings.simulation.count_messages:
             self.sim.results.update(
-                "sent", (self.id, self.env.now)
+                "sent", (self.id, self.env.now, mtype)
             )
 
+        # Track total number of sent messages
+        self.sim.results.messages['sent'][mtype] += 1
         return event
 
     def recv(self, event):
@@ -97,19 +100,22 @@ class Replica(Node):
         """
         # Get the unpacked message from the event.
         message = super(Replica, self).recv(event)
+        mtype = message.value.__class__.__name__ if message.value else "None"
 
         self.sim.logger.debug(
             "protocol {!r} received by {} from {} ({}ms delayed)".format(
-                message.value.__class__.__name__,
-                message.target, message.source, message.delay
+                mtype, message.target, message.source, message.delay
             )
         )
 
+        # Track time series of recv messages
         if settings.simulation.count_messages:
             self.sim.results.update(
-                "recv", (self.id, self.env.now)
+                "recv", (self.id, self.env.now, mtype, message.delay)
             )
 
+        # Track total number of recv messages
+        self.sim.results.messages['recv'][mtype] += 1
         return message
 
     def read(self, version=None):
