@@ -30,13 +30,13 @@ from cloudscope.utils.decorators import Timer
 from cloudscope.utils.timez import humanizedelta
 from cloudscope.simulation.main import ConsistencySimulation
 from commis.exceptions import ConsoleError
-
+from collections import Counter
 
 ##########################################################################
 ## Command
 ##########################################################################
 
-def runner(idx, path):
+def runner(idx, path, **kwargs):
     """
     Takes an open file-like object and runs the simulation, returning a
     string containing the dumped JSON results, which can be dumped to disk.
@@ -45,7 +45,7 @@ def runner(idx, path):
 
     try:
         with open(path, 'r') as fobj:
-            sim = ConsistencySimulation.load(fobj, trace=args.trace)
+            sim = ConsistencySimulation.load(fobj, **kwargs)
 
         logger.info(
             "Starting simulation {}: \"{}\"".format(idx, sim.name)
@@ -70,6 +70,7 @@ def runner(idx, path):
         return json.dumps({
             'success': False,
             'traceback': "".join(traceback.format_exception(*sys.exc_info())),
+            'error': str(e),
         })
 
 
@@ -116,20 +117,33 @@ class MultipleSimulationsCommand(Command):
 
         # TODO: Change the below to just accept multiple topologies
         experiments = self.get_experiments(args)
+        kwargs = {
+            'trace': args.trace,
+        }
 
         # Create a pool of processes and begin to execute experiments
         with Timer() as timer:
             pool    = mp.Pool(processes=args.tasks)
             results = [
-                pool.apply_async(runner, args=(i+1,x))
+                pool.apply_async(runner, (i+1,x), kwargs)
                 for i, x in enumerate(experiments)
             ]
 
+            # Compute output and errors
             output   = [json.loads(p.get()) for p in results]
+            errors   = filter(lambda d: 'error' in d, output)
+            output   = filter(lambda d: 'error' not in d, output)
+
+            # Compute duration
             duration = sum([
                 result['timer']['finished'] - result['timer']['started']
                 for result in output
             ])
+
+            # Compute the most common simulation name
+            names = Counter(d['simulation'] for d in output)
+            simulation = names.most_common(1)
+            simulation = simulation[0][0] if simulation else "(No Simulation Completed)"
 
         # Dump the output data to a file.
         if args.output is None:
@@ -140,11 +154,11 @@ class MultipleSimulationsCommand(Command):
         json.dump(output, args.output)
 
         return (
-            "{} simulations ({} compute time) run by {} tasks in {}\n"
+            "{} simulations ({} compute time, {} errors) run by {} tasks in {}\n"
             "Results for {} written to {}"
         ).format(
-            len(results), humanizedelta(seconds=duration), args.tasks, timer,
-            output[0]['simulation'], args.output.name
+            len(results), humanizedelta(seconds=duration) or "0 seconds",
+            len(errors), args.tasks, timer, simulation, args.output.name
         )
 
     def get_experiments(self, args):
