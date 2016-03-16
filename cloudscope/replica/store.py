@@ -52,6 +52,7 @@ class Version(object):
         Returns a new subclass of the version for a specific object and
         resets the global counter on the object, for multi-version systems.
         """
+        name = name or "foo" # Handle passing None into the new method. 
         return type(name, (klass,), {"counter": Sequence()})
 
 

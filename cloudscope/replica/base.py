@@ -114,9 +114,27 @@ class Replica(Node):
 
     def read(self, version=None):
         """
-        Performs a read of the local latest version or for the given version.
+        Intended as a stub method to record a read on the replica. This
+        method wil take the version "read" from a subclass and record if it's
+        stale, as well as the read latency if the object is an event.
+
+        Returns the name of the version as well as the version object itself.
         """
-        pass
+        if version is not None:
+            if version.is_stale():
+                # Count the number of stale reads
+                self.sim.results.update(
+                    'stale reads', (self.id, self.env.now)
+                )
+
+                # Log the stale read
+                self.sim.logger.info(
+                    "stale read of version {} on {}".format(version, self)
+                )
+
+            return version.name, version
+
+        return version
 
     def write(self, version=None):
         """

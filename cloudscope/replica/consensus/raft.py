@@ -358,23 +358,13 @@ class RaftReplica(Replica):
         name = name.name if isinstance(name, Version) else name
         vers = self.log.get_latest_commit(name)
 
-        if vers and vers.is_stale():
-            # Count the number of stale reads
-            self.sim.results.update(
-                'stale reads', (self.id, self.env.now)
-            )
-
-            # Log the stale read
-            self.sim.logger.info(
-                "stale read of version {} on {}".format(vers, self)
-            )
-
         # Record the read latency as zero in raft (or we could do remote reads)
         self.sim.results.update(
             'read latency', (self.id, 0)
         )
 
-        return vers
+        # Record the stale read and return the super.
+        return super(RaftReplica, self).read(vers)
 
     def write(self, name=None):
         """

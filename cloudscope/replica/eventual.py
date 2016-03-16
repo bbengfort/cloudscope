@@ -90,27 +90,15 @@ class EventualReplica(Replica):
         Performs a read of the latest version either locally or across cloud.
         """
         name = name.name if isinstance(name, Version) else name
-        vers = self.storage.get(name, None)
-
-        if vers and vers.is_stale():
-            # Count the number of stale reads
-            self.sim.results.update(
-                'stale reads', (self.id, self.env.now)
-            )
-
-            # Log the stale read
-            self.sim.logger.info(
-                "stale read of version {} on {}".format(vers, self)
-            )
+        self.current = self.storage.get(name, None)
 
         # Record the read latency as zero in eventual
         self.sim.results.update(
             'read latency', (self.id, 0)
         )
 
-        # Set the current version as the latest read.
-        self.current = vers
-        return vers
+        # Record the stale read and return the super.
+        return super(EventualReplica, self).read(self.current)
 
     def write(self, name=None):
         """

@@ -367,22 +367,13 @@ class TagReplica(Replica):
             self.handle_session()
             vers = self.log[name].lastCommit
 
-            if vers and vers.is_stale():
-                # Count the number of stale reads
-                self.sim.results.update(
-                    'stale reads', (self.id, self.env.now)
-                )
-
-                self.sim.logger.info(
-                    "stale read of version {} on {}".format(vers, self)
-                )
-
             # Record the read latency as zero
             self.sim.results.update(
                 'read latency', (self.id, 0)
             )
 
-            return vers
+            # Record the stale read and return the super.
+            return super(TagReplica, self).read(vers)
 
         # We're going to have some read latency
         self.reads[int(self.env.now)] = name
