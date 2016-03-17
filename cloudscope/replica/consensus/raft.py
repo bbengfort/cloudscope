@@ -137,15 +137,8 @@ class RaftReplica(Replica):
         if not self.state == LEADER:
             return
 
-        rpc = AppendEntries(
-            self.currentTerm, self.id, self.log.lastApplied,
-            self.log.lastTerm, [], self.log.commitIndex,
-        )
-
-        for follower in self.followers:
-            self.send(
-                follower, rpc
-            )
+        # Send heartbeat or aggregated writes
+        self.send_append_entries()
 
     def on_election_timeout(self):
         """
@@ -161,7 +154,10 @@ class RaftReplica(Replica):
         self.votedFor = self.id
 
         # Inform the rest of the quorum you'd like their vote.
-        rpc = RequestVote(self.currentTerm, self.id, self.log.lastApplied, self.log.lastTerm)
+        rpc = RequestVote(
+            self.currentTerm, self.id, self.log.lastApplied, self.log.lastTerm
+        )
+
         for follower in self.followers:
             self.send(
                 follower, rpc
@@ -216,12 +212,18 @@ class RaftReplica(Replica):
         # term matches previous log term.
         if self.log.lastApplied < rpc.prevLogIndex or self.log[rpc.prevLogIndex][1] != rpc.prevLogTerm:
             if self.log.lastApplied < rpc.prevLogIndex:
-                self.sim.logger.info("{} doesn't accept write on index {} where last applied is {}".format(self, rpc.prevLogIndex, self.log.lastApplied))
+                self.sim.logger.info(
+                    "{} doesn't accept write on index {} where last applied is {}".format(
+                        self, rpc.prevLogIndex, self.log.lastApplied
+                    )
+                )
             else:
-                self.sim.logger.info("{} doesn't accept write for term mismatch {} vs {}".format(self, rpc.prevLogTerm, self.log[rpc.prevLogIndex][1]))
+                self.sim.logger.info(
+                    "{} doesn't accept write for term mismatch {} vs {}".format(
+                        self, rpc.prevLogTerm, self.log[rpc.prevLogIndex][1]
+                    )
+                )
 
-                import sys
-                sys.exit()
             return self.send(
                 msg.source, Response(self.currentTerm, False, ACK)
             )
@@ -237,8 +239,10 @@ class RaftReplica(Replica):
             # Append any new entries not already in the log.
             for entry in rpc.entries:
                 # Add the entry/term to the log
-                self.sim.logger.info("Appending {} to {} on {}".format(entry[0], entry[1], self))
                 self.log.append(*entry)
+                self.sim.logger.debug(
+                    "appending {} to {} on {}".format(entry[0], entry[1], self)
+                )
 
                 # Update the versions to compute visibilities
                 entry[0].update(self)
@@ -304,12 +308,9 @@ class RaftReplica(Replica):
                 self.matchIndex[msg.source] = self.log.lastApplied
 
             else:
+                # Decrement next index and retry append entries
                 self.nextIndex[msg.source] -= 1
-                nidx = self.nextIndex[msg.source]
-                entries = self.log[nidx:]
-                self.send(
-                    msg.source, AppendEntries(self.currentTerm, self.id, self.log.lastApplied, self.log.lastTerm, entries, self.log.commitIndex)
-                )
+                self.send_append_entries(msg.source)
 
             # Decide if we can commit the entry
             for n in xrange(self.log.lastApplied, self.log.commitIndex, -1):
@@ -442,11 +443,6 @@ class RaftReplica(Replica):
                     leaders[0], RemoteWrite(self.currentTerm, version)
                 )
 
-        # Otherwise, we are the leader
-        # Get previous term and entry
-        prevLogIndex = self.log.lastApplied
-        prevLogTerm  = self.log.lastTerm
-
         # Write the new version to the local data store
         self.log.append(version, self.currentTerm)
 
@@ -454,12 +450,41 @@ class RaftReplica(Replica):
         version.update(self)
 
         # Now do AppendEntries ...
-        for follower, nidx in self.nextIndex.iteritems():
+        if not settings.simulation.aggregate_writes:
+            self.send_append_entries()
+
+            # Also interrupt the heartbeat since we just sent AppendEntries
+            self.heartbeat.stop()
+
+    def send_append_entries(self, follower=None):
+        """
+        Helper function to send append entries to quorum or a specific node.
+
+        Note: fails silently if follower is not in the followers list.
+        """
+        # Leader check
+        if not self.state == LEADER:
+            return
+
+        # Go through follower list.
+        for node, nidx in self.nextIndex.iteritems():
+            # Filter based on the follower supplied.
+            if follower is not None and node != follower:
+                continue
+
+            # Construct the entries, or empty for heartbeat
+            entries = []
             if self.log.lastApplied >= nidx:
                 entries = self.log[nidx:]
-                self.send(
-                    follower, AppendEntries(self.currentTerm, self.id, prevLogIndex, prevLogTerm, entries, self.log.commitIndex)
-                )
 
-        # Also interrupt the heartbeat since we just sent AppendEntries
-        self.heartbeat.stop()
+            # Compute the previous log index and term
+            prevLogIndex = nidx - 1
+            prevLogTerm  = self.log[prevLogIndex].term
+
+            # Send the heartbeat message
+            self.send(
+                node, AppendEntries(
+                    self.currentTerm, self.id, prevLogIndex,
+                    prevLogTerm, entries, self.log.commitIndex
+                )
+            )
