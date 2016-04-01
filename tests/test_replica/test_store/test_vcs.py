@@ -1,4 +1,4 @@
-# tests.test_store
+# tests.test_store.test_vcs
 # Tests the store functionality in the simulation.
 #
 # Author:   Benjamin Bengfort <bengfort@cs.umd.edu>
@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: test_store.py [] benjamin@bengfort.com $
+# ID: test_vcs.py [] benjamin@bengfort.com $
 
 """
 Tests the store functionality in the simulation.

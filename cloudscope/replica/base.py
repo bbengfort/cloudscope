@@ -124,23 +124,18 @@ class Replica(Node):
         method wil take the version "read" from a subclass and record if it's
         stale, as well as the read latency if the object is an event.
 
-        Returns the name of the version as well as the version object itself.
+        Returns the read event object or None.
         """
         if version is not None:
-            if version.is_stale():
-                # Count the number of stale reads
-                self.sim.results.update(
-                    'stale reads', (self.id, self.env.now)
-                )
+            read = version.read(self, completed=True)
 
+            if read.is_stale():
                 # Log the stale read
                 self.sim.logger.info(
                     "stale read of version {} on {}".format(version, self)
                 )
 
-            return version.name, version
-
-        return version
+            return read
 
     def write(self, version=None):
         """

@@ -85,6 +85,29 @@ class EventualReplica(Replica):
         self.current     = None
         self.timeout     = None
 
+    ######################################################################
+    ## Properties
+    ######################################################################
+
+    ######################################################################
+    ## Core Methods (Replica API)
+    ######################################################################
+
+    def recv(self, event):
+        """
+        Perform handling of messages for rumor mongering and gossip.
+        """
+        message = super(EventualReplica, self).recv(event)
+        rpc = message.value
+
+        handler = {
+            "Gossip": self.on_gossip_rpc,
+            "Response": self.on_response_rpc,
+        }[rpc.__class__.__name__]
+
+        handler(message)
+        return message
+
     def read(self, name=None):
         """
         Performs a read of the latest version either locally or across cloud.
@@ -138,6 +161,17 @@ class EventualReplica(Replica):
         # Update the version to track visibility latency
         version.update(self)
 
+    def run(self):
+        """
+        The run method basically implements an anti-entropy timer.
+        """
+        while True:
+            yield self.get_anti_entropy_timeout()
+
+    ######################################################################
+    ## Helper Methods
+    ######################################################################
+
     def gossip(self):
         """
         Randomly selects a neighbor and gossips about the latest version.
@@ -167,27 +201,9 @@ class EventualReplica(Replica):
         self.timeout = Timer(self.env, self.ae_delay, self.gossip)
         return self.timeout.start()
 
-    def run(self):
-        """
-        The run method basically implements an anti-entropy timer.
-        """
-        while True:
-            yield self.get_anti_entropy_timeout()
-
-    def recv(self, event):
-        """
-        Perform handling of messages for rumor mongering and gossip.
-        """
-        message = super(EventualReplica, self).recv(event)
-        rpc = message.value
-
-        handler = {
-            "Gossip": self.on_gossip_rpc,
-            "Response": self.on_response_rpc,
-        }[rpc.__class__.__name__]
-
-        handler(message)
-        return message
+    ######################################################################
+    ## RPC Event Handlers
+    ######################################################################
 
     def on_gossip_rpc(self, message):
         """

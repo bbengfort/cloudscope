@@ -1,4 +1,4 @@
-# cloudscope.replica.store
+# cloudscope.replica.store.vcs
 # Definition of what a replica actually stores and manages (data objects).
 #
 # Author:   Benjamin Bengfort <bengfort@cs.umd.edu>
@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: store.py [] benjamin@bengfort.com $
+# ID: vcs.py [] benjamin@bengfort.com $
 
 """
 Definition of what a replica actually stores and manages (data objects).
@@ -43,7 +43,9 @@ factory = ObjectFactory()
 
 class Version(object):
     """
-    Implements a representation of the tree structure for a file version.
+    A representation of a write to an object in the replica; the Version
+    tracks all information associated with that write (e.g. the version that
+    it was written from, when and how long it took to replicate the write).
     """
 
     @classmethod
@@ -52,7 +54,7 @@ class Version(object):
         Returns a new subclass of the version for a specific object and
         resets the global counter on the object, for multi-version systems.
         """
-        name = name or "foo" # Handle passing None into the new method. 
+        name = name or "foo" # Handle passing None into the new method.
         return type(name, (klass,), {"counter": Sequence()})
 
 
@@ -67,6 +69,7 @@ class Version(object):
         self.parent    = parent
         self.version   = self.counter.next()
         self.committed = False
+        self.tag       = kwargs.get('tag', None)
 
         # This seems very tightly coupled, should we do something different?
         self.replicas  = set([replica.id])
@@ -137,6 +140,12 @@ class Version(object):
             replica, parent=self, level=self.level
         )
 
+    def read(self, replica, **kwargs):
+        """
+        Creates a read event of this version
+        """
+        return ReadVersion(replica, self, **kwargs)
+
     def contiguous(self):
         """
         Counts the number of contiguous versions between the parent and this
@@ -184,3 +193,83 @@ class Version(object):
 
     def __ge__(self, other):
         return self.version >= other.version
+
+
+##########################################################################
+## Read Event
+##########################################################################
+
+class ReadVersion(object):
+    """
+    Tracks information about a version read over time - particularly the
+    latency of the read if the read is remote or must await a consensus
+    decision. This is an event that acts as a closure around a single version.
+    """
+
+    def __init__(self, replica, version=None, completed=False, **kwargs):
+        """
+        Creation of an initial version for the version tree.
+        """
+        self.reader   = replica
+        self.version  = version
+
+        self.started  = kwargs.get('started', replica.env.now)
+        self.finished = kwargs.get('finished', None)
+
+        if completed: self.complete()
+
+    @property
+    def name(self):
+        """
+        Returns the version name, or if this simply wraps a string, then that.
+        """
+        if isinstance(self.version, Version):
+            return self.version.name
+        return self.version
+
+    def is_completed(self):
+        """
+        Determines if the read is completed
+        """
+        return self.version is not None and self.finished is not None
+
+    def update(self, version):
+        """
+        Update the read with the version to respond to the read with.
+        """
+        self.version = version
+
+    def complete(self):
+        """
+        Completes the read allowing latency measurement.
+        This method also performs all logging and event measurement.
+        """
+        self.finished = self.reader.env.now
+
+        # Track the read latency
+        self.reader.sim.results.update(
+            'read latency',
+            (self.reader.id, str(self.version), self.started, self.finished)
+        )
+
+        if self.is_stale():
+            # Count the number of stale reads
+            self.reader.sim.results.update(
+                'stale reads', (self.reader.id, self.reader.env.now)
+            )
+
+    def delay(self):
+        """
+        Returns the read latency
+        """
+        if self.is_completed:
+            return self.finished - self.started
+
+    def is_stale(self):
+        """
+        Determines if the read is stale or not.
+        """
+        return self.version.is_stale()
+
+    def __str__(self):
+        return repr(self.name)
