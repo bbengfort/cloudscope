@@ -202,7 +202,7 @@ class EventualReplica(Replica):
         return self.timeout.start()
 
     ######################################################################
-    ## RPC Event Handlers
+    ## Event Handlers
     ######################################################################
 
     def on_gossip_rpc(self, message):

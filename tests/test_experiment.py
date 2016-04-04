@@ -23,6 +23,7 @@ import unittest
 
 from cloudscope.experiment import *
 from cloudscope.config import settings
+from cloudscope.replica import Consistency
 from cloudscope.exceptions import CannotGenerateExperiments
 
 try:
@@ -333,7 +334,7 @@ class LatencyVariationTests(unittest.TestCase, NestedAssertionMixin):
             self.assertEqual(experiment['meta']['users'], nusers)
 
             for node in experiment['nodes']:
-                if node['consistency'] == 'strong':
+                if node['consistency'] == Consistency.STRONG:
                     self.assertEqual(node['election_timeout'], eto)
                     self.assertEqual(node['heartbeat_interval'], hb)
 

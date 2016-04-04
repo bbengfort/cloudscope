@@ -26,7 +26,7 @@ from cloudscope.simulation.network import Network
 from cloudscope.simulation.workload import create as create_workload
 from cloudscope.simulation.workload import TracesWorkload
 from cloudscope.utils.serialize import JSONEncoder
-from cloudscope.replica import replica_factory
+from cloudscope.replica import replica_factory, Consistency
 
 ##########################################################################
 ## Primary Simulation
@@ -83,7 +83,7 @@ class ConsistencySimulation(Simulation):
         # Compute Anti-Entropy
         aedelays = map(float, [
             node.ae_delay for node in
-            filter(lambda n: n.consistency =="low", self.replicas)
+            filter(lambda n: n.consistency == Consistency.LOW, self.replicas)
         ])
 
         if aedelays:

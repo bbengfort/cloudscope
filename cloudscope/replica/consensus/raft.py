@@ -20,7 +20,7 @@ Implements strong consistency using Raft consensus.
 from cloudscope.config import settings
 from cloudscope.simulation.timer import Timer
 from cloudscope.replica.store import Version
-from cloudscope.replica import Replica, Consistency
+from cloudscope.replica import Replica, Consistency, State
 from cloudscope.exceptions import RaftRPCException, SimulationException
 from cloudscope.replica.store import MultiObjectWriteLog
 
@@ -32,11 +32,6 @@ from collections import namedtuple
 ##########################################################################
 ## Module Constants
 ##########################################################################
-
-## Raft Replica State Enum
-LEADER    = 0
-CANDIDATE = 1
-FOLLOWER  = 2
 
 ## Response Type Enum
 VOTE  = 0
@@ -64,7 +59,7 @@ class RaftReplica(Replica):
         super(RaftReplica, self).__init__(simulation, **kwargs)
 
         ## Initialize Raft Specific settings
-        self.state       = FOLLOWER
+        self.state       = State.FOLLOWER
         self.currentTerm = 0
         self.votedFor    = None
         self.log         = MultiObjectWriteLog()
@@ -83,34 +78,6 @@ class RaftReplica(Replica):
     ######################################################################
     ## Properties
     ######################################################################
-
-    @property
-    def state(self):
-        """
-        Manages the state of the node when being set.
-        """
-        return self._state
-
-    @state.setter
-    def state(self, state):
-        """
-        Setting the state decides how the Raft node will interact.
-        """
-        if state in (FOLLOWER, CANDIDATE):
-            self.votedFor    = None
-            self.nextIndex   = None
-            self.matchIndex  = None
-        elif state == CANDIDATE:
-            pass
-        elif state == LEADER:
-            self.nextIndex   = {node: self.log.lastApplied + 1 for node in self.followers}
-            self.matchIndex  = {node: 0 for node in self.followers}
-        else:
-            raise SimulationException(
-                "Unknown Raft State: {!r} set on {}".format(state, self)
-            )
-
-        self._state = state
 
     @property
     def quorum(self):
@@ -151,7 +118,7 @@ class RaftReplica(Replica):
         # If RPC request or response contains term > currentTerm
         # Set currentTerm to term and convert to follower.
         if rpc.term > self.currentTerm:
-            self.state = FOLLOWER
+            self.state = State.FOLLOWER
             self.currentTerm = rpc.term
 
         handler = {
@@ -212,8 +179,8 @@ class RaftReplica(Replica):
             )
 
         # If not leader, remote write to the leader
-        if not self.state == LEADER:
-            leaders = [node for node in self.connections if node.state == LEADER]
+        if not self.state == State.LEADER:
+            leaders = [node for node in self.connections if node.state == State.LEADER]
             if len(leaders) > 1:
                 raise SimulationException("MutipleLeaders?!")
             elif len(leaders) < 1:
@@ -243,10 +210,10 @@ class RaftReplica(Replica):
         Implements the Raft consensus protocol and elections.
         """
         while True:
-            if self.state in {FOLLOWER, CANDIDATE}:
+            if self.state in {State.FOLLOWER, State.CANDIDATE}:
                 yield self.timeout.start()
 
-            elif self.state == LEADER:
+            elif self.state == State.LEADER:
                 yield self.heartbeat.start()
 
             else:
@@ -265,7 +232,7 @@ class RaftReplica(Replica):
         Note: fails silently if follower is not in the followers list.
         """
         # Leader check
-        if not self.state == LEADER:
+        if not self.state == State.LEADER:
             return
 
         # Go through follower list.
@@ -292,14 +259,34 @@ class RaftReplica(Replica):
             )
 
     ######################################################################
-    ## RPC Event Handlers
+    ## Event Handlers
     ######################################################################
+
+    def on_state_change(self):
+        """
+        When the state on a replica changes the internal state of the replica
+        must also change, particularly the properties that define how the node
+        interacts with RPC messages and client reads/writes.
+        """
+        if self.state in (State.FOLLOWER, State.CANDIDATE):
+            self.votedFor    = None
+            self.nextIndex   = None
+            self.matchIndex  = None
+        elif self.state == State.CANDIDATE:
+            pass
+        elif self.state == State.LEADER:
+            self.nextIndex   = {node: self.log.lastApplied + 1 for node in self.followers}
+            self.matchIndex  = {node: 0 for node in self.followers}
+        else:
+            raise SimulationException(
+                "Unknown Raft State: {!r} set on {}".format(state, self)
+            )
 
     def on_heartbeat_timeout(self):
         """
         Callback for when a heartbeat timeout occurs, for AppendEntries RPC.
         """
-        if not self.state == LEADER:
+        if not self.state == State.LEADER:
             return
 
         # Send heartbeat or aggregated writes
@@ -310,7 +297,7 @@ class RaftReplica(Replica):
         Callback for when an election timeout occurs, e.g. become candidate.
         """
         # Set state to candidate
-        self.state = CANDIDATE
+        self.state = State.CANDIDATE
 
         # Create Election and vote for self
         self.currentTerm += 1
@@ -431,15 +418,15 @@ class RaftReplica(Replica):
         """
         rpc = msg.value
 
-        if self.state == FOLLOWER:
+        if self.state == State.FOLLOWER:
             return
 
-        if self.state == CANDIDATE:
+        if self.state == State.CANDIDATE:
 
             # If it's append entries, decide whether or not to step down.
             if rpc.type == ACK and rpc.term >= self.currentTerm:
                 ## Become a follower
-                self.state = FOLLOWER
+                self.state = State.FOLLOWER
 
                 ## Log the failed election
                 self.sim.logger.info(
@@ -452,7 +439,7 @@ class RaftReplica(Replica):
                 self.votes.vote(msg.source.id, rpc.success)
                 if self.votes.has_passed():
                     ## Become the leader
-                    self.state = LEADER
+                    self.state = State.LEADER
                     self.timeout.stop()
 
                     ## Log the new leader
@@ -462,7 +449,7 @@ class RaftReplica(Replica):
 
                 return
 
-        elif self.state == LEADER:
+        elif self.state == State.LEADER:
 
             # Ignore votes after becoming leader
             if rpc.type == VOTE:

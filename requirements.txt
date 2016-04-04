@@ -26,6 +26,7 @@ python-dateutil==2.4.2
 six==1.10.0
 decorator==4.0.6
 Importing==1.10
+enum34==1.1.2
 
 # Testing
 coverage==4.0.3
@@ -35,4 +36,8 @@ pbr==1.8.1
 funcsigs==0.4
 
 # Pip stuff
+#Python==2.7.10
+#pip==8.1.1
 #wheel==0.24.0
+#setuptools==19.4
+#wsgiref==0.1.2

@@ -20,20 +20,62 @@ Base functionality for a replica on a personal cloud storage system.
 from cloudscope.config import settings
 from cloudscope.dynamo import Sequence
 from cloudscope.simulation.network import Node
+from cloudscope.utils.enums import Enum
 
-class Consistency(object):
+##########################################################################
+## Enumerations
+##########################################################################
+
+class Consistency(Enum):
+    """
+    Enumerates various consistency guarentees
+    """
 
     STRONG = "strong"
     MEDIUM = "medium"
     LOW    = "low"
 
-class Location(object):
+class Location(Enum):
+    """
+    Defines the location types in a personal cloud.
+    """
 
     HOME    = "home"
     WORK    = "work"
     MOBILE  = "mobile"
     CLOUD   = "cloud"
     UNKNOWN = "unknown"
+
+class Device(Enum):
+    """
+    Defines the device/replica types in the cluster.
+    """
+
+    DESKTOP = "desktop"
+    STORAGE = "storage"
+    LAPTOP  = "laptop"
+    TABLET  = "tablet"
+    PHONE   = "smartphone"
+    BACKUP  = "backup"
+
+class State(Enum):
+    """
+    Defines the various states that replicas can be in.
+    """
+
+    # Basic states
+    UNKNOWN   = 0
+    LOADING   = 1
+    ERRORED   = 2
+
+    # Consensus states
+    READY     = 3
+    FOLLOWER  = 3 # Raft alias for ready
+    CANDIDATE = 4 # Raft election
+    TAGGING   = 4 # Tag consensus
+    LEADER    = 5 # Raft leadership
+    OWNER     = 5 # Tag ownership
+
 
 ##########################################################################
 ## Replica Functionality
@@ -43,13 +85,6 @@ class Replica(Node):
     """
     A replica is a network node that implements version handling.
     """
-
-    # Known Replica Types
-    DESKTOP = "desktop"
-    STORAGE = "storage"
-    LAPTOP  = "laptop"
-    TABLET  = "tablet"
-    PHONE   = "smartphone"
 
     # Autoincrementing ID
     counter = Sequence()
@@ -65,10 +100,39 @@ class Replica(Node):
         self.id    = kwargs.get('id', 'r{}'.format(self.counter.next()))
         self.type  = kwargs.get('type', settings.simulation.default_replica)
         self.label = kwargs.get('label', "{}-{}".format(self.type, self.id))
-        self.location    = kwargs.get('location', Location.UNKNOWN)
-        self.consistency = kwargs.get(
+        self.state = kwargs.get('state', State.READY)
+        self.location    = Location.get(kwargs.get('location', Location.UNKNOWN))
+        self.consistency = Consistency.get(kwargs.get(
             'consistency', settings.simulation.default_consistency
-        )
+        ))
+
+    ######################################################################
+    ## Properties
+    ######################################################################
+
+    @property
+    def state(self):
+        """
+        Manages the state of the replica when set.
+        """
+        if not hasattr(self, '_state'):
+            self._state = State.ERRORED
+        return self._state
+
+    @state.setter
+    def state(self, state):
+        """
+        When setting the state, calls `on_state_change` so that replicas
+        can modify their state machines accordingly. Note that the state is
+        changed before this call, so replicas should inspect the new state.
+        """
+        state = State.get(state)
+        self._state = state
+        self.on_state_change()
+
+    ######################################################################
+    ## Core Methods (Replica API)
+    ######################################################################
 
     def send(self, target, value):
         """
@@ -150,6 +214,21 @@ class Replica(Node):
                 'id', 'type', 'label', 'location', 'consistency'
             )
         ])
+
+    ######################################################################
+    ## Event Handlers
+    ######################################################################
+
+    def on_state_change(self):
+        """
+        Subclasses can call this to handle instance state. See the `state`
+        property for more detail (this is called on set).
+        """
+        pass
+
+    ######################################################################
+    ## Object data model
+    ######################################################################
 
     def __str__(self):
         return "{} ({})".format(self.label, self.id)

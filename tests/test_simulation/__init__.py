@@ -24,7 +24,7 @@ try:
 except ImportError:
     import mock
 
-from cloudscope.replica import Replica
+from cloudscope.replica import Replica, Location, Consistency, Device
 from cloudscope.dynamo import Sequence
 from cloudscope.simulation.base import Simulation
 
@@ -50,10 +50,10 @@ def get_mock_simulation(**kwargs):
 
 def get_mock_replica(simulation, **kwargs):
     kwargs['id']    = kwargs.get('id', "r{}".format(sequence.next()))
-    kwargs['type']  = kwargs.get('type', "desktop")
+    kwargs['type']  = kwargs.get('type', Device.DESKTOP)
     kwargs['label'] = kwargs.get('label', "desktop-{}".format(kwargs['id']))
-    kwargs['location']    = kwargs.get('location', 'work')
-    kwargs['consistency'] = kwargs.get('consistency', 'strong')
+    kwargs['location']    = kwargs.get('location', Location.WORK)
+    kwargs['consistency'] = kwargs.get('consistency', Consistency.STRONG)
     kwargs['env']   = simulation.env
 
     replica = Replica(simulation)

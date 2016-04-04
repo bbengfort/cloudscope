@@ -115,7 +115,7 @@ class SimulationConfiguration(Configuration):
     # Raft Parameters
     election_timeout   = [150, 300]
     heartbeat_interval = 75     # Usually half the minimum election timeout
-    aggregate_writes   = False  # Don't send writes until heartbeat. 
+    aggregate_writes   = False  # Don't send writes until heartbeat.
 
     # Tag Parameters
     session_timeout    = 4096 # Related to the mean delay between accesses

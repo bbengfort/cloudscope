@@ -20,7 +20,7 @@ Package that implements tag based consensus consistency.
 from cloudscope.config import settings
 from cloudscope.simulation.timer import Timer
 from cloudscope.exceptions import TagRPCException
-from cloudscope.replica import Replica, Consistency
+from cloudscope.replica import Replica, Consistency, State
 from cloudscope.exceptions import SimulationException
 from cloudscope.replica.store import Version, ReadVersion
 from cloudscope.replica.store import WriteLog
@@ -38,10 +38,6 @@ from functools import partial
 ## Access Enumeration
 READ  = "r"
 WRITE = "w"
-
-## State Enumeration
-READY   = 1
-TAGGING = 2
 
 ## Timers and timing
 SESSION_TIMEOUT    = settings.simulation.session_timeout
@@ -61,9 +57,6 @@ AppendEntries = namedtuple('AppendEntries', 'epoch, tag, owner, entries')
 class TagReplica(Replica):
 
     def __init__(self, simulation, **kwargs):
-        ## Initialize the replica
-        super(TagReplica, self).__init__(simulation, **kwargs)
-
         ## Timers for work
         self.session_timeout    = kwargs.get('session_timeout', SESSION_TIMEOUT)
         self.heartbeat_interval = kwargs.get('heartbeat_interval', HEARTBEAT_INTERVAL)
@@ -71,7 +64,6 @@ class TagReplica(Replica):
         self.heartbeat = None
 
         ## Initialze the tag specific settings
-        self.state  = READY
         self.epoch  = 0
         self.log    = defaultdict(WriteLog)
         self.view   = defaultdict(set)
@@ -80,6 +72,10 @@ class TagReplica(Replica):
         ## Maps timestamp (of initial access) to object being accessed
         self.reads  = {}
         self.writes = {}
+
+        ## Initialize the replica
+        super(TagReplica, self).__init__(simulation, **kwargs)
+        self.state  = State.READY
 
     ######################################################################
     ## Properties
@@ -105,47 +101,6 @@ class TagReplica(Replica):
 
         # Don't forget to  yield self!
         yield self
-
-    @property
-    def state(self):
-        """
-        Manages the state of the node when being set.
-        """
-        if not hasattr(self, '_state'):
-            self._state = READY
-        return self._state
-
-    @state.setter
-    def state(self, state):
-        """
-        Setting the state decides how the Tag node will interact.
-        """
-
-        # Do state specific tag modifications
-        if state == READY:
-            self.votes = None
-            self.tag = None
-
-            # Also interrupt the heartbeat
-            if self.heartbeat: self.heartbeat.stop()
-
-        elif state == TAGGING:
-            # Convert to tag acquisition/release
-            self.epoch += 1
-
-            # Create election and vote for self
-            self.votes = Election([node.id for node in self.quorum])
-            self.votes.vote(self.id)
-
-            # Also interrupt the heartbeat
-            if self.heartbeat: self.heartbeat.stop()
-        else:
-            raise SimulationException(
-                "Unknown Tag Replica State: {!r} set on {}".format(state, self)
-            )
-
-        # Set the state property on the replica
-        self._state = state
 
     ######################################################################
     ## Core Methods (Replica API)
@@ -296,7 +251,7 @@ class TagReplica(Replica):
 
     def run(self):
         while True:
-            if self.state == READY and self.view[self]:
+            if self.state == State.READY and self.view[self]:
                 self.heartbeat = Timer(
                     self.env, self.heartbeat_interval, self.on_heartbeat_timeout
                 )
@@ -328,7 +283,7 @@ class TagReplica(Replica):
         """
         Sends out the acquire tag RPC
         """
-        self.state = TAGGING
+        self.state = State.TAGGING
 
         # Construct the tag to send out
         if not isinstance(tag, (set, frozenset)):
@@ -349,7 +304,7 @@ class TagReplica(Replica):
         """
         Sends out the release tag RPC
         """
-        self.state = TAGGING
+        self.state = State.TAGGING
 
         # Release all currently held tags
         if tag is None: tag = self.view[self]
@@ -383,8 +338,36 @@ class TagReplica(Replica):
             self.session = self.session.reset()
 
     ######################################################################
-    ## RPC Event Handlers
+    ## Event Handlers
     ######################################################################
+
+    def on_state_change(self):
+        """
+        Setting the state decides how the Tag node will interact.
+        """
+
+        # Do state specific tag modifications
+        if self.state == State.READY:
+            self.votes = None
+            self.tag = None
+
+            # Also interrupt the heartbeat
+            if self.heartbeat: self.heartbeat.stop()
+
+        elif self.state == State.TAGGING:
+            # Convert to tag acquisition/release
+            self.epoch += 1
+
+            # Create election and vote for self
+            self.votes = Election([node.id for node in self.quorum])
+            self.votes.vote(self.id)
+
+            # Also interrupt the heartbeat
+            if self.heartbeat: self.heartbeat.stop()
+        else:
+            raise SimulationException(
+                "Unknown Tag Replica State: {!r} set on {}".format(state, self)
+            )
 
     def on_heartbeat_timeout(self):
         """
@@ -480,11 +463,11 @@ class TagReplica(Replica):
         """
         rpc = msg.value
 
-        if self.state == TAGGING:
+        if self.state == State.TAGGING:
             self.votes.vote(msg.source.id, rpc.success)
             if self.votes.has_passed():
                 self.view[self] = set(self.tag)
-                self.state = READY
+                self.state = State.READY
                 self.sim.logger.info(
                     "{} tag goes to: {}".format(self, self.view[self])
                 )
@@ -494,7 +477,7 @@ class TagReplica(Replica):
                     'tag size', (self.id, self.env.now, len(self.view[self]))
                 )
 
-        elif self.state == READY:
+        elif self.state == State.READY:
             pass
 
         else:
