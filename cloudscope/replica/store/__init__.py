@@ -20,5 +20,4 @@ Management of the data objects and meta data in the simulation.
 from .log import WriteLog
 from .log import MultiObjectWriteLog
 from .vcs import Version
-from .vcs import ReadVersion
 from .vcs import ObjectFactory

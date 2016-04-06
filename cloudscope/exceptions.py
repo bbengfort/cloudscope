@@ -75,7 +75,14 @@ class WorkloadException(SimulationException):
     Something went wrong in the workload generation.
     """
     pass
-    
+
+
+class AccessError(SimulationException):
+    """
+    Something went wrong with an access event (read or write).
+    """
+    pass
+
 
 class RaftRPCException(SimulationException):
     """

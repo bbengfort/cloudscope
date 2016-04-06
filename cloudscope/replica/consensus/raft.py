@@ -20,10 +20,12 @@ Implements strong consistency using Raft consensus.
 from cloudscope.config import settings
 from cloudscope.simulation.timer import Timer
 from cloudscope.replica.store import Version
-from cloudscope.replica import Replica, Consistency, State
+from cloudscope.replica import Consistency, State
 from cloudscope.exceptions import RaftRPCException, SimulationException
 from cloudscope.replica.store import MultiObjectWriteLog
+from cloudscope.utils.enums import Enum
 
+from .base import ConsensusReplica
 from .election import ElectionTimer, Election
 
 from collections import defaultdict
@@ -34,11 +36,9 @@ from collections import namedtuple
 ##########################################################################
 
 ## Response Type Enum
-VOTE  = 0
-ACK   = 1
-WRITE = 2
+RType = Enum("RType", "VOTE ACK")
 
-# Timers and timing
+## Timers and timing
 HEARTBEAT_INTERVAL = settings.simulation.heartbeat_interval
 ELECTION_TIMEOUT   = settings.simulation.election_timeout
 
@@ -47,12 +47,13 @@ AppendEntries = namedtuple('AppendEntries', 'term, leaderId, prevLogIndex, prevL
 RequestVote   = namedtuple('RequestVote', 'term, candidateId, lastLogIndex, lastLogTerm')
 Response      = namedtuple('Response', 'term, success, type')
 RemoteWrite   = namedtuple('RemoteWrite', 'term, version')
+WriteResponse = namedtuple('WriteResponse', 'term, success, access')
 
 ##########################################################################
 ## Raft Replica
 ##########################################################################
 
-class RaftReplica(Replica):
+class RaftReplica(ConsensusReplica):
 
     def __init__(self, simulation, **kwargs):
         ## Initialize the replica
@@ -76,42 +77,15 @@ class RaftReplica(Replica):
         self.matchIndex  = None
 
     ######################################################################
-    ## Properties
-    ######################################################################
-
-    @property
-    def quorum(self):
-        """
-        Returns the nodes in the Raft quorum.
-        """
-        # Filter only connections that are strong
-        is_strong = lambda r: r.consistency == Consistency.STRONG
-        for node in filter(is_strong, self.connections):
-            yield node
-
-        # Don't forget to yield self!
-        yield self
-
-    @property
-    def followers(self):
-        """
-        Returns all nodes in the Raft quorum, but self.
-        """
-        for node in self.quorum:
-            if node != self:
-                yield node
-
-    ######################################################################
     ## Core Methods (Replica API)
     ######################################################################
 
     def recv(self, event):
         """
-        Passes messages to their appropriate message handlers.
+        Before dispatching the message to an RPC specific handler, there are
+        some message-wide checks that need to occur. In this case the term
+        must be inspected and if the replica is behind, become follower.
         """
-        # Record the received message
-        super(RaftReplica, self).recv(event)
-
         message = event.value
         rpc = message.value
 
@@ -121,88 +95,124 @@ class RaftReplica(Replica):
             self.state = State.FOLLOWER
             self.currentTerm = rpc.term
 
-        handler = {
-            "RequestVote": self.on_request_vote,
-            "Response": self.on_rpc_response,
-            'AppendEntries': self.on_append_entries,
-            "RemoteWrite": self.on_remote_write,
-        }[rpc.__class__.__name__]
+        # Record the received message and dispatch to event handler
+        return super(RaftReplica, self).recv(event)
 
-        handler(message)
-
-    def read(self, name=None):
+    def read(self, name, **kwargs):
         """
-        Performs a read of the most recent committed version for the name
-        passed in (or just a read for the most recent version, period).
+        Raft nodes perform a local read of the most recent commited version
+        for the name passed in. Because the committed version could be stale
+        (a new version is still waiting for 2 phase commit) a fork is possible
+        but the Raft group will maintain full linearizability.
         """
-        name = name.name if isinstance(name, Version) else name
-        vers = self.log.get_latest_commit(name)
+        # Create the read event using super.
+        access = super(RaftReplica, self).read(name, **kwargs)
 
-        # Record the read latency as zero in raft (or we could do remote reads)
-        self.sim.results.update(
-            'read latency', (self.id, 0)
-        )
+        # Record the number of attempts for the access
+        if access.is_local_to(self): access.attempts += 1
 
-        # Record the stale read and return the super.
-        return super(RaftReplica, self).read(vers)
+        # Fetch the most recent commit from the log.
+        # This is the key difference between eventual if you're looking for it.
+        version = self.log.get_latest_commit(access.name)
 
-    def write(self, name=None):
+        # If the version is None, that we haven't read anything!
+        if version is None: return
+
+        # Because this is a local read committed, complete the read.
+        access.update(version, completed=True)
+
+        # Log the access from this particular replica.
+        access.log(self)
+
+        return access
+
+    def write(self, name, **kwargs):
         """
-        Forks the current version if it exists or creates a new version.
-        Appends the version to the log and gets ready for AppendEntries.
+        The write can be initiated on any replica server, including followers.
+        Step one is to create the access event using super, which will give us
+        the ability to detect local vs. remote writes.
 
-        If this node is not the leader, then it simply forwards the write to
-        the leader via a remote write call (e.g. sending a message with the
-        write request, though this will have to be considered in more detail).
+        If the write is local:
+        - create a new version from the latest write.
+        - if follower: send a RemoteWrite with new version to the leader (write latency)
+        - if leader: append to log and complete (no leader latency)
+
+        If the write is remote:
+        - if follower: log warning and forward to leader
+        - if remote: append to log but do not complete (complete at local)
+
+        Check the committed vs. latest new versions.
+
+        After local vs. remote do the following:
+
+        1. update the version for visibility latency
+        2. if leader send append entries
         """
-        # Figure out what is being written to the replica
-        if isinstance(name, Version):
-            # Then this is a remote write
-            version = name
-            name = version.name
+        access = super(RaftReplica, self).write(name, **kwargs)
 
-            # Log the remote write
-            self.sim.logger.debug(
-                "remote write version {} on {}".format(version, self)
-            )
+        # Determine if the write is local or remote
+        if access.is_local_to(self):
+            # Record the number of attempts for the access
+            access.attempts += 1
+
+            # Fetch the latest version from the log
+            latest = self.log.get_latest_version(access.name)
+
+            # Perform the write
+            if latest is None:
+                version = Version.new(access.name)(self)
+            else:
+                version = latest.nextv(self)
+
+            # Update the access with the latest version
+            access.update(version)
+
+            # Log the access from this particular replica.
+            access.log(self)
+
+            if self.state == State.LEADER:
+                # Append to log and complete if leader and local
+                self.log.append(version, self.currentTerm)
+                access.complete()
+
+            else:
+                return self.send_remote_write(access)
 
         else:
-            # This is a local write, fetch correct version from the store
-            version = self.log.get_latest_version(name) if name is not None else self.log.lastVersion
+            # Log the access from this particular replica.
+            access.log(self)
 
-            # Perform the fork for the write
-            version = Version.new(name)(self) if version is None else version.fork(self)
-
-            # Log the write
-            self.sim.logger.info(
-                "write version {} on {}".format(version, self)
-            )
-
-        # If not leader, remote write to the leader
-        if not self.state == State.LEADER:
-            leaders = [node for node in self.connections if node.state == State.LEADER]
-            if len(leaders) > 1:
-                raise SimulationException("MutipleLeaders?!")
-            elif len(leaders) < 1:
-                self.sim.logger.info("no leader: dropped write at {}".format(self))
-                return False
-            else:
-                # Forward the write to the leader
-                return self.send(
-                    leaders[0], RemoteWrite(self.currentTerm, version)
+            # If there is no version, raise an exception
+            if access.version is None:
+                raise AccessError(
+                    "Attempting a remote write on {} without a version!".format(self)
                 )
 
-        # Write the new version to the local data store
-        self.log.append(version, self.currentTerm)
+            # Save the version variable for use below.
+            version = access.version
+
+            if self.state == State.LEADER:
+                # Append to log but do not complete since its remote
+                self.log.append(version, self.currentTerm)
+
+            else:
+                # Why in the world did a remote write happen here?
+                self.sim.logger.info(
+                    "remote write on follower node: {}".format(self)
+                )
+
+                return self.send_remote_write(access)
+
+        # At this point we've dealt with local vs. remote, we should be the leader
+        assert self.state == State.LEADER
 
         # Update the version to track visibility latency
         version.update(self)
 
-        # Now do AppendEntries ...
+        # Now do AppendEntries
+        # Also interrupt the heartbeat since we just sent AppendEntries
         if not settings.simulation.aggregate_writes:
             self.send_append_entries()
-
-            # Also interrupt the heartbeat since we just sent AppendEntries
             self.heartbeat.stop()
 
     def run(self):
@@ -229,7 +239,7 @@ class RaftReplica(Replica):
         """
         Helper function to send append entries to quorum or a specific node.
 
-        Note: fails silently if follower is not in the followers list.
+        Note: fails silently if follower is not in the neighbors list.
         """
         # Leader check
         if not self.state == State.LEADER:
@@ -258,6 +268,41 @@ class RaftReplica(Replica):
                 )
             )
 
+    def send_remote_write(self, access):
+        """
+        Helper function to send a remote write from a follower to leader.
+        """
+        # Find the leader to perform the remote write.
+        leader = self.get_leader_node()
+
+        # If not leader, then drop the write
+        if not leader:
+            self.sim.logger.info(
+                "no leader: dropped write at {}".format(self)
+            )
+            return
+
+        # Send the remote write to the leader
+        self.send(
+            leader, RemoteWrite(self.currentTerm, access)
+        )
+
+    def get_leader_node(self):
+        """
+        Searches for the leader amongst the neighbors. Raises an exception if
+        there are multiple leaders, which is an extreme edge case.
+        """
+        leaders = [
+            node for node in self.connections if node.state == State.LEADER
+        ]
+
+        if len(leaders) > 1:
+            raise SimulationException("MutipleLeaders?!")
+        elif len(leaders) < 1:
+            return None
+        else:
+            return leaders[0]
+
     ######################################################################
     ## Event Handlers
     ######################################################################
@@ -275,11 +320,13 @@ class RaftReplica(Replica):
         elif self.state == State.CANDIDATE:
             pass
         elif self.state == State.LEADER:
-            self.nextIndex   = {node: self.log.lastApplied + 1 for node in self.followers}
-            self.matchIndex  = {node: 0 for node in self.followers}
+            self.nextIndex   = {node: self.log.lastApplied + 1 for node in self.neighbors()}
+            self.matchIndex  = {node: 0 for node in self.neighbors()}
+        elif self.state == State.READY:
+            pass
         else:
             raise SimulationException(
-                "Unknown Raft State: {!r} set on {}".format(state, self)
+                "Unknown Raft State: {!r} set on {}".format(self.state, self)
             )
 
     def on_heartbeat_timeout(self):
@@ -301,7 +348,7 @@ class RaftReplica(Replica):
 
         # Create Election and vote for self
         self.currentTerm += 1
-        self.votes = Election([node.id for node in self.quorum])
+        self.votes = Election([node.id for node in self.quorum()])
         self.votes.vote(self.id)
         self.votedFor = self.id
 
@@ -310,7 +357,7 @@ class RaftReplica(Replica):
             self.currentTerm, self.id, self.log.lastApplied, self.log.lastTerm
         )
 
-        for follower in self.followers:
+        for follower in self.neighbors():
             self.send(
                 follower, rpc
             )
@@ -320,7 +367,7 @@ class RaftReplica(Replica):
             "{} is now a leader candidate".format(self)
         )
 
-    def on_request_vote(self, msg):
+    def on_request_vote_rpc(self, msg):
         """
         Callback for RequestVote RPC call.
         """
@@ -337,14 +384,14 @@ class RaftReplica(Replica):
                     self.timeout.stop()
                     self.votedFor = rpc.candidateId
                     return self.send(
-                        msg.source, Response(self.currentTerm, True, VOTE)
+                        msg.source, Response(self.currentTerm, True, RType.VOTE)
                     )
 
         return self.send(
-            msg.source, Response(self.currentTerm, False, VOTE)
+            msg.source, Response(self.currentTerm, False, RType.VOTE)
         )
 
-    def on_append_entries(self, msg):
+    def on_append_entries_rpc(self, msg):
         """
         Callback for the AppendEntries RPC call.
         """
@@ -357,7 +404,7 @@ class RaftReplica(Replica):
         if rpc.term < self.currentTerm:
             self.sim.logger.info("{} doesn't accept write on term {}".format(self, self.currentTerm))
             return self.send(
-                msg.source, Response(self.currentTerm, False, ACK)
+                msg.source, Response(self.currentTerm, False, RType.ACK)
             )
 
         # Reply false if log doesn't contain an entry at prevLogIndex whose
@@ -377,7 +424,7 @@ class RaftReplica(Replica):
                 )
 
             return self.send(
-                msg.source, Response(self.currentTerm, False, ACK)
+                msg.source, Response(self.currentTerm, False, RType.ACK)
             )
 
         # At this point AppendEntries RPC is accepted
@@ -410,9 +457,9 @@ class RaftReplica(Replica):
             self.log.commitIndex = min(rpc.leaderCommit, self.log.lastApplied)
 
         # Return success response.
-        return self.send(msg.source, Response(self.currentTerm, True, ACK))
+        return self.send(msg.source, Response(self.currentTerm, True, RType.ACK))
 
-    def on_rpc_response(self, msg):
+    def on_response_rpc(self, msg):
         """
         Callback for AppendEntries and RequestVote RPC response.
         """
@@ -424,7 +471,7 @@ class RaftReplica(Replica):
         if self.state == State.CANDIDATE:
 
             # If it's append entries, decide whether or not to step down.
-            if rpc.type == ACK and rpc.term >= self.currentTerm:
+            if rpc.type == RType.ACK and rpc.term >= self.currentTerm:
                 ## Become a follower
                 self.state = State.FOLLOWER
 
@@ -435,12 +482,15 @@ class RaftReplica(Replica):
 
                 return
 
-            if rpc.type == VOTE:
+            if rpc.type == RType.VOTE:
                 self.votes.vote(msg.source.id, rpc.success)
                 if self.votes.has_passed():
                     ## Become the leader
                     self.state = State.LEADER
                     self.timeout.stop()
+
+                    ## Send the leadership change append entries
+                    self.send_append_entries()
 
                     ## Log the new leader
                     self.sim.logger.info(
@@ -452,7 +502,7 @@ class RaftReplica(Replica):
         elif self.state == State.LEADER:
 
             # Ignore votes after becoming leader
-            if rpc.type == VOTE:
+            if rpc.type == RType.VOTE:
                 return
 
             if rpc.success:
@@ -485,9 +535,23 @@ class RaftReplica(Replica):
                 "Response in unknown state: '{}'".format(self.state)
             )
 
-    def on_remote_write(self, msg):
+    def on_remote_write_rpc(self, message):
         """
         Unpacks the version from the remote write and initiates a local write.
         """
-        rpc = msg.value
-        self.write(rpc.version)
+        access = message.value.version
+
+        # Should we check to see if the write failed, e.g. if it wasn't
+        # sequential or there was some other confict? Or just write away?
+        self.write(access)
+
+        # Send the write response
+        self.send(message.source, WriteResponse(self.currentTerm, True, access))
+
+    def on_write_response_rpc(self, message):
+        """
+        Completes the write if the remote write was successful.
+        """
+        rpc = message.value
+        if rpc.success:
+            rpc.access.complete()

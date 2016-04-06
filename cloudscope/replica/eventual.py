@@ -49,21 +49,27 @@ import random
 
 from .base import Replica
 from .store import Version
+from .store import MultiObjectWriteLog
 
 from cloudscope.config import settings
 from cloudscope.simulation.timer import Timer
+from cloudscope.exceptions import AccessError
 
 from collections import defaultdict
 from collections import namedtuple
 
-# Anti Entropy Delay
+##########################################################################
+## Module Constants
+##########################################################################
+
+## Fetch simulation settings from defaults
 AE_DELAY    = settings.simulation.anti_entropy_delay
 DO_GOSSIP   = settings.simulation.do_gossip
 DO_RUMORING = settings.simulation.do_rumoring
 
-## RPC Messages
-Gossip   = namedtuple('Gossip', 'current')
-Response = namedtuple('Response', 'latest, success')
+## RPC Message Definition
+Gossip   = namedtuple('Gossip', 'entries, length')
+Response = namedtuple('Response', 'entries, length, success')
 
 
 ##########################################################################
@@ -75,15 +81,14 @@ class EventualReplica(Replica):
     def __init__(self, simulation, **kwargs):
         super(EventualReplica, self).__init__(simulation, **kwargs)
 
-        # Eventually Consistent Settings
+        # Eventually consistent settings
         self.ae_delay    = kwargs.get('anti_entropy_delay', AE_DELAY)
         self.do_gossip   = kwargs.get('do_gossip', DO_GOSSIP)
         self.do_rumoring = kwargs.get('do_rumoring', DO_RUMORING)
 
-        # Storage of all versions in the replica and a pointer to the latest.
-        self.storage     = {}
-        self.current     = None
-        self.timeout     = None
+        self.log         = MultiObjectWriteLog() # the write log of the replica
+        self.timeout     = None                  # anti entropy timer
+        self.cache       = {}                    # cache to gossip on ae
 
     ######################################################################
     ## Properties
@@ -93,73 +98,104 @@ class EventualReplica(Replica):
     ## Core Methods (Replica API)
     ######################################################################
 
-    def recv(self, event):
+    def read(self, name, **kwargs):
         """
-        Perform handling of messages for rumor mongering and gossip.
+        Eventually consistent replicas simply return the latest version for
+        the name that they have in their store. This easily could be stale or
+        forked depending on writes elsewhere in the cluster.
         """
-        message = super(EventualReplica, self).recv(event)
-        rpc = message.value
+        # Create the read event using super.
+        access  = super(EventualReplica, self).read(name, **kwargs)
 
-        handler = {
-            "Gossip": self.on_gossip_rpc,
-            "Response": self.on_response_rpc,
-        }[rpc.__class__.__name__]
+        # Record the number of attempts for the access
+        if access.is_local_to(self): access.attempts += 1
 
-        handler(message)
-        return message
+        # Fetch the latest version from the log
+        version = self.log.get_latest_version(access.name)
 
-    def read(self, name=None):
+        # If version is None then we haven't read anything; bail!
+        if version is None: return
+
+        # Eventual nodes read locally and immediately, so complete the read.
+        access.update(version, completed=True)
+
+        # Log the access from this particular replica.
+        access.log(self)
+
+        return access
+
+    def write(self, name, **kwargs):
         """
-        Performs a read of the latest version either locally or across cloud.
+        Performs a write to the object with the given name by first creating
+        the access event using super. Note that other access events can be
+        passed into the write method in the case of remote writes.
+
+        The access will define if the write is local or not.
+        If local: write to the latest local version and complete.
+        If remote: append write to log if latest version of object else error.
+
+        After local vs. remote do the following:
+
+        1. append the write to the log as (version, id)
+        2. cache the latest access for gossip or rumoring
+        3. update the version for visibility latency
+        4. call the rumor handler
+
+        Note this method can raise an error if not writing the latest version.
         """
-        name = name.name if isinstance(name, Version) else name
-        self.current = self.storage.get(name, None)
+        # Create the write event using super.
+        access  = super(EventualReplica, self).write(name, **kwargs)
 
-        # Record the read latency as zero in eventual
-        self.sim.results.update(
-            'read latency', (self.id, 0)
-        )
+        # Determine if the write is local or remote
+        if access.is_local_to(self):
+            # Record the number of attempts for the access
+            access.attempts += 1
+            
+            # Fetch the latest version from the log
+            latest  = self.log.get_latest_version(access.name)
 
-        # Record the stale read and return the super.
-        return super(EventualReplica, self).read(self.current)
+            # Perform the write
+            if latest is None:
+                version = Version.new(access.name)(self)
+            else:
+                version = latest.nextv(self)
 
-    def write(self, name=None):
-        """
-        Performs a write to the current version. If no version is passed in,
-        the write is assumed to be local, and the current version will be
-        forked. If the version is passed in, the write is assumed to be
-        remote, and the version will be updated accordingly.
-        """
-
-        # Figure out what is being written to the replica
-        if isinstance(name, Version):
-            # Then this is a remote write
-            version = name
-            name = version.name
-
-            # Log the remote write
-            self.sim.logger.debug(
-                "remote write version {} on {}".format(version, self)
-            )
+            # Update the access with the latest version and complete
+            access.update(version, completed=True)
 
         else:
-            # This is a local write, fetch correct version from the store.
-            version = self.storage.get(name, None) if name is not None else self.current
 
-            # Perform the fork for the write
-            version = Version.new(name)(self) if version is None else version.fork(self)
+            # If there is no version, raise an exception
+            if access.version is None:
+                raise AccessError(
+                    "Attempting a remote write on {} without a version!".format(self)
+                )
 
-            # Log the local write
-            self.sim.logger.info(
-                "write version {} on {}".format(self.current, self)
-            )
+            # Save the version variable for use below
+            version = access.version
+            current = self.log.get_latest_version(access.name)
 
-        # Write the new version to the local data store
-        self.current = version
-        self.storage[name] = version
+            # Ensure that the version is the latest.
+            if current is not None and version <= current:
+                raise AccessError(
+                    "Attempting unordered write of {} after write of {}".format(version, current)
+                )
+
+        # At this point we've dealt with local vs. remote
+        # Append the latest version to the local data store
+        self.log.append(version, version.version)
 
         # Update the version to track visibility latency
         version.update(self)
+
+        # Cache the latest access to this object for anti-entropy
+        self.cache[access.name] = access
+        self.rumor() # Rumor the access on demand
+
+        # Log the access from this particular replica.
+        access.log(self)
+
+        return access
 
     def run(self):
         """
@@ -174,29 +210,41 @@ class EventualReplica(Replica):
 
     def gossip(self):
         """
-        Randomly selects a neighbor and gossips about the latest version.
+        Pairwise gossip protocol by randomly selecting a neighbor and
+        exchanging information about the state of the latest objects in the
+        cache since the last anti-entropy delay.
+
+        TODO: how to gossip to strong consistency nodes?
         """
         # If gossiping is not allowed, forget about it.
-        if not self.do_gossip or self.current is None:
+        if not self.do_gossip:
             return
 
-        # Randomly select a neighbor from the connections list.
-        target = random.choice(self.connections.keys())
-        self.send(target, Gossip(self.current))
+        # Randomly select a neighbor that also has eventual consistency.
+        target = random.choice(self.neighbors(self.consistency))
+
+        # Perform pairwise gossiping for every object in the cache.
+        self.send(target, Gossip(tuple(self.cache.values()), len(self.cache)))
+
+        # Empty the cache on gossip.
+        self.cache = {}
 
     def rumor(self):
         """
         Performs on access rumor mongering
         """
         # if rumoring is not allowed, forget about it.
-        if not self.do_rumoring or self.current is None:
+        if not self.do_rumoring:
             return
 
-        raise NotImplementedError("Rumor mongering is not implemented.")
+        raise NotImplementedError(
+            "Rumor mongering is not currently implemented."
+        )
 
     def get_anti_entropy_timeout(self):
         """
-        Creates the anti-entropy timeout
+        Creates the anti-entropy timeout.
+        In the future this could be random timeout not fixed.
         """
         self.timeout = Timer(self.env, self.ae_delay, self.gossip)
         return self.timeout.start()
@@ -207,26 +255,44 @@ class EventualReplica(Replica):
 
     def on_gossip_rpc(self, message):
         """
-        Receiving a gossip message from another node.
+        Handles the receipt of a gossip from another node. Expects multiple
+        accesses (Write events) as entries. Goes through all and compares the
+        versions, replying False only if there is an error or a conflict.
         """
-        rpc = message.value
-        response = None
+        entries = message.value.entries
+        updates = []
+        objects = set(entry.name for entry in entries)
 
-        if self.current is None or rpc.current > self.current:
-            self.write(rpc.current)
-            response = Response(self.current, True)
-        elif rpc.current == self.current:
-            response = Response(self.current, True)
-        else:
-            response = Response(self.current, False)
+        # Go through the entries from the RPC and update log
+        for access in entries:
+            current = self.log.get_latest_version(access.name)
+            if current is None or access.version > current:
+                self.write(access)
+
+            elif access.version < current:
+                updates.append(current.access)
+
+            else:
+                continue
+
+        # Send back anything in local cache that wasn't received
+        for key, access in self.cache.items():
+            if key not in objects:
+                updates.append(access)
+
+        # Success here just means whether or not we're responding with updates
+        success = True if updates else False
 
         # Respond to the sender
-        self.send(message.source, response)
+        self.send(message.source, Response(updates, len(updates), success))
 
     def on_response_rpc(self, message):
         """
-        Receiving a gossip response from another node.
+        Handles the response to pairwise gossiping, updating entries from the
+        responder to your gossip with the latest news.
         """
-        rpc = message.value
-        if not rpc.success:
-            self.write(rpc.latest)
+
+        for access in message.value.entries:
+            current = self.log.get_latest_version(access.name)
+            if current is None or access.version > current:
+                self.write(access)

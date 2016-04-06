@@ -19,12 +19,13 @@ Package that implements tag based consensus consistency.
 
 from cloudscope.config import settings
 from cloudscope.simulation.timer import Timer
+from cloudscope.replica import Consistency, State
 from cloudscope.exceptions import TagRPCException
-from cloudscope.replica import Replica, Consistency, State
 from cloudscope.exceptions import SimulationException
-from cloudscope.replica.store import Version, ReadVersion
+from cloudscope.replica.store import Version
 from cloudscope.replica.store import WriteLog
 
+from .base import ConsensusReplica
 from .election import Election
 
 from collections import defaultdict
@@ -35,18 +36,13 @@ from functools import partial
 ## Module Constants
 ##########################################################################
 
-## Access Enumeration
-READ  = "r"
-WRITE = "w"
-
 ## Timers and timing
 SESSION_TIMEOUT    = settings.simulation.session_timeout
 HEARTBEAT_INTERVAL = settings.simulation.heartbeat_interval
 
 ## RPC Messages
 RemoteAccess  = namedtuple('RemoteAccess', 'epoch, objects, access')
-AcquireTags   = namedtuple('AcquireTags', 'epoch, tags, candidate')
-ReleaseTags   = namedtuple('ReleaseTags', 'epoch, tags, candidate')
+TagRequest    = namedtuple('TagRequest', 'epoch, tags, candidate')
 Response      = namedtuple('Response', 'epoch, success, objects')
 AppendEntries = namedtuple('AppendEntries', 'epoch, tag, owner, entries')
 
@@ -54,7 +50,7 @@ AppendEntries = namedtuple('AppendEntries', 'epoch, tag, owner, entries')
 ## Tag Replica
 ##########################################################################
 
-class TagReplica(Replica):
+class TagReplica(ConsensusReplica):
 
     def __init__(self, simulation, **kwargs):
         ## Timers for work
@@ -78,41 +74,15 @@ class TagReplica(Replica):
         self.state  = State.READY
 
     ######################################################################
-    ## Properties
-    ######################################################################
-
-    @property
-    def neighbors(self):
-        """
-        Returns the neighbors that are of a medium consistency
-        """
-        # Filter only connections that are medium
-        is_medium = lambda r: r.consistency == Consistency.MEDIUM
-        for node in filter(is_medium, self.connections):
-            yield node
-
-    @property
-    def quorum(self):
-        """
-        Returns the nodes that are in the quorum (neighbors + self)
-        """
-        for node in self.neighbors:
-            yield node
-
-        # Don't forget to  yield self!
-        yield self
-
-    ######################################################################
     ## Core Methods (Replica API)
     ######################################################################
 
     def recv(self, event):
         """
-        Passes messages to their appropriate message handlers.
+        Before dispatching the message to an RPC specific handler, there are
+        some message-wide checks that need to occur. In this case, the replica
+        must update its view appropriately.
         """
-        # Record the received message
-        super(TagReplica, self).recv(event)
-
         message = event.value
         rpc = message.value
 
@@ -122,103 +92,139 @@ class TagReplica(Replica):
             self.epoch = rpc.epoch
             self.view  = defaultdict(set)
 
-        handler = {
-            "RemoteAccess": self.on_remote_access,
-            "AcquireTags": self.on_acquire_tags,
-            "ReleaseTags": self.on_release_tags,
-            'AppendEntries': self.on_append_entries,
-            "Response": self.on_rpc_response,
-        }[rpc.__class__.__name__]
+        # Record the received message and dispatch to event handler
+        return super(TagReplica, self).recv(event)
 
-        handler(message)
-
-    def read(self, name=None):
+    def read(self, name, **kwargs):
         """
-        Performs a read for the named object.
+        When a tag replica performs a read it has to decide whether or not to
+        read locally or to make a remote read across the cluster.
+
+        Convert the read into an access, then check if we own the object.
+        If we do, then return the latest commit.
+        If we don't and no one else does either, attempt to acquire the tag.
+        If we don't and someone else does then either drop, wait, or remote.
+
+        Current implementation: #2, MR, no remote access.
+        If someone else owns tag, reads are dropped.
+
+        TODO: Remote vs Local Reads
         """
-        if isinstance(name, ReadVersion):
-            # This is a write retry
-            # How to detect remote writes in this system?
-            name = name.name
-            read = name
+        # Create the read event using super.
+        access = super(TagReplica, self).read(name, **kwargs)
 
-            # Log the read retry
-            self.sim.logger.info(
-                "retrying read of {} on {}".format(name, self)
-            )
-        else:
-            read = ReadVersion(self, name)
+        # Record the number of attempts for the access
+        if access.is_local_to(self): access.attempts += 1
 
-            # Log the read
-            self.sim.logger.info(
-                "read {} on {}".format(read, self)
-            )
+        # Increase the session on access.
+        self.handle_session()
 
         # Are we the owner of this tag?
-        if self.owns(name):
+        if self.owns(access.name):
+            # TODO: Change to last commit!
+            version = self.log[access.name].lastVersion
 
-            self.handle_session()
-            # vers = self.log[name].lastCommit
-            vers = self.log[name].lastVersion
-            # Record the stale read and return the super.
-            return super(TagReplica, self).read(vers)
+            # If the version is None, bail since we haven't read anything
+            if version is None: return
+
+            # Update the version, complete the read, and log the access
+            access.update(version, completed=True)
+            access.log(self)
+
+            # Return, we're done reading!
+            return access
 
         # Is there a different owner for the tag?
-        owner = self.find_owner(name)
+        owner = self.find_owner(access.name)
         if owner is not None:
             # Right now just drop the read on its face.
+            self.sim.logger.info(
+                "ownership conflict: dropped {} at {}".format(access, self)
+            )
             return
-
-            # # If so, send a remote access to them
-            # return self.send(
-            #     owner, RemoteAccess(self.epoch, read, READ)
-            # )
 
         # We're going to acquire the tag!
         else:
+            # Log the access from this particular replica.
+            access.log(self)
+
             # We're going to have some read latency, retry the read.
             retry = Timer(
-                self.env, self.heartbeat_interval, lambda: self.read(read)
+                self.env, self.heartbeat_interval, lambda: self.read(access)
             ).start()
 
-            # Request the ownership of the tag
-            self.acquire(name)
+            if access.attempts <= 1 and self.state != State.TAGGING:
+                # Request the ownership of the tag
+                self.acquire(access.name)
 
-    def write(self, name=None):
+    def write(self, name, **kwargs):
         """
-        Performs a write for the named object (very similar to read).
-        """
-        if isinstance(name, Version):
-            # Then this is a write retry
-            # How to detect remote writes in this system?
-            version = name
-            name = version.name
+        When a replica performs a write it needs to decide if it can write to
+        the tag locally, can acquire a tag for this object, or if it has to do
+        something else like drop, wait, or remote write.
 
-            # Log the write retry
-            self.sim.logger.info(
-                "retrying write version {} on {}".format(version, self)
-            )
+        If the access is local:
+
+            - if the replica owns the tag, append and complete
+            - if someone else owns the tag then drop, wait, or remote
+            - if no one owns the tag, then attempt to acquire it
+
+        If access is remote:
+
+            - if we own the tag, then append but do not complete (at local)
+            - if someone else owns the tag, log and forward to owner
+            - if no one owns the tag then respond false
+        """
+        # Create the read event using super.
+        access = super(TagReplica, self).write(name, **kwargs)
+
+        # Increase the session on access.
+        self.handle_session()
+
+        # Determine if the write is local or remote
+        if access.is_local_to(self):
+            # Record the number of attempts for the access
+            access.attempts += 1
+
+            # Fetch the latest version from the log.
+            latest = self.log[access.name].lastVersion
+
+            # Perform the write
+            if latest is None:
+                version = Version.new(access.name)(self)
+            else:
+                version = latest.nextv(self)
+
+            # Update the access with the latest version
+            access.update(version)
+
         else:
-            # Then this is a local write
-            version = self.log[name].lastVersion
-            version = Version.new(name)(self) if version is None else version.fork(self)
+            # If there is no version, raise an exception
+            if access.version is None:
+                raise AccessError(
+                    "Attempting a remote write on {} without a version!".format(self)
+                )
 
-            # Log the write
-            self.sim.logger.info(
-                "write version {} on {}".format(version, self)
-            )
+            # Save the version variable for use below.
+            version = access.version
+
+        # Log the access at this replica
+        access.log(self)
 
         # Are we the owner of this tag?
-        if self.owns(name):
-            # Reset the session
-            self.handle_session()
+        if self.owns(access.name):
             # Perform the append entries
             self.log[name].append(version, self.epoch)
             # Update the version to track visibility latency
             version.update(self)
 
+            # Complete the access if it was local
+            if access.is_local_to(self): access.complete()
+
             # Now do AppendEntries
-            for neighbor in self.neighbors:
+            # TODO: create send append entries helper
+            # TODO: aggregate writes
+            for neighbor in self.neighbors():
                 self.send(
                     neighbor, AppendEntries(self.epoch, self.view[self], self.id, [(version, self.epoch)])
                 )
@@ -232,22 +238,20 @@ class TagReplica(Replica):
         owner = self.find_owner(name)
         if owner is not None:
             # Right now just drop the write on its face.
+            self.sim.logger.info(
+                "ownership conflict: dropped {} at {}".format(access, self)
+            )
             return
-
-            # # If so, send a remote access to them
-            # return self.send(
-            #     owner, RemoteAccess(self.epoch, version, WRITE)
-            # )
 
         # We're going to acquire the tag!
         else:
             # We're going to have some write latency, retry the write.
             retry = Timer(
-                self.env, self.heartbeat_interval, lambda: self.write(version)
+                self.env, self.heartbeat_interval, lambda: self.write(access)
             ).start()
 
             # Request the ownership of the tag
-            self.acquire(name)
+            self.acquire(access.name)
 
     def run(self):
         while True:
@@ -291,8 +295,8 @@ class TagReplica(Replica):
 
         # Request tag with all current tags
         self.tag = frozenset(self.view[self] | tag)
-        rpc = AcquireTags(self.epoch, self.tag, self)
-        for neighbor in self.neighbors:
+        rpc = TagRequest(self.epoch, self.tag, self)
+        for neighbor in self.neighbors():
             self.send(neighbor, rpc)
 
         # Log the tag acquisition
@@ -315,8 +319,8 @@ class TagReplica(Replica):
 
         # Request the tag release
         self.tag = frozenset(self.view[self] - tag)
-        rpc = ReleaseTags(self.epoch, self.tag, self)
-        for neighbor in self.neighbors:
+        rpc = TagRequest(self.epoch, self.tag, self)
+        for neighbor in self.neighbors():
             self.send(neighbor, rpc)
 
         # Log the tag release
@@ -359,7 +363,7 @@ class TagReplica(Replica):
             self.epoch += 1
 
             # Create election and vote for self
-            self.votes = Election([node.id for node in self.quorum])
+            self.votes = Election([node.id for node in self.quorum()])
             self.votes.vote(self.id)
 
             # Also interrupt the heartbeat
@@ -374,7 +378,7 @@ class TagReplica(Replica):
         Time to send a heartbeat message to all tags.
         """
         # Now do AppendEntries
-        for neighbor in self.neighbors:
+        for neighbor in self.neighbors():
             self.send(
                 neighbor, AppendEntries(self.epoch, self.view[self], self.id, [])
             )
@@ -415,7 +419,7 @@ class TagReplica(Replica):
         )
 
 
-    def on_acquire_tags(self, msg):
+    def on_tag_request_rpc(self, msg):
         """
         Respond to a request for a tag acquisition from a server.
         """
@@ -432,13 +436,7 @@ class TagReplica(Replica):
             msg.source, Response(self.epoch, True, None)
         )
 
-    def on_release_tags(self, msg):
-        """
-        Respond to a request for a tag release from a server.
-        """
-        return self.send(msg.source, Response(self.epoch, True, None))
-
-    def on_append_entries(self, msg):
+    def on_append_entries_rpc(self, msg):
         rpc = msg.value
 
         self.view[msg.source] = rpc.tag
@@ -456,7 +454,7 @@ class TagReplica(Replica):
             msg.source, Response(self.epoch, True, None)
         )
 
-    def on_rpc_response(self, msg):
+    def on_response_rpc(self, msg):
         """
         An RPC response can be to a remote access, a release/aquire vote, or
         to an append entries (both write and heartbeat messages).

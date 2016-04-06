@@ -80,7 +80,7 @@ class SimulationTests(unittest.TestCase):
         # Required Metrics
         required = {
             u'read', u'read latency',
-            u'write', u'visibility latency',
+            u'write', u'write latency', u'visibility latency',
         } | metrics
 
         # Optional Metrics

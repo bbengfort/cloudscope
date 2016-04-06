@@ -19,6 +19,7 @@ Functionality for different replica types in the cloud storage system.
 
 from .base import *
 from .store import *
+from .access import *
 from .consensus import RaftReplica
 from .consensus import TagReplica
 from .eventual import EventualReplica

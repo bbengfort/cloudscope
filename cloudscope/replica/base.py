@@ -21,6 +21,9 @@ from cloudscope.config import settings
 from cloudscope.dynamo import Sequence
 from cloudscope.simulation.network import Node
 from cloudscope.utils.enums import Enum
+from cloudscope.utils.strings import decamelize
+from cloudscope.replica.access import Read, Write
+from cloudscope.exceptions import AccessError
 
 ##########################################################################
 ## Enumerations
@@ -70,11 +73,11 @@ class State(Enum):
 
     # Consensus states
     READY     = 3
-    FOLLOWER  = 3 # Raft alias for ready
-    CANDIDATE = 4 # Raft election
-    TAGGING   = 4 # Tag consensus
-    LEADER    = 5 # Raft leadership
-    OWNER     = 5 # Tag ownership
+    FOLLOWER  = 4 # Raft alias for ready
+    CANDIDATE = 5 # Raft election
+    TAGGING   = 6 # Tag consensus
+    LEADER    = 7 # Raft leadership
+    OWNER     = 8 # Tag ownership
 
 
 ##########################################################################
@@ -136,12 +139,17 @@ class Replica(Node):
 
     def send(self, target, value):
         """
+        Intermediate step towards Node.send (which handles simulation network)
+        - this method logs information about the message, records metrics for
+        results analysis, and does final preperatory work for sent messages.
         Simply logs that the message has been sent.
         """
-        event = super(Replica, self).send(target, value)
+        # Call the super method to queue the message on the network
+        event   = super(Replica, self).send(target, value)
         message = event.value
         mtype = message.value.__class__.__name__ if message.value else "None"
 
+        # Debug logging of the message sent
         self.sim.logger.debug(
             "message {} sent at {} from {} to {}".format(
                 mtype, self.env.now, message.source, message.target
@@ -160,12 +168,21 @@ class Replica(Node):
 
     def recv(self, event):
         """
-        Simply logs that the message has been received.
+        Intermediate step towards Node.recv (which handles simulation network)
+        - this method logs information about the message, records metrics for
+        results analysis, and detects and passes the message to the correct
+        event handler for that RPC type.
+
+        Subclasses should create methods of the form `on_[type]_rpc` where the
+        type is the lowercase class name of the RPC named tuple. The recv method will
+        route incomming messages to their correct RPC handler or raise an
+        exception if it cannot find the access method.
         """
         # Get the unpacked message from the event.
         message = super(Replica, self).recv(event)
         mtype = message.value.__class__.__name__ if message.value else "None"
 
+        # Debug logging of the message recv
         self.sim.logger.debug(
             "protocol {!r} received by {} from {} ({}ms delayed)".format(
                 mtype, message.target, message.source, message.delay
@@ -180,40 +197,122 @@ class Replica(Node):
 
         # Track total number of recv messages
         self.sim.results.messages['recv'][mtype] += 1
-        return message
 
-    def read(self, version=None):
+        # Dispatch the RPC to the correct handler
+        return self.dispatch(message)
+
+    def read(self, name, **kwargs):
         """
-        Intended as a stub method to record a read on the replica. This
-        method wil take the version "read" from a subclass and record if it's
-        stale, as well as the read latency if the object is an event.
+        Exposes the read API for every replica server and is one of the two
+        primary methods of replica interaction.
 
-        Returns the read event object or None.
+        The read method expects the name of the object to read from and
+        creates a Read event with meta information about the read. It is the
+        responsibility of the subclasses to determine if the read is complete
+        or not.
+
+        Note that name can also be a Read event (in the case of remote reads
+        that want to access identical read functionality on the replica). The
+        read method will not create a new event, but will pass through the
+        passed in Read event.
+
+        This is in direct contrast to the old read method, where the replica
+        did the work of logging and metrics - now this is all in the read
+        event (when complete is triggered).
         """
-        if version is not None:
-            read = version.read(self, completed=True)
+        if not name:
+            raise AccessError(
+                "Must supply a name to read from the replica server"
+            )
 
-            if read.is_stale():
-                # Log the stale read
-                self.sim.logger.info(
-                    "stale read of version {} on {}".format(version, self)
-                )
+        return Read.create(name, self, **kwargs)
 
-            return read
-
-    def write(self, version=None):
+    def write(self, name, **kwargs):
         """
-        Performs a write to the local version or writes the version to disk.
+        Exposes the write API for every replica server and is the second of
+        the two  primary methods of replica interaction.
+
+        the write method exepcts the name of the object to write to and
+        creates a Write event with meta informationa bout the write. It is
+        the responsibility of sublcasses to perform the actual write on their
+        local stores with replication.
+
+        Note that name can also be a Write event and this method is in very
+        different than the old write method (see details in read).
+
+        This method will be adapted in the future to deal with write sizes,
+        blocks, and other write meta information.
         """
-        pass
+        if not name:
+            raise AccessError(
+                "Must supply a name to write to the replica server"
+            )
+
+        return Write.create(name, self, **kwargs)
 
     def serialize(self):
+        """
+        Outputs a simple object representation of the state of the replica.
+        """
         return dict([
             (attr, getattr(self, attr))
             for attr in (
                 'id', 'type', 'label', 'location', 'consistency'
             )
         ])
+
+    ######################################################################
+    ## Helper Methods
+    ######################################################################
+
+    def dispatch(self, message):
+        """
+        Dispatches an RPC message to the correct handler. Because RPC message
+        values are expected to be typed namedtuples, the dispatcher looks for
+        a handler method on the replica named similar to:
+
+            def on_[type]_rpc(self, message):
+                pass
+
+        Where [type] is the snake_case of the RPC class, for example, the
+        AppendEntries handler would be named on_append_entries_rpc.
+
+        The dispatch returns the result of the handler.
+        """
+        name = message.value.__class__.__name__
+        handler = "on_{}_rpc".format(decamelize(name))
+
+        # Check to see if the replica has the handler.
+        if not hasattr(self, handler):
+            NotImplementedError(
+                "Handler for '{}' not implemented, add '{}' to {}".format(
+                    name, handler, self.__class__
+                )
+            )
+
+        # Get the handler, call on message and return.
+        handler = getattr(self, handler)
+        return handler(message)
+
+    def neighbors(self, consistency=None):
+        """
+        Returns all nodes in the network with the specified consistency
+        level(s). By default, if None is passed in, this method returns the
+        neighbors who have the same consistency as the local.
+        """
+        # Get the default consistency level as shared with self
+        if consistency is None: consistency = self.consistency
+
+        # Convert a single consistenty level or a string into a collection
+        if isinstance(consistency, (Consistency, basestring)):
+            consistency = [Consistency.get(consistency)]
+
+        # Convert the consistencies into a set for lookup
+        consistency = set(consistency)
+
+        # Filter connections in that consistency level
+        is_neighbor = lambda r: r.consistency in consistency
+        return filter(is_neighbor, self.connections)
 
     ######################################################################
     ## Event Handlers

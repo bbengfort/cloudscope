@@ -20,6 +20,7 @@ Decorators and other functional utilities
 import time
 
 from functools import wraps
+from itertools import count
 from cloudscope.utils.timez import humanizedelta
 
 ##########################################################################
@@ -104,3 +105,20 @@ def timeit(func, wall_clock=True):
 
         return result, timer
     return timer_wrapper
+
+
+##########################################################################
+## Metaclasses
+##########################################################################
+
+class Countable(type):
+    """
+    Gives a unique infinite count sequence to each class and subclass that
+    uses the Countable metaclass. For more information see:
+
+    http://bbengfort.github.io/snippets/2016/04/04/class-variables.html
+    """
+
+    def __new__(cls, name, bases, attrs):
+        attrs['counter'] = count()
+        return super(Countable, cls).__new__(cls, name, bases, attrs)

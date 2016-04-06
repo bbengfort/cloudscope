@@ -110,7 +110,7 @@ class SimulationConfiguration(Configuration):
     # Eventual Parameters
     anti_entropy_delay = 3000 # delay in milliseconds (20x per minute)
     do_gossip   = True        # perform gossip protocol
-    do_rumoring = True        # perform rumor mongering
+    do_rumoring = False       # perform rumor mongering
 
     # Raft Parameters
     election_timeout   = [150, 300]

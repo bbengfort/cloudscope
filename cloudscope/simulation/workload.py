@@ -25,16 +25,11 @@ from cloudscope.simulation.base import NamedProcess
 from cloudscope.dynamo import BoundedNormal, Bernoulli, Discrete
 from cloudscope.exceptions import WorkloadException
 from cloudscope.replica import Location, Consistency, Device
+from cloudscope.replica.access import READ, WRITE
 
 from collections import defaultdict
 from collections import namedtuple
 
-##########################################################################
-## Module Constants
-##########################################################################
-
-READ  = "read"
-WRITE = "write"
 
 ##########################################################################
 ## Factory Function
