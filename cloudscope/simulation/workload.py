@@ -24,16 +24,12 @@ from cloudscope.utils.timez import humanizedelta
 from cloudscope.simulation.base import NamedProcess
 from cloudscope.dynamo import BoundedNormal, Bernoulli, Discrete
 from cloudscope.exceptions import WorkloadException
+from cloudscope.replica import Location, Consistency, Device
+from cloudscope.replica.access import READ, WRITE
 
 from collections import defaultdict
 from collections import namedtuple
 
-##########################################################################
-## Module Constants
-##########################################################################
-
-READ  = "read"
-WRITE = "write"
 
 ##########################################################################
 ## Factory Function
@@ -60,8 +56,8 @@ class Workload(NamedProcess):
     """
 
     # TODO: add this to settings rather than hard code.
-    valid_locations = frozenset(settings.simulation.valid_locations)
-    invalid_types = frozenset(settings.simulation.invalid_types)
+    valid_locations = frozenset([Location.get(loc) for loc in settings.simulation.valid_locations])
+    invalid_types = frozenset([Device.get(dev) for dev in settings.simulation.invalid_types])
 
     def __init__(self, env, sim, **kwargs):
         # Parent

@@ -29,6 +29,7 @@ except ImportError:
 
 
 from cloudscope.dynamo import CharacterSequence
+from cloudscope.replica import Location, Device
 from cloudscope.simulation.workload import Workload
 from cloudscope.simulation.workload import MultiObjectWorkload
 from cloudscope.simulation.workload import Access, TracesWorkload, READ, WRITE
@@ -60,19 +61,19 @@ class WorkloadTests(unittest.TestCase):
         sim = get_mock_simulation()
 
         sim.replicas = [
-            get_mock_replica(sim, location="home"),
-            get_mock_replica(sim, location="home"),
-            get_mock_replica(sim, location="work"),
-            get_mock_replica(sim, location="work"),
-            get_mock_replica(sim, location="mobile"),
-            get_mock_replica(sim, location="mobile"),
-            get_mock_replica(sim, location="mobile")
+            get_mock_replica(sim, location=Location.HOME),
+            get_mock_replica(sim, location=Location.HOME),
+            get_mock_replica(sim, location=Location.WORK),
+            get_mock_replica(sim, location=Location.WORK),
+            get_mock_replica(sim, location=Location.MOBILE),
+            get_mock_replica(sim, location=Location.MOBILE),
+            get_mock_replica(sim, location=Location.MOBILE)
         ]
 
         work = Workload(sim.env, sim)
         self.assertEqual(len(work.locations), 3)
 
-        for loc, num in (('home', 2), ('work', 2), ('mobile', 3)):
+        for loc, num in ((Location.HOME, 2), (Location.WORK, 2), (Location.MOBILE, 3)):
             self.assertEqual(len(work.locations[loc]), num)
 
     def test_workload(self):
@@ -84,13 +85,13 @@ class WorkloadTests(unittest.TestCase):
         env = simpy.Environment()
 
         sim.replicas = [
-            get_mock_replica(sim, location="home"),
-            get_mock_replica(sim, location="home"),
-            get_mock_replica(sim, location="work"),
-            get_mock_replica(sim, location="work"),
-            get_mock_replica(sim, location="mobile"),
-            get_mock_replica(sim, location="mobile"),
-            get_mock_replica(sim, location="mobile")
+            get_mock_replica(sim, location=Location.HOME),
+            get_mock_replica(sim, location=Location.HOME),
+            get_mock_replica(sim, location=Location.WORK),
+            get_mock_replica(sim, location=Location.WORK),
+            get_mock_replica(sim, location=Location.MOBILE),
+            get_mock_replica(sim, location=Location.MOBILE),
+            get_mock_replica(sim, location=Location.MOBILE)
         ]
 
         work = Workload(
@@ -143,13 +144,13 @@ class MultiObjectWorkloadTests(unittest.TestCase):
         sim = get_mock_simulation()
 
         sim.replicas = [
-            get_mock_replica(sim, location="home"),
-            get_mock_replica(sim, location="home"),
-            get_mock_replica(sim, location="work"),
-            get_mock_replica(sim, location="work"),
-            get_mock_replica(sim, location="mobile"),
-            get_mock_replica(sim, location="mobile"),
-            get_mock_replica(sim, location="mobile")
+            get_mock_replica(sim, location=Location.HOME),
+            get_mock_replica(sim, location=Location.HOME),
+            get_mock_replica(sim, location=Location.WORK),
+            get_mock_replica(sim, location=Location.WORK),
+            get_mock_replica(sim, location=Location.MOBILE),
+            get_mock_replica(sim, location=Location.MOBILE),
+            get_mock_replica(sim, location=Location.MOBILE)
         ]
 
         work = MultiObjectWorkload(sim.env, sim, objects=5)
@@ -179,13 +180,13 @@ class MultiObjectWorkloadTests(unittest.TestCase):
         env = simpy.Environment()
 
         sim.replicas = [
-            get_mock_replica(sim, location="home"),
-            get_mock_replica(sim, location="home"),
-            get_mock_replica(sim, location="work"),
-            get_mock_replica(sim, location="work"),
-            get_mock_replica(sim, location="mobile"),
-            get_mock_replica(sim, location="mobile"),
-            get_mock_replica(sim, location="mobile")
+            get_mock_replica(sim, location=Location.HOME),
+            get_mock_replica(sim, location=Location.HOME),
+            get_mock_replica(sim, location=Location.WORK),
+            get_mock_replica(sim, location=Location.WORK),
+            get_mock_replica(sim, location=Location.MOBILE),
+            get_mock_replica(sim, location=Location.MOBILE),
+            get_mock_replica(sim, location=Location.MOBILE)
         ]
 
         work = MultiObjectWorkload(
@@ -285,8 +286,8 @@ class TracesWorkloadTests(unittest.TestCase):
         env = simpy.Environment()
 
         sim.replicas = [
-            get_mock_replica(sim, id="r0", location="home"),
-            get_mock_replica(sim, id="r1", location="mobile"),
+            get_mock_replica(sim, id="r0", location=Location.HOME),
+            get_mock_replica(sim, id="r1", location=Location.MOBILE),
         ]
 
         # set up the access tracking

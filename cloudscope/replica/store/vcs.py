@@ -1,4 +1,4 @@
-# cloudscope.replica.store
+# cloudscope.replica.store.vcs
 # Definition of what a replica actually stores and manages (data objects).
 #
 # Author:   Benjamin Bengfort <bengfort@cs.umd.edu>
@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: store.py [] benjamin@bengfort.com $
+# ID: vcs.py [] benjamin@bengfort.com $
 
 """
 Definition of what a replica actually stores and manages (data objects).
@@ -17,6 +17,7 @@ Definition of what a replica actually stores and manages (data objects).
 ## Imports
 ##########################################################################
 
+from cloudscope.replica.access import Write
 from cloudscope.dynamo import Sequence, CharacterSequence
 
 
@@ -43,7 +44,9 @@ factory = ObjectFactory()
 
 class Version(object):
     """
-    Implements a representation of the tree structure for a file version.
+    A representation of a write to an object in the replica; the Version
+    tracks all information associated with that write (e.g. the version that
+    it was written from, when and how long it took to replicate the write).
     """
 
     @classmethod
@@ -52,6 +55,7 @@ class Version(object):
         Returns a new subclass of the version for a specific object and
         resets the global counter on the object, for multi-version systems.
         """
+        name = name or "foo" # Handle passing None into the new method.
         return type(name, (klass,), {"counter": Sequence()})
 
 
@@ -66,6 +70,7 @@ class Version(object):
         self.parent    = parent
         self.version   = self.counter.next()
         self.committed = False
+        self.tag       = kwargs.get('tag', None)
 
         # This seems very tightly coupled, should we do something different?
         self.replicas  = set([replica.id])
@@ -82,6 +87,28 @@ class Version(object):
         """
         name = self.__class__.__name__
         if name != "Version": return name
+
+    @property
+    def access(self):
+        """
+        Can reconstruct an access given the information in the version, or
+        the API allows the use of the setter to assign the Write access that
+        created the version for storage and future use.
+        """
+        if not hasattr(self, '_access'):
+            self._access = Write(
+                self.name, self.writer, version=self,
+                started=self.created, finished=self.updated
+            )
+        return self._access
+
+    @access.setter
+    def access(self, access):
+        """
+        Assign a Write event that created this particular version for use in
+        passing the event along in the distributed system.
+        """
+        self._access = access
 
     def update(self, replica, commit=False):
         """
@@ -128,13 +155,16 @@ class Version(object):
         """
         return not self.version == self.counter.value
 
-    def fork(self, replica, **kwargs):
+    def nextv(self, replica, **kwargs):
         """
-        Creates a fork of this version
+        Returns a clone of this version, incremented to the next version.
         """
         return self.__class__(
             replica, parent=self, level=self.level
         )
+
+    # Alias for next version
+    fork = nextv
 
     def contiguous(self):
         """

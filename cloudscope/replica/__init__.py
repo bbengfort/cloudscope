@@ -19,6 +19,7 @@ Functionality for different replica types in the cloud storage system.
 
 from .base import *
 from .store import *
+from .access import *
 from .consensus import RaftReplica
 from .consensus import TagReplica
 from .eventual import EventualReplica
@@ -39,7 +40,7 @@ def replica_factory(simulation, **kwargs):
     """
     Factory to create a replica with the correct type, based on consistency.
     """
-    consistency = kwargs.get(
+    consistency = Consistency.get(kwargs.get(
         'consistency', settings.simulation.default_consistency
-    )
+    ))
     return ReplicaTypes[consistency](simulation, **kwargs)

@@ -17,6 +17,15 @@ Implements a "write-ahead" log for Raft storage.
 ## Imports
 ##########################################################################
 
+from collections import namedtuple
+
+
+##########################################################################
+## Data Structures
+##########################################################################
+
+LogEntry  = namedtuple("LogEntry", "version, term")
+NullEntry = LogEntry(None, 0)
 
 ##########################################################################
 ## Write Log
@@ -30,7 +39,7 @@ class WriteLog(object):
     def __init__(self):
         # Log is initialized with null value at index 0
         # Log stores (version, term) tuples.
-        self.log = [(None, 0)]
+        self.log = [NullEntry]
 
         # index of highest log entry applied
         self.lastApplied = 0
@@ -43,27 +52,27 @@ class WriteLog(object):
         """
         Returns the last term applied to the log.
         """
-        return self.log[-1][1]
+        return self[-1].term
 
     @property
     def lastVersion(self):
         """
         Returns the last version applied to the log.
         """
-        return self.log[-1][0]
+        return self[-1].version
 
     @property
     def lastCommit(self):
         """
         Returns the last version committed to the log.
         """
-        return self.log[self.commitIndex][0]
+        return self.log[self.commitIndex].version
 
     def append(self, version, term):
         """
         Appends a version and a term to the log.
         """
-        self.log.append((version, term))
+        self.log.append(LogEntry(version, term))
         self.lastApplied += 1
 
     def remove(self, after=1):
@@ -157,9 +166,9 @@ class MultiObjectWriteLog(WriteLog):
         # Start from the last applied index, and search backward for the name
         start = start or self.lastApplied
         for idx in xrange(start, -1, -1):
-            item, term = self[idx]
-            if item is not None and item.name == name:
-                return item, term
+            entry = self[idx]
+            if entry.version is not None and entry.version.name == name:
+                return entry
 
         # Return the null object if search comes up empty
         return self[0]
@@ -168,12 +177,12 @@ class MultiObjectWriteLog(WriteLog):
         """
         Get the latest version for the name given.
         """
-        version, term = self.search(name)
-        return version
+        entry = self.search(name)
+        return entry.version
 
     def get_latest_commit(self, name):
         """
         Get the latest name for the commit given.
         """
-        version, term = self.search(name, self.commitIndex)
-        return version 
+        entry = self.search(name, self.commitIndex)
+        return entry.version

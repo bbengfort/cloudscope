@@ -1,4 +1,4 @@
-# tests.test_simulation.test_replica.test_consensus.test_log
+# tests.test_simulation.test_replica.test_strore.test_log
 # Testing the data structures and helpers for a Raft write log.
 #
 # Author:   Benjamin Bengfort <bengfort@cs.umd.edu>
@@ -21,8 +21,8 @@ import random
 import unittest
 
 from cloudscope.replica.store import Version
-from cloudscope.replica.consensus.log import WriteLog
-from cloudscope.replica.consensus.log import MultiObjectWriteLog
+from cloudscope.replica.store import WriteLog
+from cloudscope.replica.store import MultiObjectWriteLog
 
 from tests.test_replica import get_mock_simulation
 

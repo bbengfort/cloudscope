@@ -110,11 +110,12 @@ class SimulationConfiguration(Configuration):
     # Eventual Parameters
     anti_entropy_delay = 600  # delay in milliseconds (20x per minute)
     do_gossip   = True        # perform gossip protocol
-    do_rumoring = True        # perform rumor mongering
+    do_rumoring = False       # perform rumor mongering
 
     # Raft Parameters
     election_timeout   = [150, 300]
-    heartbeat_interval = 75   # Usually half the minimum election timeout
+    heartbeat_interval = 75     # Usually half the minimum election timeout
+    aggregate_writes   = False  # Don't send writes until heartbeat.
 
     # Tag Parameters
     session_timeout    = 4096 # Related to the mean delay between accesses

@@ -82,3 +82,40 @@ class DecoratorsTests(unittest.TestCase):
         result, timer = output
         self.assertEqual(result, 42)
         self.assertTrue(isinstance(timer, Timer))
+
+    def test_countable(self):
+        """
+        Test the countable metaclass.
+        """
+
+        class Foo(object):
+
+            __metaclass__ = Countable
+
+            def __init__(self):
+                self.id = self.counter.next()
+
+        class Bar(Foo):
+            pass
+
+        class Baz(Bar):
+            pass
+
+        class Qux(Foo):
+            pass
+
+        self.assertEqual(Foo().id, 0)
+        self.assertEqual(Bar().id, 0)
+        self.assertEqual(Baz().id, 0)
+        self.assertEqual(Qux().id, 0)
+
+        seq = ((Foo, 4), (Bar, 3), (Baz, 10))
+
+        for cls, num in seq:
+            for idx in xrange(num):
+                cls()
+
+        self.assertEqual(Foo().id, 5)
+        self.assertEqual(Bar().id, 4)
+        self.assertEqual(Baz().id, 11)
+        self.assertEqual(Qux().id, 1)

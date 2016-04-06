@@ -94,12 +94,12 @@ class SimulationTests(unittest.TestCase):
         # Required Metrics
         required = {
             u'read', u'read latency',
-            u'write', u'visibility latency',
+            u'write', u'write latency', u'visibility latency',
         } | metrics
 
         # Optional Metrics
         optional = {
-            u'sent', u'recv', u'commit latency',
+            u'sent', u'recv', u'commit latency', u'stale reads'
         }
 
         for metric in required:

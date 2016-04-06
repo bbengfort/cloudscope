@@ -91,7 +91,13 @@ class ExperimentGenerator(object):
         """
         Load the template from a JSON file on disk.
         """
-        return klass(json.load(fobj), **kwargs)
+        data = klass(json.load(fobj), **kwargs)
+
+        # Convert consistencies to correct enum type
+        for node in data['nodes']:
+            node['consistency'] = Consistency.get(node['consistency'])
+
+        return data
 
     def __init__(self, template, **options):
         self.template = template
