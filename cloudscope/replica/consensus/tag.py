@@ -230,7 +230,7 @@ class TagReplica(ConsensusReplica):
                 )
 
             # Also interrupt the heartbeat
-            self.heartbeat.stop()
+            if self.heartbeat: self.heartbeat.stop()
 
             return
 

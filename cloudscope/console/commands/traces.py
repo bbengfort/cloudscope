@@ -25,7 +25,8 @@ from collections import defaultdict
 from commis import Command
 from cloudscope.config import settings
 from cloudscope.simulation.main import ConsistencySimulation
-from cloudscope.simulation.workload import Workload, READ, WRITE
+from cloudscope.simulation.workload import Workload
+from cloudscope.replica.access import READ, WRITE
 
 ##########################################################################
 ## Command

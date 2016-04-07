@@ -22,8 +22,8 @@ from commis import color
 from commis import ConsoleProgram
 from commis.exceptions import ConsoleError
 
-from cloudscope.console.commands import *
 from cloudscope.version import get_version
+from cloudscope.console.commands import *
 
 ##########################################################################
 ## Utility Definition
@@ -38,6 +38,7 @@ COMMANDS    = [
     MultipleSimulationsCommand,
     GenerateCommand,
     TracesCommand,
+    SettingsCommand,
 ]
 
 ##########################################################################
