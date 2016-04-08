@@ -94,7 +94,7 @@ class ExperimentGenerator(object):
         data = klass(json.load(fobj), **kwargs)
 
         # Convert consistencies to correct enum type
-        for node in data['nodes']:
+        for node in data.template['nodes']:
             node['consistency'] = Consistency.get(node['consistency'])
 
         return data
@@ -229,6 +229,11 @@ class LatencyVariation(ExperimentGenerator):
                         node['election_timeout']   = [
                             mean_latency * 10, mean_latency * 20
                         ]
+                        node['heartbeat_interval'] = mean_latency * 5
+
+                    if node['consistency'] == Consistency.MEDIUM:
+                        # Add tagging-specific information
+                        node['session_timeout'] = mean_latency * 20
                         node['heartbeat_interval'] = mean_latency * 5
 
                 # Update the links with latency-specific settings.
