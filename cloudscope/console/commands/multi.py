@@ -18,7 +18,9 @@ Multiprocess runner for running many simulations simultaneously.
 ##########################################################################
 
 import os
+import re
 import json
+import glob
 import logging
 import argparse
 import multiprocessing as mp
@@ -30,7 +32,10 @@ from cloudscope.utils.decorators import Timer
 from cloudscope.utils.timez import humanizedelta
 from cloudscope.simulation.main import ConsistencySimulation
 from commis.exceptions import ConsoleError
-from collections import Counter
+from collections import Counter, defaultdict
+
+## Special hack for now
+TRACERE = re.compile(r'^trace-(\d+)ms-(\d+)user.tsv$')
 
 ##########################################################################
 ## Command
@@ -115,18 +120,15 @@ class MultipleSimulationsCommand(Command):
         logger = logging.getLogger('cloudscope.simulation')
         logger.disabled = True
 
-        # TODO: Change the below to just accept multiple topologies
+        # Load the experiments and their options 
         experiments = self.get_experiments(args)
-        kwargs = {
-            'trace': args.trace,
-        }
 
         # Create a pool of processes and begin to execute experiments
         with Timer() as timer:
             pool    = mp.Pool(processes=args.tasks)
             results = [
-                pool.apply_async(runner, (i+1,x), kwargs)
-                for i, x in enumerate(experiments)
+                pool.apply_async(runner, (i+1,x), k)
+                for i, (x, k) in enumerate(experiments)
             ]
 
             # Compute output and errors
@@ -163,8 +165,14 @@ class MultipleSimulationsCommand(Command):
 
     def get_experiments(self, args):
         """
-        Converts the topologies into JSON data to serialize across processes.
+        Returns experiment, keyword argument pairs for each experiment.
         """
+        trace = self.get_traces(args.trace)
+
+        options = {
+            'trace': trace if not isinstance(trace, dict) else None
+        }
+
         for topology in args.topology:
             path = os.path.abspath(topology)
 
@@ -173,4 +181,33 @@ class MultipleSimulationsCommand(Command):
                     "Could not find topology file at '{}'".format(topology)
                 )
 
-            yield path
+            # Detect if there are multiple traces and handle by user.
+            # TODO: also create multiple accesses as well.
+            if isinstance(trace, dict):
+                with open(path, 'r') as f:
+                    users = json.load(f)['meta']['users']
+
+                # Set the trace to the correct number of users.
+                options['trace'] = trace[users][0]['path']
+
+            yield path, options
+
+    def get_traces(self, trace):
+        """
+        Parses the trace file name if it's a directory for its properties.
+        SPECIAL METHOD: TODO MAKE MORE ROBUST!
+        """
+
+        if trace and os.path.isdir(trace):
+            traces  = defaultdict(list)
+
+            for path in glob.glob(os.path.join(trace, "trace-*")):
+                props = TRACERE.match(os.path.basename(path))
+                props = dict(zip(('access', 'users'), map(int, props.groups())))
+                props['path'] = path
+
+                traces[props['users']].append(props)
+
+            return traces
+
+        return trace

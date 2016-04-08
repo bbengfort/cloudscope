@@ -26,7 +26,7 @@ from commis import Command
 from commis.exceptions import ConsoleError
 from cloudscope.experiment import LatencyVariation
 from cloudscope.experiment import AntiEntropyVariation
-
+from cloudscope.utils.serialize import JSONEncoder
 
 ##########################################################################
 ## Helpers
@@ -133,7 +133,7 @@ class GenerateCommand(Command):
         for idx, experiment in enumerate(self.get_experiments(topology, args)):
             newname = "{}-{:0>2}{}".format(name, idx+1, ext)
             with open(os.path.join(outdir, newname), 'w') as o:
-                json.dump(experiment, o, indent=2)
+                json.dump(experiment, o, indent=2, cls=JSONEncoder)
 
         # Return a specification of what happened.
         return "Wrote {} experiments to {}".format(idx+1, outdir)
