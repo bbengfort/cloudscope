@@ -1,8 +1,8 @@
 {
     "meta": {
-        "constant": "15ms",
-        "variable": "N/A",
-        "seed": null,
+        "constant": "30ms",
+        "variable": "15-45ms",
+        "seed": 42,
         "title": "Raft Quorum",
         "description": "Single Consistency Type: Strong Raft Consensus."
     },
@@ -12,52 +12,47 @@
             "label": "Raft 1",
             "type": "storage",
             "consistency": "strong",
-            "location": "cloud",
-            "files": {}
+            "location": "cloud"
         },
         {
             "id": "r1",
             "label": "Raft 2",
             "type": "storage",
             "consistency": "strong",
-            "location": "cloud",
-            "files": {}
+            "location": "cloud"
         },
         {
             "id": "r2",
             "label": "Raft 3",
             "type": "storage",
             "consistency": "strong",
-            "location": "cloud",
-            "files": {}
+            "location": "cloud"
         },
         {
             "id": "r3",
             "label": "Raft 4",
             "type": "storage",
             "consistency": "strong",
-            "location": "cloud",
-            "files": {}
+            "location": "cloud"
         },
         {
             "id": "r4",
             "label": "Raft 5",
             "type": "storage",
             "consistency": "strong",
-            "location": "cloud",
-            "files": {}
+            "location": "cloud"
         }
     ],
     "links": [
-        {"source": 0, "target": 1, "connection": "constant", "latency": 15},
-        {"source": 0, "target": 2, "connection": "constant", "latency": 15},
-        {"source": 0, "target": 3, "connection": "constant", "latency": 15},
-        {"source": 0, "target": 4, "connection": "constant", "latency": 15},
-        {"source": 1, "target": 2, "connection": "constant", "latency": 15},
-        {"source": 1, "target": 3, "connection": "constant", "latency": 15},
-        {"source": 1, "target": 4, "connection": "constant", "latency": 15},
-        {"source": 2, "target": 3, "connection": "constant", "latency": 15},
-        {"source": 2, "target": 4, "connection": "constant", "latency": 15},
-        {"source": 3, "target": 4, "connection": "constant", "latency": 15}
+        {"source": 0, "target": 1, "connection": "variable", "latency": [15, 45]},
+        {"source": 0, "target": 2, "connection": "variable", "latency": [15, 45]},
+        {"source": 0, "target": 3, "connection": "variable", "latency": [15, 45]},
+        {"source": 0, "target": 4, "connection": "variable", "latency": [15, 45]},
+        {"source": 1, "target": 2, "connection": "variable", "latency": [15, 45]},
+        {"source": 1, "target": 3, "connection": "variable", "latency": [15, 45]},
+        {"source": 1, "target": 4, "connection": "variable", "latency": [15, 45]},
+        {"source": 2, "target": 3, "connection": "variable", "latency": [15, 45]},
+        {"source": 2, "target": 4, "connection": "variable", "latency": [15, 45]},
+        {"source": 3, "target": 4, "connection": "variable", "latency": [15, 45]}
     ]
 }

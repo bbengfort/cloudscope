@@ -37,7 +37,25 @@ class TracesCommand(Command):
     name = 'traces'
     help = 'generate random access traces to write to disk'
     args = {
-        ('-o', '--output'): {
+        ('-u', '--users'): {
+            'type': int,
+            'default': settings.simulation.users,
+            'metavar': 'N',
+            'help': 'specify the number of users to trace'
+        },
+        ('-o', '--objects'): {
+            'type': int,
+            'default': settings.simulation.max_objects_accessed,
+            'metavar': 'N',
+            'help': 'specify the number of objects accessed'
+        },
+        ('-t', '--timesteps'): {
+            'type': int,
+            'default': settings.simulation.max_sim_time,
+            'metavar': 'N',
+            'help': 'specify the number of timesteps in the trace'
+        },
+        ('-w', '--output'): {
             'type': argparse.FileType('w'),
             'default': sys.stdout,
             'metavar': 'PATH',
@@ -57,20 +75,36 @@ class TracesCommand(Command):
         """
         Uses the multi-object workload to generate a traces file.
         """
+        # Simulation arguments
+        kwargs = {
+            'users': args.users,
+            'objects': args.objects,
+            'max_sim_time': args.timesteps,
+            'trace': None,
+        }
+
         # Create simulation
-        simulation = ConsistencySimulation.load(args.data[0])
+        simulation = ConsistencySimulation.load(args.data[0], **kwargs)
         simulation.script()
 
         # Fetch workload from the simulation
         workload   = simulation.workload
 
         # Write the traces to disk
-        for idx, access in enumerate(self.compute_accesses(workload)):
+        for idx, access in enumerate(self.compute_accesses(workload, args.timesteps)):
             args.output.write("\t".join(access) + "\n")
 
-        return "wrote {} accesses to {}".format(idx+1, args.output.name)
+        return (
+            "traced {} accesses on {} objects by {} users over {} timesteps\n"
+            "wrote the trace file to {}"
+        ).format(
+            idx+1, args.objects, args.users, args.timesteps, args.output.name
+        )
 
-    def compute_accesses(self, workload):
+    def compute_accesses(self, workload, until=None):
+        # Determine the maximum simulation time
+        until = until or settings.simulation.max_sim_time
+
         # Set up the access computation
         if isinstance(workload, Workload):
             workload = [workload]
@@ -83,7 +117,7 @@ class TracesCommand(Command):
             schedule[int(work.next_access.get())].append(work)
 
         # Iterate through time
-        while timestep < settings.simulation.max_sim_time:
+        while timestep < until:
             # Update the timestep to the next time in schedule
             timestep = min(schedule.keys())
 
