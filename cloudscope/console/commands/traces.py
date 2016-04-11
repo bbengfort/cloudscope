@@ -37,6 +37,11 @@ class TracesCommand(Command):
     name = 'traces'
     help = 'generate random access traces to write to disk'
     args = {
+        '-D': {
+            'action': 'store_true',
+            'dest': 'debugging',
+            'help': 'special manual trace generation',
+        },
         ('-u', '--users'): {
             'type': int,
             'default': settings.simulation.users,
@@ -90,6 +95,10 @@ class TracesCommand(Command):
         # Fetch workload from the simulation
         workload   = simulation.workload
 
+        # If we're in manual mode, execute that and return.
+        if args.debugging:
+            return self.debugging_trace(workload, args)
+
         # Write the traces to disk
         for idx, access in enumerate(self.compute_accesses(workload, args.timesteps)):
             args.output.write("\t".join(access) + "\n")
@@ -129,3 +138,39 @@ class TracesCommand(Command):
 
                 # Reschedule the work
                 schedule[int(work.next_access.get()) + timestep].append(work)
+
+    def debugging_trace(self, workload, args):
+        """
+        Manual function to generate a debugging trace for specific workloads.
+        """
+        import random
+
+        from operator import itemgetter
+        from cloudscope.dynamo import CharacterSequence
+
+        sequence = CharacterSequence(upper=True)
+
+        nodes = defaultdict(dict)
+        for idx, work in enumerate(workload):
+            work.move()
+            nodes[work]['dev'] = work.device.id
+            nodes[work]['obj'] = [sequence.next() for _ in xrange(3)]
+            nodes[work]['tme'] = 0
+            nodes[work]['acs'] = WRITE
+
+        output = []
+
+        # Each node is going to access a single object
+        for idx in xrange(1000):
+            for work, info in nodes.items():
+                info['tme'] += int(work.next_access.get())
+                info['acs'] = READ if work.do_read.get() else WRITE
+
+                output.append(
+                    (info['tme'], info['dev'], random.choice(info['obj']), info['acs'])
+                )
+
+        for line in sorted(output, key=itemgetter(0)):
+            args.output.write("\t".join((str(s) for s in line)) + "\n")
+
+        return "manual debugging trace generated with {} accesses for {} devices".format(len(output), len(nodes))

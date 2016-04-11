@@ -24,6 +24,7 @@ from cloudscope.exceptions import TagRPCException
 from cloudscope.exceptions import SimulationException
 from cloudscope.replica.store import Version
 from cloudscope.replica.store import WriteLog
+from cloudscope.utils.enums import Enum
 
 from .base import ConsensusReplica
 from .election import Election
@@ -41,10 +42,22 @@ SESSION_TIMEOUT    = settings.simulation.session_timeout
 HEARTBEAT_INTERVAL = settings.simulation.heartbeat_interval
 
 ## RPC Messages
-RemoteAccess  = namedtuple('RemoteAccess', 'epoch, objects, access')
-TagRequest    = namedtuple('TagRequest', 'epoch, tags, candidate')
-Response      = namedtuple('Response', 'epoch, success, objects')
-AppendEntries = namedtuple('AppendEntries', 'epoch, tag, owner, entries')
+## NOTE: tag should be a data structure of {objects: {index, epoch, commit}}
+## NOTE: index, epoch, commit are meaningful in different RPC contexts
+
+RequestTag     = namedtuple('RequestTag', 'epoch, tag, candidate')
+TagResponse    = namedtuple('TagResponse', 'epoch, accept')
+AppendEntries  = namedtuple('AppendEntries', 'epoch, owner, tag, entries')
+AEResponse     = namedtuple('AEResponse', 'epoch, success, tag, reason')
+RemoteAccess   = namedtuple('RemoteAccess', 'epoch, access')
+AccessResponse = namedtuple('AccessResponse', 'epoch, success, access')
+
+## Sent with RPC messages to indicate the state of a log per object.
+LogState       = namedtuple('TagState', 'index, epoch, commit')
+
+## Sent with Append Entries responses to indicate what went wrong.
+Reason         = Enum('Reason', 'OK, EPOCH, LOG')
+
 
 ##########################################################################
 ## Tag Replica
@@ -64,10 +77,9 @@ class TagReplica(ConsensusReplica):
         self.log    = defaultdict(WriteLog)
         self.view   = defaultdict(set)
 
-        ## Accesses that are in-flight
-        ## Maps timestamp (of initial access) to object being accessed
-        self.reads  = {}
-        self.writes = {}
+        ## Owner state
+        self.nextIndex  = None
+        self.matchIndex = None
 
         ## Initialize the replica
         super(TagReplica, self).__init__(simulation, **kwargs)
@@ -86,11 +98,10 @@ class TagReplica(ConsensusReplica):
         message = event.value
         rpc = message.value
 
-        # If RPC request or response contains term > currentTerm
-        # Set currentTerm to term and conver to follower.
-        if rpc.epoch > self.epoch:
-            self.epoch = rpc.epoch
-            self.view  = defaultdict(set)
+        # If RPC request or response contains epoch > self.epoch
+        # We're now out of epoch, so we need to stop being owner and reset.
+        # if rpc.epoch > self.epoch:
+        #     self.epoch = rpc.epoch
 
         # Record the received message and dispatch to event handler
         return super(TagReplica, self).recv(event)
@@ -222,15 +233,10 @@ class TagReplica(ConsensusReplica):
             if access.is_local_to(self): access.complete()
 
             # Now do AppendEntries
-            # TODO: create send append entries helper
-            # TODO: aggregate writes
-            for neighbor in self.neighbors():
-                self.send(
-                    neighbor, AppendEntries(self.epoch, self.view[self], self.id, [(version, self.epoch)])
-                )
-
-            # Also interrupt the heartbeat
-            if self.heartbeat: self.heartbeat.stop()
+            # Also interrupt the heartbeat since we just sent AppendEntries
+            if not settings.simulation.aggregate_writes:
+                self.send_append_entries()
+                if self.heartbeat: self.heartbeat.stop()
 
             return
 
@@ -254,8 +260,12 @@ class TagReplica(ConsensusReplica):
             self.acquire(access.name)
 
     def run(self):
+        """
+        We have to check in at every heartbeat interval. If we own a tag then
+        send a heartbeat message, otherwise just keep quiescing.
+        """
         while True:
-            if self.state == State.READY and self.view[self]:
+            if self.state == State.OWNER:
                 self.heartbeat = Timer(
                     self.env, self.heartbeat_interval, self.on_heartbeat_timeout
                 )
@@ -287,17 +297,15 @@ class TagReplica(ConsensusReplica):
         """
         Sends out the acquire tag RPC
         """
-        self.state = State.TAGGING
-
         # Construct the tag to send out
         if not isinstance(tag, (set, frozenset)):
             tag = frozenset([tag])
 
+        # Make sure to request the tag we already have
+        tag = frozenset(self.view[self] | tag)
+
         # Request tag with all current tags
-        self.tag = frozenset(self.view[self] | tag)
-        rpc = TagRequest(self.epoch, self.tag, self)
-        for neighbor in self.neighbors():
-            self.send(neighbor, rpc)
+        self.send_tag_request(tag)
 
         # Log the tag acquisition
         self.sim.logger.info(
@@ -308,8 +316,6 @@ class TagReplica(ConsensusReplica):
         """
         Sends out the release tag RPC
         """
-        self.state = State.TAGGING
-
         # Release all currently held tags
         if tag is None: tag = self.view[self]
 
@@ -317,11 +323,11 @@ class TagReplica(ConsensusReplica):
         if not isinstance(tag, (set, frozenset)):
             tag = frozenset([tag])
 
-        # Request the tag release
-        self.tag = frozenset(self.view[self] - tag)
-        rpc = TagRequest(self.epoch, self.tag, self)
-        for neighbor in self.neighbors():
-            self.send(neighbor, rpc)
+        # Request the difference of the tags we already have
+        tag = frozenset(self.view[self] - tag)
+
+        # Request tag with all current tags
+        self.send_tag_request(tag)
 
         # Log the tag release
         self.sim.logger.info(
@@ -341,6 +347,83 @@ class TagReplica(ConsensusReplica):
         else:
             self.session = self.session.reset()
 
+    def get_log_state(self, tag=None):
+        """
+        Constructs a log state object for append entries responses, either
+        for the current tag or simply the current view.
+        """
+        if tag is None:
+            tag = [obj for view in self.view.values() for obj in view]
+
+        return {
+            obj: LogState(
+                self.log[obj].lastApplied,
+                self.log[obj].lastTerm,
+                self.log[obj].commitIndex
+            ) for obj in tag
+        }
+
+    def send_tag_request(self, tag):
+        """
+        Broadcasts a tag request for the passed in tag.
+        """
+        # Change state to tagging and save tag locally
+        self.state = State.TAGGING
+        self.tag = tag
+
+        # Request the entire tag in your current view.
+        tagset = {
+            owner.id: tagset
+            for owner, tagset in self.view.items()
+        }
+        tagset[self.id] = self.tag
+
+        # Send the tag request RPC to each neighbor
+        rpc = RequestTag(self.epoch, tagset, self)
+        for neighbor in self.neighbors():
+            self.send(neighbor, rpc)
+
+    def send_append_entries(self, target=None):
+        """
+        Helper function to send append entries to quorum or a specific node.
+
+        Note: fails silently if target is not in the neighbors list.
+        """
+        # ownership check
+        if not self.state == State.OWNER:
+            return
+
+        # Go through follower list.
+        for node, objs in self.nextIndex.iteritems():
+            # Filter based on the target supplied.
+            if target is not None and node != target:
+                continue
+
+            # Construct the entries, or empty for heartbeat
+            # The tag contains the state of each item to be sent
+            entries = defaultdict(list)
+            tag = defaultdict(LogState)
+
+            for obj, nidx in objs.items():
+                # A rule directly from the Raft paper
+                if self.log[obj].lastApplied >= nidx:
+                    entries[obj] = self.log[obj][nidx:]
+
+                # Compute the previous log index and term
+                prevLogIndex = nidx - 1
+                prevLogTerm  = self.log[obj][prevLogIndex].term
+                commitIndex  = self.log[obj].commitIndex
+
+                # Create the tag state
+                tag[obj] = LogState(prevLogIndex, prevLogTerm, commitIndex)
+
+            # Send the append entries message
+            self.send(
+                node, AppendEntries(
+                    self.epoch, self.id, tag, entries
+                )
+            )
+
     ######################################################################
     ## Event Handlers
     ######################################################################
@@ -353,7 +436,11 @@ class TagReplica(ConsensusReplica):
         # Do state specific tag modifications
         if self.state == State.READY:
             self.votes = None
-            self.tag = None
+            self.tag   = None
+
+            # Remove owner state
+            self.nextIndex  = None
+            self.matchIndex = None
 
             # Also interrupt the heartbeat
             if self.heartbeat: self.heartbeat.stop()
@@ -368,6 +455,23 @@ class TagReplica(ConsensusReplica):
 
             # Also interrupt the heartbeat
             if self.heartbeat: self.heartbeat.stop()
+
+        elif self.state == State.OWNER:
+
+            # Create the next index and match index
+            self.nextIndex = {
+                node: {
+                    obj: self.log[obj].lastApplied + 1
+                    for obj in self.view[self]
+                } for node in self.neighbors()
+            }
+
+            self.matchIndex = {
+                node: {
+                    obj: 0 for obj in self.view[self]
+                } for node in self.neighbors()
+            }
+
         else:
             raise SimulationException(
                 "Unknown Tag Replica State: {!r} set on {}".format(state, self)
@@ -377,11 +481,11 @@ class TagReplica(ConsensusReplica):
         """
         Time to send a heartbeat message to all tags.
         """
-        # Now do AppendEntries
-        for neighbor in self.neighbors():
-            self.send(
-                neighbor, AppendEntries(self.epoch, self.view[self], self.id, [])
-            )
+        if not self.state == State.OWNER:
+            return
+
+        # Send heartbeat or aggregated writes
+        self.send_append_entries()
 
     def on_session_timeout(self, started):
         """
@@ -402,70 +506,74 @@ class TagReplica(ConsensusReplica):
         self.session = None
         self.release()
 
-    def on_remote_access(self, msg):
-        rpc  = msg.value
-        name = rpc.objects
-
-        if rpc.access == WRITE:
-            name = rpc.objects.name
-
-        if name in self.view[self]:
-            return self.send(
-                msg.source, Response(self.epoch, True, self.log[name].lastCommit)
-            )
-
-        return self.send(
-            msg.source, Response(self.epoch, False, None)
-        )
-
-
-    def on_tag_request_rpc(self, msg):
+    def on_request_tag_rpc(self, msg):
         """
         Respond to a request for a tag acquisition from a server.
         """
         rpc = msg.value
+        accept = True
 
-        for tag in rpc.tags:
-            owner = self.find_owner(tag)
-            if owner is not None and owner.id != rpc.candidate:
-                return self.send(
-                    msg.source, Response(self.epoch, False, None)
-                )
+        # The requested epoch must be less than or greater than local.
+        if rpc.epoch < self.epoch: accept = False
 
+        # Ensure that no one else owns the tag in your current view.
+        for candidate, tagset in rpc.tag.items():
+            # Short circuit
+            if not accept: break
+
+            for tag in tagset:
+                owner = self.find_owner(tag)
+                if owner is not None and owner.id != candidate:
+                    accept = False
+                    break
+
+        # Log the vote decision
+        amsg = "accepted" if accept else "did not accept"
+        lmsg = "{} {} tag [{}] for {}".format(
+            self, amsg, ",".join(rpc.tag[rpc.candidate.id]), rpc.candidate.id
+        )
+        self.sim.logger.info(lmsg)
+
+        # Send the vote response back to the tag requester
         return self.send(
-            msg.source, Response(self.epoch, True, None)
+            msg.source, TagResponse(self.epoch, accept)
         )
 
-    def on_append_entries_rpc(self, msg):
-        rpc = msg.value
-
-        self.view[msg.source] = rpc.tag
-
-        if rpc.entries:
-            for version, epoch in rpc.entries:
-
-                # Append the entry to the log
-                self.log[version.name].append(version, epoch)
-
-                # Update the versions to compute visibility
-                if version: version.update(self)
-
-        return self.send(
-            msg.source, Response(self.epoch, True, None)
-        )
-
-    def on_response_rpc(self, msg):
+    def on_tag_response_rpc(self, msg):
         """
-        An RPC response can be to a remote access, a release/aquire vote, or
-        to an append entries (both write and heartbeat messages).
+        Handle the votes from tag requests to other nodes.
         """
         rpc = msg.value
 
         if self.state == State.TAGGING:
-            self.votes.vote(msg.source.id, rpc.success)
+            # If the epoch is greater than the current epoch
+            if rpc.epoch > self.epoch:
+                # Retry the tag request
+                self.epoch = rpc.epoch
+                self.send_tag_request(self.tag)
+
+                self.sim.logger.info(
+                    "{} retrying tag request for {}".format(self, self.tag)
+                )
+
+                # Exit: no more work required!
+                return
+
+            # Update the current election
+            self.votes.vote(msg.source.id, rpc.accept)
             if self.votes.has_passed():
-                self.view[self] = set(self.tag)
-                self.state = State.READY
+
+                # Update our local tag and become owner.
+                if self.tag:
+                    self.state = State.OWNER
+                    self.view[self] = set(self.tag)
+                else:
+                    self.state = State.READY
+
+                # Send out the ownership change append entries
+                self.send_append_entries()
+
+                # Log the new tag owner
                 self.sim.logger.info(
                     "{} tag goes to: {}".format(self, self.view[self])
                 )
@@ -475,10 +583,221 @@ class TagReplica(ConsensusReplica):
                     'tag size', (self.id, self.env.now, len(self.view[self]))
                 )
 
+        elif self.state in (State.READY, State.OWNER):
+            # Ignore vote responses if we've changed our state
+            return
+
+        else:
+            raise TagRPCException(
+                "Tag request response in unknown state: '{}'".format(self.state)
+            )
+
+    def on_append_entries_rpc(self, msg):
+        rpc = msg.value
+
+        # reply false if the epoch < current epoch
+        if rpc.epoch < self.epoch:
+            self.sim.logger.info(
+                "{} doesn't accept append entries in epoch {} for epoch {}".format(
+                    self, self.epoch, rpc.epoch
+                )
+            )
+
+            # Send back the request that you made originally.
+            return self.send(
+                msg.source, AEResponse(
+                    self.epoch,
+                    {obj: False for obj in rpc.tag.keys()},
+                    rpc.tag, Reason.EPOCH
+                )
+            )
+
+        # Update the view to match the view of the append entries
+        self.view[msg.source] = set(rpc.tag.keys())
+
+        # Now for each object in the RPC, perform Raft-like append entries.
+        # The success tracking is a complete tracking for all objects, will
+        # return false even if we need to update the log for only one thing.
+        # We will reply back with a state object that has per-object details.
+        success = defaultdict(bool)
+        state   = defaultdict(LogState)
+
+        for obj, prev in rpc.tag.items():
+            entries = rpc.entries[obj]
+            objlog  = self.log[obj]
+
+            # If log doesn't contain an entry at prev index matching epoch.
+            if objlog.lastApplied < prev.index or objlog[prev.index].term != prev.epoch:
+
+                # Perform the logging of this state failure
+                if objlog.lastApplied < prev.index:
+                    self.sim.logger.info(
+                        "{} doesn't accept append to {} index {} where last applied is {}".format(
+                            self, obj, prev.index, objlog.lastApplied
+                        )
+                    )
+                else:
+                    self.sim.logger.info(
+                        "{} doesn't accept append to {} due to epoch mismatch: {} vs {}".format(
+                            self, obj, prev.epoch, objlog[prev.index].term
+                        )
+                    )
+
+                # Mark that there is a problem and continue
+                success[obj] = False
+                state[obj] = LogState(objlog.lastApplied, objlog.lastTerm, objlog.lastCommit)
+                continue
+
+            # At this point the entries are accepted because of continue statements
+            if entries:
+                if objlog.lastApplied >= prev.index:
+                    # If existing entry conflicts with a new one (same index, different epochs)
+                    # Delete the existing entry and all that follow it.
+                    if objlog[prev.index].term != prev.epoch:
+                        objlog.remove(prev.index)
+
+                if objlog.lastApplied > prev.index:
+                    # Better look into what's happening here!
+                    raise TagRPCException(
+                        "{} is possibly receiving duplicate append entries".format(self)
+                    )
+
+                # Append any new entries not already in the log.
+                for entry in entries:
+                    # Add the entry/epoch to the log
+                    objlog.append(*entry)
+
+                    # Update the versions to compute visibilities
+                    entry[0].update(self)
+
+                # Log the last write from the append entries
+                self.sim.logger.debug(
+                    "appending {} entries to {} log on {} (term {}, commit {})".format(
+                        len(entries), obj, self, objlog.lastTerm, objlog.commitIndex
+                    )
+                )
+
+            # Update the commit index and save the state of the object.
+            if prev.commit > objlog.commitIndex:
+                objlog.commitIndex = min(prev.commit, objlog.lastApplied)
+
+            success[obj] = True
+            state[obj] = LogState(objlog.lastApplied, objlog.lastTerm, objlog.lastCommit)
+
+        # Return the response back to the owner
+        reason = Reason.OK if all(success.values()) else Reason.LOG
+        return self.send(
+            msg.source, AEResponse(self.epoch, success, state, reason)
+        )
+
+    def on_ae_response_rpc(self, msg):
+        """
+        Handles acknowledgment of append entries messages.
+        """
+        rpc = msg.value
+        retry = False
+
+        if self.state == State.OWNER:
+
+            # Update state of followers in the tag group
+            for obj, success in rpc.success.items():
+                if success:
+                    self.nextIndex[msg.source][obj] = rpc.tag[obj].index + 1
+                    self.matchIndex[msg.source][obj] = rpc.tag[obj].index
+
+                else:
+                    # If the epoch is not the same, update accordingly.
+                    if rpc.epoch > self.epoch:
+                        self.epoch = rpc.epoch
+
+                    # If the failure was because of the epoch, simply retry.
+                    if rpc.reason == Reason.EPOCH:
+                        rety = True
+
+                    # Otherwise decrement the next index and to retry
+                    elif rpc.reason == Reason.LOG:
+                        self.nextIndex[msg.source][obj] -= 1
+                        retry = True
+
+                    else:
+                        raise TagRPCException(
+                            "Unknown append entries failure reason: {}".format(rpc.reason)
+                        )
+
+            # Determine if we can commit the entry
+            for obj, state in rpc.tag.items():
+                log = self.log[obj]
+                for n in xrange(log.lastApplied, log.commitIndex, -1):
+                    commit = Election(self.matchIndex.keys())
+                    for node, objs in self.matchIndex.items():
+                        match = objs[obj]
+                        commit.vote(node, match >= n)
+
+                    if commit.has_passed() and log[n].term == self.epoch:
+                        # Commit all versions from the last log to now.
+                        for idx in xrange(log.commitIndex, n+1):
+                            if not log[idx].version: continue
+                            log[idx].version.update(self, commit=True)
+
+                        # Set the commit index and break
+                        log.commitIndex = n
+                        break
+
+            # If retry, send append entries back to the source.
+            if retry: self.send_append_entries(msg.source)
+
+
+        elif self.state == State.TAGGING:
+            # Determine if we need to retry the tagging again.
+            if rpc.epoch > self.epoch:
+                # Retry the tag request
+                self.epoch = rpc.epoch
+                self.send_tag_request(self.tag)
+
+                self.sim.logger.info(
+                    "{} retrying tag request for {}".format(self, self.tag)
+                )
+
+                return
+
         elif self.state == State.READY:
-            pass
+            # Ignore AE messages if we're not an owner anymore.
+            return
 
         else:
             raise TagRPCException(
                 "Response in unknown state: '{}'".format(self.state)
             )
+
+    def on_remote_access(self, msg):
+        """
+        Handles remote writes to and from the replicas.
+        """
+        access = msg.value.access
+
+        # Ensure that we own the object
+        if not self.owns(access.name):
+            return self.send(
+                msg.source, AccessResponse(self.epoch, False, access)
+            )
+
+        # If we do own the object, then respond:
+        method = {
+            'read': self.read,
+            'write': self.write,
+        }[access.type]
+
+        # Call the remote method with the access.
+        method(access)
+
+        return self.send(
+            msg.source, AccessResponse(self.epoch, True, access)
+        )
+
+    def on_access_response_rpc(self, msg):
+        """
+        Handles responses to remote accesses.
+        """
+        rpc = msg.value
+        if rpc.success:
+            rpc.access.complete()

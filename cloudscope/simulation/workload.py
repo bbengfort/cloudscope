@@ -174,7 +174,7 @@ class Workload(NamedProcess):
             access = READ if self.do_read.get() else WRITE
             # Log timeseries
             self.sim.results.update(
-                access, (self.device.id, self.location, self.env.now)
+                access, (self.device.id, self.location, self.current, self.env.now)
             )
 
             if access == WRITE:
@@ -393,7 +393,7 @@ class TracesWorkload(NamedProcess):
 
             # record the access to the results timeseries
             self.sim.results.update(
-                access.method, (device.id, device.location, self.env.now)
+                access.method, (device.id, device.location, access.object, self.env.now)
             )
 
             # debug log the read/write access

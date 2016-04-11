@@ -23,7 +23,6 @@ from cloudscope.replica.store import Version
 from cloudscope.replica import Consistency, State
 from cloudscope.exceptions import RaftRPCException, SimulationException
 from cloudscope.replica.store import MultiObjectWriteLog
-from cloudscope.utils.enums import Enum
 
 from .base import ConsensusReplica
 from .election import ElectionTimer, Election
@@ -35,17 +34,15 @@ from collections import namedtuple
 ## Module Constants
 ##########################################################################
 
-## Response Type Enum
-RType = Enum("RType", "VOTE ACK")
-
 ## Timers and timing
 HEARTBEAT_INTERVAL = settings.simulation.heartbeat_interval
 ELECTION_TIMEOUT   = settings.simulation.election_timeout
 
 ## RPC Messages
 AppendEntries = namedtuple('AppendEntries', 'term, leaderId, prevLogIndex, prevLogTerm, entries, leaderCommit')
+AEResponse    = namedtuple('AEResponse', 'term, success, lastLogIndex, lastCommitIndex')
 RequestVote   = namedtuple('RequestVote', 'term, candidateId, lastLogIndex, lastLogTerm')
-Response      = namedtuple('Response', 'term, success, type')
+VoteResponse  = namedtuple('VoteResponse', 'term, voteGranted')
 RemoteWrite   = namedtuple('RemoteWrite', 'term, version')
 WriteResponse = namedtuple('WriteResponse', 'term, success, access')
 
@@ -235,11 +232,11 @@ class RaftReplica(ConsensusReplica):
     ## Helper Methods
     ######################################################################
 
-    def send_append_entries(self, follower=None):
+    def send_append_entries(self, target=None):
         """
         Helper function to send append entries to quorum or a specific node.
 
-        Note: fails silently if follower is not in the neighbors list.
+        Note: fails silently if target is not in the neighbors list.
         """
         # Leader check
         if not self.state == State.LEADER:
@@ -247,8 +244,8 @@ class RaftReplica(ConsensusReplica):
 
         # Go through follower list.
         for node, nidx in self.nextIndex.iteritems():
-            # Filter based on the follower supplied.
-            if follower is not None and node != follower:
+            # Filter based on the target supplied.
+            if target is not None and node != target:
                 continue
 
             # Construct the entries, or empty for heartbeat
@@ -323,6 +320,7 @@ class RaftReplica(ConsensusReplica):
             self.nextIndex   = {node: self.log.lastApplied + 1 for node in self.neighbors()}
             self.matchIndex  = {node: 0 for node in self.neighbors()}
         elif self.state == State.READY:
+            # This happens on the call to super, just ignore for now.
             pass
         else:
             raise SimulationException(
@@ -384,12 +382,46 @@ class RaftReplica(ConsensusReplica):
                     self.timeout.stop()
                     self.votedFor = rpc.candidateId
                     return self.send(
-                        msg.source, Response(self.currentTerm, True, RType.VOTE)
+                        msg.source, VoteResponse(self.currentTerm, True)
                     )
 
         return self.send(
-            msg.source, Response(self.currentTerm, False, RType.VOTE)
+            msg.source, VoteResponse(self.currentTerm, False)
         )
+
+    def on_vote_response_rpc(self, msg):
+        """
+        Callback for AppendEntries and RequestVote RPC response.
+        """
+        rpc = msg.value
+
+        if self.state == State.CANDIDATE:
+
+            # Update the current election
+            self.votes.vote(msg.source.id, rpc.voteGranted)
+            if self.votes.has_passed():
+                ## Become the leader
+                self.state = State.LEADER
+                self.timeout.stop()
+
+                ## Send the leadership change append entries
+                self.send_append_entries()
+
+                ## Log the new leader
+                self.sim.logger.info(
+                    "{} has become raft leader".format(self)
+                )
+
+            return
+
+        elif self.state in (State.FOLLOWER, State.LEADER):
+            # Ignore vote responses if we've already been elected.
+            return
+
+        else:
+            raise RaftRPCException(
+                "Vote response in unknown state: '{}'".format(self.state)
+            )
 
     def on_append_entries_rpc(self, msg):
         """
@@ -404,13 +436,14 @@ class RaftReplica(ConsensusReplica):
         if rpc.term < self.currentTerm:
             self.sim.logger.info("{} doesn't accept write on term {}".format(self, self.currentTerm))
             return self.send(
-                msg.source, Response(self.currentTerm, False, RType.ACK)
+                msg.source, AEResponse(self.currentTerm, False, self.log.lastApplied, self.log.lastCommit)
             )
 
         # Reply false if log doesn't contain an entry at prevLogIndex whose
         # term matches previous log term.
         if self.log.lastApplied < rpc.prevLogIndex or self.log[rpc.prevLogIndex][1] != rpc.prevLogTerm:
             if self.log.lastApplied < rpc.prevLogIndex:
+
                 self.sim.logger.info(
                     "{} doesn't accept write on index {} where last applied is {}".format(
                         self, rpc.prevLogIndex, self.log.lastApplied
@@ -424,7 +457,7 @@ class RaftReplica(ConsensusReplica):
                 )
 
             return self.send(
-                msg.source, Response(self.currentTerm, False, RType.ACK)
+                msg.source, AEResponse(self.currentTerm, False, self.log.lastApplied, self.log.lastCommit)
             )
 
         # At this point AppendEntries RPC is accepted
@@ -433,7 +466,13 @@ class RaftReplica(ConsensusReplica):
                 # If existing entry conflicts with new one (same index, different terms)
                 # Delete the existing entry and all that follow it.
                 if self.log[rpc.prevLogIndex][1] != rpc.prevLogTerm:
-                    self.log.remove(rpc.prevLogTerm)
+                    self.log.remove(rpc.prevLogIndex)
+
+            if self.log.lastApplied > rpc.prevLogIndex:
+                # Otherwise this could be a message that is sent again
+                raise RaftRPCException(
+                    "{} is possibly receiving a duplicate append entries!".format(self)
+                )
 
             # Append any new entries not already in the log.
             for entry in rpc.entries:
@@ -457,57 +496,19 @@ class RaftReplica(ConsensusReplica):
             self.log.commitIndex = min(rpc.leaderCommit, self.log.lastApplied)
 
         # Return success response.
-        return self.send(msg.source, Response(self.currentTerm, True, RType.ACK))
+        return self.send(msg.source, AEResponse(self.currentTerm, True, self.log.lastApplied, self.log.lastCommit))
 
-    def on_response_rpc(self, msg):
+    def on_ae_response_rpc(self, msg):
         """
-        Callback for AppendEntries and RequestVote RPC response.
+        Handles acknowledgment of append entries message.
         """
         rpc = msg.value
 
-        if self.state == State.FOLLOWER:
-            return
-
-        if self.state == State.CANDIDATE:
-
-            # If it's append entries, decide whether or not to step down.
-            if rpc.type == RType.ACK and rpc.term >= self.currentTerm:
-                ## Become a follower
-                self.state = State.FOLLOWER
-
-                ## Log the failed election
-                self.sim.logger.info(
-                    "{} has stepped down as candidate".format(self)
-                )
-
-                return
-
-            if rpc.type == RType.VOTE:
-                self.votes.vote(msg.source.id, rpc.success)
-                if self.votes.has_passed():
-                    ## Become the leader
-                    self.state = State.LEADER
-                    self.timeout.stop()
-
-                    ## Send the leadership change append entries
-                    self.send_append_entries()
-
-                    ## Log the new leader
-                    self.sim.logger.info(
-                        "{} has become raft leader".format(self)
-                    )
-
-                return
-
-        elif self.state == State.LEADER:
-
-            # Ignore votes after becoming leader
-            if rpc.type == RType.VOTE:
-                return
+        if self.state == State.LEADER:
 
             if rpc.success:
-                self.nextIndex[msg.source]  = self.log.lastApplied + 1
-                self.matchIndex[msg.source] = self.log.lastApplied
+                self.nextIndex[msg.source]  = rpc.lastLogIndex + 1
+                self.matchIndex[msg.source] = rpc.lastLogIndex
 
             else:
                 # Decrement next index and retry append entries
@@ -530,9 +531,27 @@ class RaftReplica(ConsensusReplica):
                     self.log.commitIndex = n
                     break
 
+        elif self.state == State.CANDIDATE:
+
+            # Decide whether or not to step down.
+            if rpc.term >= self.currentTerm:
+                ## Become a follower
+                self.state = State.FOLLOWER
+
+                ## Log the failed election
+                self.sim.logger.info(
+                    "{} has stepped down as candidate".format(self)
+                )
+
+                return
+
+        elif self.state == State.FOLLOWER:
+            # Ignore AE messages if we are the follower.
+            return
+
         else:
             raise RaftRPCException(
-                "Response in unknown state: '{}'".format(self.state)
+                "Append entries response in unknown state: '{}'".format(self.state)
             )
 
     def on_remote_write_rpc(self, message):

@@ -76,14 +76,18 @@ def plot_time(series, **kwargs):
 ## Traces Drawing Utilities
 ##########################################################################
 
-def plot_workload(results, devices=False, **kwargs):
+def plot_workload(results, series='devices', **kwargs):
     """
     Helper function to make a timeline plot of reads/writes.
     If devices is True, plots timeline by device, else Objects.
     """
     kwargs  = configure(**kwargs)
     outpath = kwargs.pop('savefig', None)
-    series  = 0 if devices else 1
+    series  = {
+        'devices': 0,
+        'locations': 1,
+        'objects': 2,
+    }[series.lower()]
 
     read_color  = kwargs.pop('read_color', '#E20404')
     write_color = kwargs.pop('write_color', '#1E05D9')
@@ -108,12 +112,12 @@ def plot_workload(results, devices=False, **kwargs):
 
     for idx, (key, lst) in enumerate(sorted(locations.items(), key=itemgetter(0), reverse=True)):
         for item in lst:
-            if item[2] > 1000000: continue
+            if item[3] > 1000000: continue
             if item[-1] == 'read':
-                rx.append(int(item[2]))
+                rx.append(int(item[3]))
                 ry.append(idx)
             else:
-                wx.append(int(item[2]))
+                wx.append(int(item[3]))
                 wy.append(idx)
 
     fig = plt.figure(figsize=(14,4))
