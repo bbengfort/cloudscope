@@ -3,7 +3,7 @@
         "constant": "30ms",
         "variable": "15-45ms",
         "seed": 42,
-        "title": "Tagging (Multi Raft) Quorum",
+        "title": "Tagging Quorum",
         "description": "Single Consistency Type: Strong Tag Consensus."
     },
     "nodes": [

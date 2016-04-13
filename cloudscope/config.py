@@ -82,13 +82,14 @@ class SimulationConfiguration(Configuration):
     max_sim_time    = 4320000
 
     # Network Parameters
-    count_messages  = False
-    default_latency = 800
+    count_messages       = False
+    aggregate_heartbeats = True
+    default_latency      = 800
     default_replica      = "storage"
     default_consistency  = "strong"
 
     # Workload Parameters
-    users           = 1       # number of simulated users creating traces
+    users                = 1  # number of simulated users creating traces
     max_objects_accessed = 1  # maximum number of objects that can be accessed
     # Locations to allow users to move to
     valid_locations = [
