@@ -18,12 +18,15 @@ Generates random traces to pass directly to the simulations (as input).
 ##########################################################################
 
 import sys
+import random
 import argparse
 
+from operator import itemgetter
 from collections import defaultdict
 
 from commis import Command
 from cloudscope.config import settings
+from cloudscope.dynamo import CharacterSequence
 from cloudscope.simulation.main import ConsistencySimulation
 from cloudscope.simulation.workload import Workload
 from cloudscope.replica.access import READ, WRITE
@@ -37,10 +40,13 @@ class TracesCommand(Command):
     name = 'traces'
     help = 'generate random access traces to write to disk'
     args = {
-        '-D': {
+        '--best-case': {
             'action': 'store_true',
-            'dest': 'debugging',
-            'help': 'special manual trace generation',
+            'help': 'special manual trace generation: best case scenario',
+        },
+        '--ping-pong': {
+            'action': 'store_true',
+            'help': 'special manual trace generation: ping pong scenario',
         },
         ('-u', '--users'): {
             'type': int,
@@ -96,8 +102,11 @@ class TracesCommand(Command):
         workload   = simulation.workload
 
         # If we're in manual mode, execute that and return.
-        if args.debugging:
-            return self.debugging_trace(workload, args)
+        if args.best_case:
+            return self.best_case_trace(workload, args)
+
+        if args.ping_pong:
+            return self.ping_pong_trace(workload, args)
 
         # Write the traces to disk
         for idx, access in enumerate(self.compute_accesses(workload, args.timesteps)):
@@ -139,15 +148,12 @@ class TracesCommand(Command):
                 # Reschedule the work
                 schedule[int(work.next_access.get()) + timestep].append(work)
 
-    def debugging_trace(self, workload, args):
+    def best_case_trace(self, workload, args):
         """
-        Manual function to generate a debugging trace for specific workloads.
+        Manual function to generate a "best case" trace for tagging: that is
+        where each replica server only accesses its own objects.
         """
-        import random
-
-        from operator import itemgetter
-        from cloudscope.dynamo import CharacterSequence
-
+        until    = args.timesteps
         sequence = CharacterSequence(upper=True)
 
         nodes = defaultdict(dict)
@@ -164,6 +170,9 @@ class TracesCommand(Command):
         for idx in xrange(1000):
             for work, info in nodes.items():
                 info['tme'] += int(work.next_access.get())
+                if info['tme'] > until:
+                    break
+
                 info['acs'] = READ if work.do_read.get() else WRITE
 
                 output.append(
@@ -173,4 +182,39 @@ class TracesCommand(Command):
         for line in sorted(output, key=itemgetter(0)):
             args.output.write("\t".join((str(s) for s in line)) + "\n")
 
-        return "manual debugging trace generated with {} accesses for {} devices".format(len(output), len(nodes))
+        return "manual \"best case\" trace generated with {} accesses for {} devices".format(len(output), len(nodes))
+
+    def ping_pong_trace(self, workload, args):
+        """
+        Manual trace generation function to create a "ping pong" scenario
+        where the tag bounces between replica servers.
+        """
+        until = args.timesteps
+        tag   = ['A', 'B', 'C', 'D', 'E']
+        time  = 0
+        nodes = {work.device.id: work for work in workload if not work.move()}
+        bingo = random.choice(nodes.keys())
+        work  = nodes[bingo]
+        N     = 5000
+
+        for idx in xrange(N):
+
+            # Do we switch to a new writer with some small probability?
+            if random.random() < 0.1:
+                bingo = random.choice(nodes.keys())
+
+            # Update the time and determine the access
+            time  += int(work.next_access.get())
+            if time > until:
+                break
+
+            # Write the random
+            obj    = random.choice(tag)
+            access = READ if work.do_read.get() else WRITE
+
+            # Write out the trace
+            args.output.write(
+                "{}\t{}\t{}\t{}\n".format(time, bingo, obj, access)
+            )
+
+        return "manual \"ping pong\" trace generated with {} accesses for {} devices".format(idx+1, len(nodes))

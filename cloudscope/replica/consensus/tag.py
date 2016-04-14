@@ -89,23 +89,6 @@ class TagReplica(ConsensusReplica):
     ## Core Methods (Replica API)
     ######################################################################
 
-    def recv(self, event):
-        """
-        Before dispatching the message to an RPC specific handler, there are
-        some message-wide checks that need to occur. In this case, the replica
-        must update its view appropriately.
-        """
-        message = event.value
-        rpc = message.value
-
-        # If RPC request or response contains epoch > self.epoch
-        # We're now out of epoch, so we need to stop being owner and reset.
-        # if rpc.epoch > self.epoch:
-        #     self.epoch = rpc.epoch
-
-        # Record the received message and dispatch to event handler
-        return super(TagReplica, self).recv(event)
-
     def read(self, name, **kwargs):
         """
         When a tag replica performs a read it has to decide whether or not to
@@ -613,7 +596,10 @@ class TagReplica(ConsensusReplica):
             )
 
         # Update the view to match the view of the append entries
+        # Update the epoch to match the rpc of the append entries
         self.view[msg.source] = set(rpc.tag.keys())
+        if self.epoch < rpc.epoch:
+            self.epoch = rpc.epoch
 
         # Now for each object in the RPC, perform Raft-like append entries.
         # The success tracking is a complete tracking for all objects, will
@@ -712,7 +698,7 @@ class TagReplica(ConsensusReplica):
 
                     # If the failure was because of the epoch, simply retry.
                     if rpc.reason == Reason.EPOCH:
-                        rety = True
+                        retry = True
 
                     # Otherwise decrement the next index and to retry
                     elif rpc.reason == Reason.LOG:
