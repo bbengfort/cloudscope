@@ -64,9 +64,11 @@ class AccessTests(unittest.TestCase):
 
         # Move forward in time and check latency
         self.sim.env.now = 84
+        self.assertIsNone(access.latency)
         access.update(self.File(self.replica), completed=True)
 
         self.assertTrue(access.is_completed())
+        self.assertFalse(access.is_dropped())
         self.assertEqual(access.latency, 42)
 
     def test_access_is_completed(self):
@@ -79,12 +81,43 @@ class AccessTests(unittest.TestCase):
         self.assertFalse(access.is_completed())
 
         # Access is incomplete even on version update
-        access.update(self.File(self.replica))
+        result = access.update(self.File(self.replica))
+        self.assertIs(result, access, "Access interaction methods must return self!")
         self.assertFalse(access.is_completed())
 
         # Access is complete after complete is called
-        access.complete()
+        result = access.complete()
+        self.assertIs(result, access, "Access interaction methods must return self!")
         self.assertTrue(access.is_completed())
+        self.assertFalse(access.is_dropped())
+
+    def test_dropping_access(self):
+        """
+        Test that accesses can be dropped
+        """
+        access = Access(self.name, self.replica)
+        self.assertFalse(access.is_dropped())
+
+        result = access.drop()
+        self.assertIs(result, access, "Access interaction methods must return self!")
+
+        self.assertTrue(access.is_dropped())
+        self.assertFalse(access.is_completed())
+
+    def test_drop_latency(self):
+        """
+        Test that the latency until drop can be measured
+        """
+        self.assertEqual(self.sim.env.now, 42, "env.now not setup correctly!")
+        access = Access(self.name, self.replica)
+
+        # Move forward in time and check latency
+        self.sim.env.now = 84
+        access.drop()
+
+        self.assertTrue(access.is_dropped())
+        self.assertFalse(access.is_completed())
+        self.assertEqual(access.latency, 42)
 
     def test_only_complete_once(self):
         """
@@ -96,8 +129,10 @@ class AccessTests(unittest.TestCase):
 
         self.sim.env.now = 48
         self.assertFalse(access.is_completed())
+        self.assertFalse(access.is_dropped())
         access.complete()
         self.assertTrue(access.is_completed())
+        self.assertFalse(access.is_dropped())
         self.assertEqual(access.finished, 48)
 
         with self.assertRaises(AccessError):
@@ -152,7 +187,6 @@ class AccessTests(unittest.TestCase):
         self.assertEqual(Read('A', self.replica).id, 3)
         self.assertEqual(Read('A', self.replica).id, 4)
 
-
 ##########################################################################
 ## Read Event Tests
 ##########################################################################
@@ -199,6 +233,7 @@ class ReadAccessTests(unittest.TestCase):
         # Access is complete after complete is called
         access.complete()
         self.assertTrue(access.is_completed())
+        self.assertFalse(access.is_dropped())
 
     def test_complete(self):
         pass
@@ -250,3 +285,4 @@ class WriteAccessTests(unittest.TestCase):
         # Access is complete after complete is called
         access.complete()
         self.assertTrue(access.is_completed())
+        self.assertFalse(access.is_dropped())

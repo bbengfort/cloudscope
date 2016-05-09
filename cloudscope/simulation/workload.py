@@ -37,13 +37,36 @@ from collections import namedtuple
 
 def create(env, sim, **kwargs):
     """
-    Returns the Workload or MultiVersionWorkload depending on the number of
-    versions that are being managed by the simulation.
+    Returns the correct workload class depending on synchronous or async
+    accesses, multiple objects or not, and whether or not a trace exists.
+
+    Returns a single workload; to generate multiple workloads, must generate.
     """
-    versions = kwargs.get('objects', settings.simulation.max_objects_accessed)
-    if versions > 1:
-        return MultiObjectWorkload(env, sim, **kwargs)
-    return Workload(env, sim, **kwargs)
+    # Create a manual trace if it's passed in
+    trace = kwargs.get('trace', None)
+    if trace:
+        if settings.simulation.synchronous_access:
+            return SynchronousTracesWorkload(trace, env, sim)
+        else:
+            return TracesWorkload(trace, env, sim)
+
+
+    # Otherwise construct random workload generator
+    objects = kwargs.get('objects', settings.simulation.max_objects_accessed)
+
+    if objects > 1:
+        # Multi object workload; sync vs async
+        klass = MultiObjectWorkload
+        if settings.simulation.synchronous_access:
+            klass = SynchronousMultiObjectWorkload
+
+    else:
+        # Single object workload; synv vs async
+        klass = Workload
+        if seettings.simulation.synchronous_access:
+            klass = SynchronousWorkload
+
+    return klass(env, sim, **kwargs)
 
 ##########################################################################
 ## Initial Workload Generator
@@ -160,6 +183,26 @@ class Workload(NamedProcess):
 
         return False
 
+    def trigger_access(self):
+        """
+        Causes an access to be triggered by the user on the device.
+        """
+        # Initiate an access after the interval is complete.
+        access = READ if self.do_read.get() else WRITE
+
+        # Log timeseries
+        self.sim.results.update(
+            access, (self.device.id, self.location, self.current, self.env.now)
+        )
+
+        if access == READ:
+            # Read the latest version of the current object
+            return self.device.read(self.current)
+
+        if access == WRITE:
+            # Write to the current version (e.g. fork it)
+            return self.device.write(self.current)
+
     def run(self):
 
         # Initialze location and device
@@ -170,20 +213,9 @@ class Workload(NamedProcess):
             wait = self.next_access.get()
             yield self.env.timeout(wait)
 
-            # Initiate an access after the interval is complete.
-            access = READ if self.do_read.get() else WRITE
-            # Log timeseries
-            self.sim.results.update(
-                access, (self.device.id, self.location, self.env.now)
-            )
-
-            if access == WRITE:
-                # Write to the current version (e.g. fork it)
-                self.device.write(self.current)
-
-            if access == READ:
-                # Read the latest version of the current object
-                self.device.read(self.current)
+            # Trigger the access
+            access = self.trigger_access()
+            assert access is not None
 
             # Debug log the read/write access
             self.sim.logger.debug(
@@ -295,6 +327,11 @@ class TracesWorkload(NamedProcess):
         self.path = path
         self.sim  = sim
 
+        # Current device, and location
+        self.location  = None
+        self.device    = None
+        self.current   = None
+
         # Initialize the Process
         super(TracesWorkload, self).__init__(env)
 
@@ -354,6 +391,34 @@ class TracesWorkload(NamedProcess):
             for line in fobj:
                 yield self.parse(line)
 
+    def trigger_access(self, access):
+        """
+        Causes an access to be triggered by the user on the device.
+        """
+        # get the appropriate device to trigger the access
+        self.device = self.devices.get(access.replica, None)
+
+        # ensure that the device exists
+        if self.device is None:
+            raise WorkloadException(
+                "Unknown device with replica id '{}'".format(access.replica)
+            )
+
+        self.location = self.device.location
+        self.current  = access.object
+
+        # record the access to the results timeseries
+        self.sim.results.update(
+            access.method, (self.device.id, self.location, access.object, self.env.now)
+        )
+
+        # perform the access
+        if access.method == READ:
+            return self.device.read(access.object)
+
+        if access.method == WRITE:
+            return self.device.write(access.object)
+
     def run(self):
         """
         Reads in the accesses (which must be ordered by timestep) and updates
@@ -375,31 +440,75 @@ class TracesWorkload(NamedProcess):
             yield self.env.timeout(wait)
             clock = self.env.now
 
-            # get the appropriate device to trigger the access
-            device = self.devices.get(access.replica, None)
-
-            # ensure that the device exists
-            if device is None:
-                raise WorkloadException(
-                    "Unknown device with replica id '{}'".format(access.replica)
-                )
-
-            # perform the access
-            if access.method == READ:
-                device.read(access.object)
-
-            if access.method == WRITE:
-                device.write(access.object)
-
-            # record the access to the results timeseries
-            self.sim.results.update(
-                access.method, (device.id, device.location, self.env.now)
-            )
+            access = self.trigger_access(access)
+            assert access is not None
 
             # debug log the read/write access
             self.sim.logger.debug(
                 "{} access by {} on {} (at {}) after {}".format(
-                    access.method, self.name, device, device.location,
+                    access, self.name, self.device, self.device.location,
                     humanizedelta(milliseconds=wait)
                 )
             )
+
+
+##########################################################################
+## Synchronous Workloads
+## TODO: Convert into a better class hierarchy
+##########################################################################
+
+class SynchronousWorkload(Workload):
+    """
+    Converts a workload into synchronous access, meaning that an access must
+    wait until the previous access is complete (or dropped) until the next
+    access can be issued.
+
+    The mixin does this by overriding `trigger_access` and creates a callback
+    mechanism if there is still an access underway.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super(SynchronousWorkload, self).__init__(*args, **kwargs)
+
+    def trigger_access(self, *args, **kwargs):
+        raise NotImplementedError(
+            "Synchronous single object workload is not yet implemented."
+        )
+
+
+class SynchronousMultiObjectWorkload(MultiObjectWorkload):
+    """
+    Converts a multi-object workload into synchronous access, meaning that an
+    access must wait until the previous access is complete (or dropped) until
+    the next access can be issued.
+
+    The mixin does this by overriding `trigger_access` and creates a callback
+    mechanism if there is still an access underway.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super(SynchronousMultiObjectWorkload, self).__init__(*args, **kwargs)
+
+    def trigger_access(self, *args, **kwargs):
+        raise NotImplementedError(
+            "Synchronous multiple object workload is not yet implemented."
+        )
+
+
+class SynchronousTracesWorkload(TracesWorkload):
+    """
+    Converts a traces workload into synchronous access, meaning that an
+    access must wait until the previous access is complete (or dropped) until
+    the next access can be issued.
+
+    The mixin does this by overriding `trigger_access` and creates a callback
+    mechanism if there is still an access underway.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super(SynchronousTracesWorkload, self).__init__(*args, **kwargs)
+
+    def trigger_access(self, *args, **kwargs):
+        raise NotImplementedError(
+            "Synchronous multiple object workload is not yet implemented."
+        )

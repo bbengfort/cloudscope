@@ -158,6 +158,19 @@ class Replica(Node):
 
         # Track time series of sent messages
         if settings.simulation.count_messages:
+            # Aggregate heartbeats
+            if settings.simulation.aggregate_heartbeats:
+                if mtype == 'AppendEntries':
+                    # Tag/Complex entries
+                    if isinstance(message.value.entries, dict):
+                        if any(message.value.entries.values()):
+                            mtype = 'Heartbeat'
+
+                    # Raft/Standard entries
+                    if not message.value.entries:
+                        mtype = 'Heartbeat'
+
+
             self.sim.results.update(
                 "sent", (self.id, self.env.now, mtype)
             )

@@ -81,6 +81,7 @@ class Access(object):
         self.name    = name      # name of the object being accessed
         self.owner   = replica   # the origination server of the access
         self.version = version   # the version that is returned by the access
+        self.dropped = False     # if the access has been dropped or not
 
         # Timestamps added for ease of use
         self.started  = kwargs.get('started', self.env.now)
@@ -112,7 +113,7 @@ class Access(object):
         """
         Computes the access latency as the difference between start and finish
         """
-        if self.is_completed():
+        if self.is_completed() or self.is_dropped():
             return self.finished - self.started
 
     @property
@@ -121,6 +122,12 @@ class Access(object):
         Returns the access type (read or write).
         """
         return self.__class__.__name__.lower()
+
+    def is_dropped(self):
+        """
+        Checks if the access has been dropped
+        """
+        return self.dropped
 
     def is_completed(self):
         """
@@ -142,6 +149,15 @@ class Access(object):
         """
         return replica != self.owner
 
+    def drop(self):
+        """
+        An access drop is a bad thing, but in some cases, replicas might just
+        drop or ignore the previous access. This method tracks that.
+        """
+        self.dropped = True
+        self.finished = self.env.now
+        return self
+
     def update(self, version, completed=False):
         """
         Updates the access with a version (e.g. when preparing to send back
@@ -152,6 +168,7 @@ class Access(object):
         """
         self.version = version
         if completed: self.complete()
+        return self
 
     def complete(self):
         """
@@ -170,7 +187,7 @@ class Access(object):
             )
 
         self.finished = self.env.now
-        return True
+        return self
 
     def log(self, replica):
         """
@@ -199,6 +216,55 @@ class Access(object):
 ##########################################################################
 
 class Read(Access):
+
+    def drop(self, empty=False):
+        """
+        Measures the following metrics:
+
+            - missed read latency
+            - missed reads
+            - empty reads (read before write)
+
+        Logs the following information:
+
+            - missed reads
+            - empty reads (read before write)
+        """
+        super(Read, self).drop()
+
+        # Empty reads are a special case of missed reads
+        if empty:
+
+            # Count the number of missed reads
+            self.sim.results.update(
+                'empty reads', (self.owner.id, self.env.now)
+            )
+
+            # Log the missed read
+            self.sim.logger.info(
+                "empty read of object {} on {}".format(self.name, self)
+            )
+
+        # Otherwise this is a missed read
+        else:
+
+            # Track the drop latency
+            self.sim.results.update(
+                'missed read latency latency',
+                (self.owner.id, self.name, self.started, self.finished)
+            )
+
+            # Count the number of missed reads
+            self.sim.results.update(
+                'missed reads', (self.owner.id, self.env.now)
+            )
+
+            # Log the missed read
+            self.sim.logger.info(
+                "missed read of object {} on {}".format(self.name, self)
+            )
+
+        return self
 
     def complete(self):
         """
@@ -230,8 +296,40 @@ class Read(Access):
                 "stale read of version {} on {}".format(self.version, self)
             )
 
+        return self
 
 class Write(Access):
+
+    def drop(self):
+        """
+        Measures the following metrics:
+
+            - dropped write latency
+            - dropped writes
+
+        Logs the following information:
+
+            - dropped writes
+        """
+        super(Write, self).drop()
+
+        # Track the drop latency
+        self.sim.results.update(
+            'dropped write latency',
+            (self.owner.id, self.name, self.started, self.finished)
+        )
+
+        # Count the number of missed reads
+        self.sim.results.update(
+            'dropped writes', (self.owner.id, self.env.now)
+        )
+
+        # Log the missed read
+        self.sim.logger.info(
+            "dropped write of object {} on {}".format(self.name, self)
+        )
+
+        return self
 
     def update(self, version, completed=False):
         """
@@ -239,6 +337,8 @@ class Write(Access):
         """
         super(Write, self).update(version, completed)
         self.version.access = self
+
+        return self
 
     def complete(self):
         """
@@ -257,3 +357,5 @@ class Write(Access):
             'write latency',
             (self.owner.id, str(self.version), self.started, self.finished)
         )
+
+        return self
