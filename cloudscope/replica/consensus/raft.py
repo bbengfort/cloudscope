@@ -113,7 +113,7 @@ class RaftReplica(ConsensusReplica):
         version = self.log.get_latest_commit(access.name)
 
         # If the version is None, that we haven't read anything!
-        if version is None: return
+        if version is None: return access.drop(empty=True) 
 
         # Because this is a local read committed, complete the read.
         access.update(version, completed=True)
@@ -212,6 +212,8 @@ class RaftReplica(ConsensusReplica):
             self.send_append_entries()
             self.heartbeat.stop()
 
+        return access
+
     def run(self):
         """
         Implements the Raft consensus protocol and elections.
@@ -277,12 +279,15 @@ class RaftReplica(ConsensusReplica):
             self.sim.logger.info(
                 "no leader: dropped write at {}".format(self)
             )
-            return
+
+            return access.drop()
 
         # Send the remote write to the leader
         self.send(
             leader, RemoteWrite(self.currentTerm, access)
         )
+
+        return access
 
     def get_leader_node(self):
         """

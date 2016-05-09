@@ -89,8 +89,10 @@ class SimulationConfiguration(Configuration):
     default_consistency  = "strong"
 
     # Workload Parameters
-    users                = 1  # number of simulated users creating traces
-    max_objects_accessed = 1  # maximum number of objects that can be accessed
+    users                = 1     # number of simulated users creating traces
+    max_objects_accessed = 1     # maximum number of objects that can be accessed
+    synchronous_access   = False # each access has to wait on the previous access to be triggered
+
     # Locations to allow users to move to
     valid_locations = [
         "home", "work", "mobile"

@@ -114,7 +114,7 @@ class EventualReplica(Replica):
         version = self.log.get_latest_version(access.name)
 
         # If version is None then we haven't read anything; bail!
-        if version is None: return
+        if version is None: return access.drop(empty=True)
 
         # Eventual nodes read locally and immediately, so complete the read.
         access.update(version, completed=True)
@@ -150,7 +150,7 @@ class EventualReplica(Replica):
         if access.is_local_to(self):
             # Record the number of attempts for the access
             access.attempts += 1
-            
+
             # Fetch the latest version from the log
             latest  = self.log.get_latest_version(access.name)
 

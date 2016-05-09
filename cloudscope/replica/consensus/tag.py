@@ -119,7 +119,7 @@ class TagReplica(ConsensusReplica):
             version = self.log[access.name].lastVersion
 
             # If the version is None, bail since we haven't read anything
-            if version is None: return
+            if version is None: return access.drop(empty=True)
 
             # Update the version, complete the read, and log the access
             access.update(version, completed=True)
@@ -135,7 +135,7 @@ class TagReplica(ConsensusReplica):
             self.sim.logger.info(
                 "ownership conflict: dropped {} at {}".format(access, self)
             )
-            return
+            return access.drop()
 
         # We're going to acquire the tag!
         else:
@@ -150,6 +150,8 @@ class TagReplica(ConsensusReplica):
             if access.attempts <= 1 and self.state != State.TAGGING:
                 # Request the ownership of the tag
                 self.acquire(access.name)
+
+        return access
 
     def write(self, name, **kwargs):
         """
@@ -221,7 +223,7 @@ class TagReplica(ConsensusReplica):
                 self.send_append_entries()
                 if self.heartbeat: self.heartbeat.stop()
 
-            return
+            return access
 
         # Is there a different owner for the tag?
         owner = self.find_owner(name)
@@ -230,7 +232,7 @@ class TagReplica(ConsensusReplica):
             self.sim.logger.info(
                 "ownership conflict: dropped {} at {}".format(access, self)
             )
-            return
+            return access.drop()
 
         # We're going to acquire the tag!
         else:
@@ -241,6 +243,8 @@ class TagReplica(ConsensusReplica):
 
             # Request the ownership of the tag
             self.acquire(access.name)
+
+        return access
 
     def run(self):
         """

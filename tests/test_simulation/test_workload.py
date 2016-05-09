@@ -276,6 +276,7 @@ class TracesWorkloadTests(unittest.TestCase):
             def __call__(self, *args, **kwargs):
                 self.history.append(self.env.now)
                 self.mock(*args, **kwargs)
+                return args[0]
 
             @property
             def call_count(self):
