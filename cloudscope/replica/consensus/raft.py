@@ -295,7 +295,7 @@ class RaftReplica(ConsensusReplica):
         there are multiple leaders, which is an extreme edge case.
         """
         leaders = [
-            node for node in self.connections if node.state == State.LEADER
+            node for node in self.quorum() if node.state == State.LEADER
         ]
 
         if len(leaders) > 1:
@@ -322,8 +322,8 @@ class RaftReplica(ConsensusReplica):
         elif self.state == State.CANDIDATE:
             pass
         elif self.state == State.LEADER:
-            self.nextIndex   = {node: self.log.lastApplied + 1 for node in self.neighbors()}
-            self.matchIndex  = {node: 0 for node in self.neighbors()}
+            self.nextIndex   = {node: self.log.lastApplied + 1 for node in self.quorum() if node != self}
+            self.matchIndex  = {node: 0 for node in self.quorum() if node != self}
         elif self.state == State.READY:
             # This happens on the call to super, just ignore for now.
             pass
@@ -360,7 +360,8 @@ class RaftReplica(ConsensusReplica):
             self.currentTerm, self.id, self.log.lastApplied, self.log.lastTerm
         )
 
-        for follower in self.neighbors():
+        for follower in self.quorum():
+            if follower == self: continue
             self.send(
                 follower, rpc
             )
