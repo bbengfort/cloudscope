@@ -113,7 +113,7 @@ class RaftReplica(ConsensusReplica):
         version = self.log.get_latest_commit(access.name)
 
         # If the version is None, that we haven't read anything!
-        if version is None: return access.drop(empty=True) 
+        if version is None: return access.drop(empty=True)
 
         # Because this is a local read committed, complete the read.
         access.update(version, completed=True)
@@ -475,9 +475,14 @@ class RaftReplica(ConsensusReplica):
 
             if self.log.lastApplied > rpc.prevLogIndex:
                 # Otherwise this could be a message that is sent again
-                raise RaftRPCException(
+                # raise RaftRPCException(
+                #     "{} is possibly receiving a duplicate append entries!".format(self)
+                # )
+                self.sim.logger.warn(
                     "{} is possibly receiving a duplicate append entries!".format(self)
                 )
+                return self.send(msg.source, AEResponse(self.currentTerm, True, self.log.lastApplied, self.log.lastCommit))
+
 
             # Append any new entries not already in the log.
             for entry in rpc.entries:
