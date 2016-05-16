@@ -22,6 +22,8 @@ from .store import *
 from .access import *
 from .consensus import RaftReplica
 from .consensus import TagReplica
+from .consensus import FloatedRaftReplica
+from .consensus import TieredRaftReplica
 from .eventual import EventualReplica
 
 from cloudscope.config import settings
@@ -31,7 +33,9 @@ from cloudscope.config import settings
 ##########################################################################
 
 ReplicaTypes = {
-    Consistency.STRONG: RaftReplica,
+    # Consistency.STRONG: RaftReplica,
+    # Consistency.STRONG: TieredRaftReplica,
+    Consistency.STRONG: FloatedRaftReplica,
     Consistency.MEDIUM: TagReplica,
     Consistency.LOW: EventualReplica,
 }

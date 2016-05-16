@@ -113,7 +113,7 @@ class RaftReplica(ConsensusReplica):
         version = self.log.get_latest_commit(access.name)
 
         # If the version is None, that we haven't read anything!
-        if version is None: return access.drop(empty=True) 
+        if version is None: return access.drop(empty=True)
 
         # Because this is a local read committed, complete the read.
         access.update(version, completed=True)
@@ -295,7 +295,7 @@ class RaftReplica(ConsensusReplica):
         there are multiple leaders, which is an extreme edge case.
         """
         leaders = [
-            node for node in self.connections if node.state == State.LEADER
+            node for node in self.quorum() if node.state == State.LEADER
         ]
 
         if len(leaders) > 1:
@@ -322,8 +322,8 @@ class RaftReplica(ConsensusReplica):
         elif self.state == State.CANDIDATE:
             pass
         elif self.state == State.LEADER:
-            self.nextIndex   = {node: self.log.lastApplied + 1 for node in self.neighbors()}
-            self.matchIndex  = {node: 0 for node in self.neighbors()}
+            self.nextIndex   = {node: self.log.lastApplied + 1 for node in self.quorum() if node != self}
+            self.matchIndex  = {node: 0 for node in self.quorum() if node != self}
         elif self.state == State.READY:
             # This happens on the call to super, just ignore for now.
             pass
@@ -360,7 +360,8 @@ class RaftReplica(ConsensusReplica):
             self.currentTerm, self.id, self.log.lastApplied, self.log.lastTerm
         )
 
-        for follower in self.neighbors():
+        for follower in self.quorum():
+            if follower == self: continue
             self.send(
                 follower, rpc
             )
@@ -475,9 +476,14 @@ class RaftReplica(ConsensusReplica):
 
             if self.log.lastApplied > rpc.prevLogIndex:
                 # Otherwise this could be a message that is sent again
-                raise RaftRPCException(
+                # raise RaftRPCException(
+                #     "{} is possibly receiving a duplicate append entries!".format(self)
+                # )
+                self.sim.logger.warn(
                     "{} is possibly receiving a duplicate append entries!".format(self)
                 )
+                return self.send(msg.source, AEResponse(self.currentTerm, True, self.log.lastApplied, self.log.lastCommit))
+
 
             # Append any new entries not already in the log.
             for entry in rpc.entries:

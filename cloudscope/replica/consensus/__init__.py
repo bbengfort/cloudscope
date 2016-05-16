@@ -19,3 +19,5 @@ Implements strong consistency using consensus protocols.
 
 from .raft import RaftReplica
 from .tag import TagReplica
+from .float import FloatedRaftReplica
+from .tiered import TieredRaftReplica

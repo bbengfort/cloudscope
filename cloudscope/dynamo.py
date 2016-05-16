@@ -164,16 +164,18 @@ class Distribution(Dynamo):
         """
         Vizualizes the density estimate of the distribution.
         """
+        title = kwargs.pop('title',
+            '{} Distribution Plot'.format(
+            self.__class__.__name__.rstrip('Distribution')
+        ))
+
         random.seed(kwargs.pop('random_seed', settings.simulation.random_seed))
         series = [self.get() for x in xrange(n)]
         axe = plot_kde(series, **kwargs)
 
         axe.set_ylabel('frequency')
         axe.set_xlabel('value')
-        axe.set_title(
-            '{} Distribution Plot'.format(
-            self.__class__.__name__.rstrip('Distribution')
-        ))
+        axe.set_title(title)
 
         return axe
 

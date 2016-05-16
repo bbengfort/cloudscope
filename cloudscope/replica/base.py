@@ -49,6 +49,11 @@ class Location(Enum):
     CLOUD   = "cloud"
     UNKNOWN = "unknown"
 
+    # WAN Locations (Stub)
+    DESCHUTES = "Deschutes, OR"
+    KEENE     = "Keene, NH"
+    LUBBOCK   = "Lubbock, TX"
+
 class Device(Enum):
     """
     Defines the device/replica types in the cluster.
@@ -104,7 +109,7 @@ class Replica(Node):
         self.type  = kwargs.get('type', settings.simulation.default_replica)
         self.label = kwargs.get('label', "{}-{}".format(self.type, self.id))
         self.state = kwargs.get('state', State.READY)
-        self.location    = Location.get(kwargs.get('location', Location.UNKNOWN))
+        self.location    = kwargs.get('location', 'unknown')
         self.consistency = Consistency.get(kwargs.get(
             'consistency', settings.simulation.default_consistency
         ))

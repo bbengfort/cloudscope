@@ -118,9 +118,7 @@ class Workload(NamedProcess):
         """
         locations = defaultdict(list)
         for replica in self.sim.replicas:
-            if replica.location in self.valid_locations:
-                if replica.type not in self.invalid_types:
-                    locations[replica.location].append(replica)
+            locations[replica.location].append(replica)
         return locations
 
     def move(self):
