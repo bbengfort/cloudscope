@@ -1,0 +1,9 @@
+fixtures/results/bailis-floated-raft.json filter=lfs diff=lfs merge=lfs -text
+fixtures/results/bailis-single-raft.json filter=lfs diff=lfs merge=lfs -text
+fixtures/results/howard-floated-raft.json filter=lfs diff=lfs merge=lfs -text
+fixtures/results/howard-single-raft.json filter=lfs diff=lfs merge=lfs -text
+fixtures/results/raft-best-case.json filter=lfs diff=lfs merge=lfs -text
+fixtures/results/raft-ping-pong.json filter=lfs diff=lfs merge=lfs -text
+fixtures/results/tag-vs-raft-e2.json filter=lfs diff=lfs merge=lfs -text
+fixtures/results/tagging-best-case.json filter=lfs diff=lfs merge=lfs -text
+fixtures/results/tagging-ping-pong.json filter=lfs diff=lfs merge=lfs -text
