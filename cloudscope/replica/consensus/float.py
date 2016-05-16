@@ -42,7 +42,7 @@ ANTI_ENTROPY_DELAY = settings.simulation.anti_entropy_delay
 
 ## RPC Message Definition
 Gossip = namedtuple('Gossip', 'entries, length, term')
-GossipResponse = namedtuple('Response', 'entries, length, success, term')
+GossipResponse = namedtuple('GossipResponse', 'entries, length, success, term')
 
 ##########################################################################
 ## Raft Replica
