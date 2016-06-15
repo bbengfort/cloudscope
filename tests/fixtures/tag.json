@@ -1,0 +1,37 @@
+{
+    "meta": {
+        "constant": "50ms",
+        "variable": "25-75ms",
+        "seed": 42,
+        "title": "Tag Consensus Test Simulation",
+        "description": "Test the running without errors of tag consensus."
+    },
+    "nodes": [
+        {
+            "id": "r0",
+            "label": "Home Desktop",
+            "type": "desktop",
+            "consistency": "medium",
+            "location": "home"
+        },
+        {
+            "id": "r1",
+            "label": "Work Desktop",
+            "type": "desktop",
+            "consistency": "medium",
+            "location": "work"
+        },
+        {
+            "id": "r2",
+            "label": "Laptop",
+            "type": "laptop",
+            "consistency": "medium",
+            "location": "mobile"
+        }
+    ],
+    "links": [
+        {"source": 0, "target": 1, "connection": "constant", "latency": 50},
+        {"source": 0, "target": 2, "connection": "variable", "latency": [25,75]},
+        {"source": 1, "target": 2, "connection": "variable", "latency": [25,75]}
+    ]
+}

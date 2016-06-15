@@ -40,13 +40,17 @@ simulation:
     max_sim_time: 4320000
 
     # Network Parameters
+    count_messages: false
+    aggregate_heartbeats: true
     default_latency: 800
     default_replica: storage
     default_consistency: strong
 
     # Workload Parameters
-    users: 1            # number of simulated users creating traces
-    valid_locations:    # locations to allow user to move to.
+    users: 1                  # number of simulated users creating traces
+    max_objects_accessed: 1   # maximum number of objects that can be accessed
+    synchronous_access: false # each access has to wait on the previous access to be triggered
+    valid_locations:          # locations to allow user to move to.
         - home
         - work
         - mobile
@@ -56,6 +60,7 @@ simulation:
 
     move_prob: 0.2      # probability of moving locations
     switch_prob: 0.4    # probability of switching devices
+    object_prob: 0.3    # probability of switching the currently accessed object
     access_mean: 1800   # mean delay (milliseconds) between accesses
     access_stddev: 512  # standard deviation of delay (milliseconds) between accesses
     read_prob: 0.8      # probability of read access; write probability is 1 - read_prob
@@ -68,6 +73,10 @@ simulation:
     # Raft Parameters
     election_timeout: [150, 300]    # Range to randomly select the election timeout
     heartbeat_interval: 75          # Usually half the minimum election timeout
+    aggregate_writes: False         # Don't send writes until heartbeat.
+
+    # Tag Parameters
+    session_timeout: 4096           # Related to the mean delay between accesses
 
 ## Visualization parameters
 vizualization:

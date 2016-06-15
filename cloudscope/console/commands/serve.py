@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: serve.py [] benjamin@bengfort.com $
+# ID: serve.py [123e7af] benjamin@bengfort.com $
 
 """
 Runs the cloudscope development/debugging web server.

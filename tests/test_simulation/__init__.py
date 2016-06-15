@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: __init__.py [] benjamin@bengfort.com $
+# ID: __init__.py [945ecd7] benjamin@bengfort.com $
 
 """
 Tests for the simulation package.
@@ -17,18 +17,48 @@ Tests for the simulation package.
 ## Imports
 ##########################################################################
 
+import simpy
+
 try:
     from unittest import mock
 except ImportError:
     import mock
 
+from cloudscope.replica import Replica, Location, Consistency, Device
+from cloudscope.dynamo import Sequence
+from cloudscope.simulation.base import Simulation
+
+
+MockEnvironment = mock.create_autospec(simpy.Environment, autospec=True)
+MockSimulation  = mock.create_autospec(Simulation, autospec=True)
+MockReplica     = mock.create_autospec(Replica, autospec=True)
+sequence        = Sequence()
 
 def get_mock_simulation(**kwargs):
-    simulation = mock.MagicMock()
-    simulation.env.now = kwargs.get('now', 42)
+    simulation     = MockSimulation()
+    simulation.env = MockEnvironment()
+
+    # Set specific properties and attributes
+    simulation.env.process = mock.MagicMock()
+    simulation.env.now  = kwargs.get('now', 42)
+    simulation.replicas = [
+        get_mock_replica(simulation) for x in xrange(kwargs.get('replicas', 5))
+    ]
 
     return simulation
 
-def get_mock_replica(**kwargs):
-    from cloudscope.simulation.replica import Replica
-    return Replica(get_mock_simulation())
+
+def get_mock_replica(simulation, **kwargs):
+    kwargs['id']    = kwargs.get('id', "r{}".format(sequence.next()))
+    kwargs['type']  = kwargs.get('type', Device.DESKTOP)
+    kwargs['label'] = kwargs.get('label', "desktop-{}".format(kwargs['id']))
+    kwargs['location']    = kwargs.get('location', Location.WORK)
+    kwargs['consistency'] = kwargs.get('consistency', Consistency.STRONG)
+    kwargs['env']   = simulation.env
+
+    replica = Replica(simulation)
+    replica = mock.create_autospec(replica, instance=True)
+    for key, val in kwargs.items():
+        setattr(replica, key, val)
+
+    return replica

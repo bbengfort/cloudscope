@@ -7,7 +7,7 @@
 # Copyright (C) 2015 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: __init__.py [] benjamin@bengfort.com $
+# ID: __init__.py [9c488d4] benjamin@bengfort.com $
 
 """
 Utilities and helper functions for cloudscope.

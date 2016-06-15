@@ -7,7 +7,7 @@
 # Copyright (C) 2015 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: config.py [] benjamin@bengfort.com $
+# ID: config.py [2a66be9] benjamin@bengfort.com $
 
 """
 Configuration for the CloudScope project.
@@ -82,12 +82,17 @@ class SimulationConfiguration(Configuration):
     max_sim_time    = 4320000
 
     # Network Parameters
-    default_latency = 800
-    default_replica = "storage"
-    default_consistency = "strong"
+    count_messages       = False
+    aggregate_heartbeats = True
+    default_latency      = 800
+    default_replica      = "storage"
+    default_consistency  = "strong"
 
     # Workload Parameters
-    users           = 1       # number of simulated users creating traces
+    users                = 1     # number of simulated users creating traces
+    max_objects_accessed = 1     # maximum number of objects that can be accessed
+    synchronous_access   = False # each access has to wait on the previous access to be triggered
+
     # Locations to allow users to move to
     valid_locations = [
         "home", "work", "mobile"
@@ -99,20 +104,24 @@ class SimulationConfiguration(Configuration):
     ]
 
     move_prob       = 0.2     # probability of moving locations
-    switch_prob     = 0.4     # probability of swithcing devices
+    switch_prob     = 0.3     # probability of switching devices
+    object_prob     = 0.3     # probability of switching the currently accessed object
     access_mean     = 1800    # mean delay between accesses (milliseconds)
     access_stddev   = 512     # stddev of delay between accesses (milliseconds)
-    read_prob       = 0.8     # probability of read access (write is 1-read_prob)
+    read_prob       = 0.6     # probability of read access (write is 1-read_prob)
 
     # Eventual Parameters
-    anti_entropy_delay = 3000 # delay in milliseconds (20x per minute)
+    anti_entropy_delay = 600  # delay in milliseconds (20x per minute)
     do_gossip   = True        # perform gossip protocol
-    do_rumoring = True        # perform rumor mongering
+    do_rumoring = False       # perform rumor mongering
 
     # Raft Parameters
     election_timeout   = [150, 300]
-    heartbeat_interval = 75  # Usually half the minimum election timeout
+    heartbeat_interval = 75     # Usually half the minimum election timeout
+    aggregate_writes   = False  # Don't send writes until heartbeat.
 
+    # Tag Parameters
+    session_timeout    = 4096 # Related to the mean delay between accesses
 
 class VisualizationConfiguration(Configuration):
 

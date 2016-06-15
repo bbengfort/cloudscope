@@ -7,7 +7,7 @@
 # Copyright (C) 2015 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: __init__.py [] benjamin@bengfort.com $
+# ID: __init__.py [26b95c0] benjamin@bengfort.com $
 
 """
 Testing for the cloudscope package
@@ -23,7 +23,7 @@ import unittest
 ## Module Constants
 ##########################################################################
 
-TEST_VERSION = "0.3" ## Also the expected version of the package
+TEST_VERSION = "0.4" ## Also the expected version of the package
 
 ##########################################################################
 ## Test Cases

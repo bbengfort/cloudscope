@@ -7,7 +7,7 @@
 # Copyright (C) 2015 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: logger.py [] benjamin@bengfort.com $
+# ID: logger.py [9c488d4] benjamin@bengfort.com $
 
 """
 Wraps the Python logging module for cloudscope-specific logging.

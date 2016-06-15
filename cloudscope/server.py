@@ -7,7 +7,7 @@
 # Copyright (C) 2015 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: server.py [] benjamin@bengfort.com $
+# ID: server.py [26b95c0] benjamin@bengfort.com $
 
 """
 A simple HTTP server to serve static files for development.

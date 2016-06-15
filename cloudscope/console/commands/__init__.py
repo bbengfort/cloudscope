@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: __init__.py [] benjamin@bengfort.com $
+# ID: __init__.py [123e7af] benjamin@bengfort.com $
 
 """
 Commands for the Scope CLI utility
@@ -22,3 +22,5 @@ from .simulate import SimulateCommand
 from .viz import VisualizeCommand
 from .multi import MultipleSimulationsCommand
 from .generate import GenerateCommand
+from .traces import TracesCommand
+from .config import SettingsCommand

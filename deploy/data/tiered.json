@@ -1,0 +1,119 @@
+{
+    "meta": {
+        "constant": "1015ms",
+        "variable": "15-2200ms",
+        "seed": 42,
+        "title": "Two Tier Quorums",
+        "description": "A quorum of three quorums across a wide area.",
+        "note": "Random place names chosen from http://www.datacentermap.com/"
+    },
+    "nodes": [
+        {
+            "id": "r0",
+            "label": "Deschutes 1",
+            "type": "storage",
+            "consistency": "strong",
+            "location": "Deschutes, OR"
+        },
+        {
+            "id": "r1",
+            "label": "Deschutes 2",
+            "type": "storage",
+            "consistency": "strong",
+            "location": "Deschutes, OR"
+        },
+        {
+            "id": "r2",
+            "label": "Deschutes 3",
+            "type": "storage",
+            "consistency": "strong",
+            "location": "Deschutes, OR"
+        },
+        {
+            "id": "r3",
+            "label": "Keene 1",
+            "type": "storage",
+            "consistency": "strong",
+            "location": "Keene, NH"
+        },
+        {
+            "id": "r4",
+            "label": "Keene 2",
+            "type": "storage",
+            "consistency": "strong",
+            "location": "Keene, NH"
+        },
+        {
+            "id": "r5",
+            "label": "Keene 3",
+            "type": "storage",
+            "consistency": "strong",
+            "location": "Keene, NH"
+        },
+        {
+            "id": "r6",
+            "label": "Lubbock 1",
+            "type": "storage",
+            "consistency": "strong",
+            "location": "Lubbock, TX"
+        },
+        {
+            "id": "r7",
+            "label": "Lubbock 2",
+            "type": "storage",
+            "consistency": "strong",
+            "location": "Lubbock, TX"
+        },
+        {
+            "id": "r8",
+            "label": "Lubbock 3",
+            "type": "storage",
+            "consistency": "strong",
+            "location": "Lubbock, TX"
+        }
+    ],
+    "links": [
+        {"source": 0, "target": 1, "connection": "normal", "latency": [30, 5]},
+        {"source": 0, "target": 2, "connection": "normal", "latency": [30, 5]},
+        {"source": 1, "target": 2, "connection": "normal", "latency": [30, 5]},
+
+        {"source": 3, "target": 4, "connection": "normal", "latency": [30, 5]},
+        {"source": 3, "target": 5, "connection": "normal", "latency": [30, 5]},
+        {"source": 4, "target": 5, "connection": "normal", "latency": [30, 5]},
+
+        {"source": 6, "target": 7, "connection": "normal", "latency": [30, 5]},
+        {"source": 6, "target": 8, "connection": "normal", "latency": [30, 5]},
+        {"source": 7, "target": 8, "connection": "normal", "latency": [30, 5]},
+
+        {"source": 0, "target": 3, "connection": "normal", "latency": [1000, 175]},
+        {"source": 0, "target": 4, "connection": "normal", "latency": [1000, 175]},
+        {"source": 0, "target": 5, "connection": "normal", "latency": [1000, 175]},
+        {"source": 0, "target": 6, "connection": "normal", "latency": [1000, 175]},
+        {"source": 0, "target": 7, "connection": "normal", "latency": [1000, 175]},
+        {"source": 0, "target": 8, "connection": "normal", "latency": [1000, 175]},
+
+        {"source": 1, "target": 3, "connection": "normal", "latency": [1000, 175]},
+        {"source": 1, "target": 4, "connection": "normal", "latency": [1000, 175]},
+        {"source": 1, "target": 5, "connection": "normal", "latency": [1000, 175]},
+        {"source": 1, "target": 6, "connection": "normal", "latency": [1000, 175]},
+        {"source": 1, "target": 7, "connection": "normal", "latency": [1000, 175]},
+        {"source": 1, "target": 8, "connection": "normal", "latency": [1000, 175]},
+
+        {"source": 2, "target": 3, "connection": "normal", "latency": [1000, 175]},
+        {"source": 2, "target": 4, "connection": "normal", "latency": [1000, 175]},
+        {"source": 2, "target": 5, "connection": "normal", "latency": [1000, 175]},
+        {"source": 2, "target": 6, "connection": "normal", "latency": [1000, 175]},
+        {"source": 2, "target": 7, "connection": "normal", "latency": [1000, 175]},
+        {"source": 2, "target": 8, "connection": "normal", "latency": [1000, 175]},
+
+        {"source": 3, "target": 6, "connection": "normal", "latency": [1000, 175]},
+        {"source": 3, "target": 7, "connection": "normal", "latency": [1000, 175]},
+        {"source": 3, "target": 8, "connection": "normal", "latency": [1000, 175]},
+        {"source": 4, "target": 6, "connection": "normal", "latency": [1000, 175]},
+        {"source": 4, "target": 7, "connection": "normal", "latency": [1000, 175]},
+        {"source": 4, "target": 8, "connection": "normal", "latency": [1000, 175]},
+        {"source": 5, "target": 6, "connection": "normal", "latency": [1000, 175]},
+        {"source": 5, "target": 7, "connection": "normal", "latency": [1000, 175]},
+        {"source": 5, "target": 8, "connection": "normal", "latency": [1000, 175]}
+    ]
+}

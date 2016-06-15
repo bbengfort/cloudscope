@@ -7,7 +7,7 @@
 # Copyright (C) 2015 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: results.py [] benjamin@bengfort.com $
+# ID: results.py [d0f0ca1] benjamin@bengfort.com $
 
 """
 Manages the serialization of experimental results and their reporting.
@@ -28,6 +28,7 @@ from cloudscope.utils.timez import epochptime
 from cloudscope.viz import plot_workload
 
 from collections import defaultdict
+from collections import Counter
 
 ##########################################################################
 ## Results Object
@@ -55,6 +56,7 @@ class Results(object):
         self.randseed   = settings.simulation.random_seed
         self.timesteps  = settings.simulation.max_sim_time
         self.settings   = dict(settings.simulation.options())
+        self.messages   = {"sent": Counter(), "recv": Counter()}
 
         # Set any properties that need to be serialized (override above)
         for key, val in kwargs.iteritems():

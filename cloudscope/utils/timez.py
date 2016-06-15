@@ -7,7 +7,7 @@
 # Copyright (C) 2015 Bengfort.com
 # For license information, see LICENSE.txt
 #
-# ID: timez.py [] benjamin@bengfort.com $
+# ID: timez.py [d0f0ca1] benjamin@bengfort.com $
 
 """
 Time string utilities for ensuring that the timezone is properly handled.

@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: simulate.py [] benjamin@bengfort.com $
+# ID: simulate.py [123e7af] benjamin@bengfort.com $
 
 """
 Runs the CloudScope simulation with the configuration.
@@ -50,6 +50,12 @@ class SimulateCommand(Command):
             'metavar': 'PATH',
             'help': 'specify location to write the simulation graph',
         },
+        ('-T', '--trace'): {
+            'type': str,
+            'default': None,
+            'metavar': 'PATH',
+            'help': 'specify the path to the trace file with accesses',
+        },
         'data': {
             'nargs': '+',
             'type': argparse.FileType('r'),
@@ -83,7 +89,7 @@ class SimulateCommand(Command):
         Most common use case for the simulation runner: simply runs a single
         simulation, loading it from the data file.
         """
-        sim = ConsistencySimulation.load(args.data[0])
+        sim = ConsistencySimulation.load(args.data[0], trace=args.trace)
         sim.run()
 
         # Dump the output data to a file.
@@ -105,7 +111,7 @@ class SimulateCommand(Command):
         with Timer() as timer:
 
             sims   = [
-                ConsistencySimulation.load(fobj)
+                ConsistencySimulation.load(fobj, trace=args.trace)
                 for fobj in args.data
             ]
             output = [StringIO() for sim in sims]

@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: app.py [] benjamin@bengfort.com $
+# ID: app.py [123e7af] benjamin@bengfort.com $
 
 """
 Definition of the Scope app utility and commands.
@@ -22,8 +22,8 @@ from commis import color
 from commis import ConsoleProgram
 from commis.exceptions import ConsoleError
 
-from cloudscope.console.commands import *
 from cloudscope.version import get_version
+from cloudscope.console.commands import *
 
 ##########################################################################
 ## Utility Definition
@@ -37,6 +37,8 @@ COMMANDS    = [
     VisualizeCommand,
     MultipleSimulationsCommand,
     GenerateCommand,
+    TracesCommand,
+    SettingsCommand,
 ]
 
 ##########################################################################

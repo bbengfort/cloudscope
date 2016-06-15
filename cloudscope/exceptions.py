@@ -7,7 +7,7 @@
 # Copyright (C) 2015 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: exceptions.py [] benjamin@bengfort.com $
+# ID: exceptions.py [9c488d4] benjamin@bengfort.com $
 
 """
 Exceptions hierarchy for cloudscope
@@ -50,7 +50,7 @@ class CannotGenerateExperiments(CloudScopeException):
     Errors during the experiment generation process.
     """
     pass
-    
+
 
 ##########################################################################
 ## Simulation Exception Hierarchy
@@ -70,8 +70,29 @@ class NetworkError(SimulationException):
     pass
 
 
+class WorkloadException(SimulationException):
+    """
+    Something went wrong in the workload generation.
+    """
+    pass
+
+
+class AccessError(SimulationException):
+    """
+    Something went wrong with an access event (read or write).
+    """
+    pass
+
+
 class RaftRPCException(SimulationException):
     """
     Something went wrong in the Raft RPC scheme.
+    """
+    pass
+
+
+class TagRPCException(SimulationException):
+    """
+    Something went wrong in the Tag Consensus RPC scheme.
     """
     pass

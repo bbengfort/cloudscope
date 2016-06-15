@@ -7,7 +7,7 @@
 # Copyright (C) 2015 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: dynamo.py [] benjamin@bengfort.com $
+# ID: dynamo.py [d0f0ca1] benjamin@bengfort.com $
 
 """
 These utilities are "generators" e.g. classes that produce things. These are
@@ -19,8 +19,10 @@ events or other sequences that we will use in our processes.
 ## Imports
 ##########################################################################
 
+import string
 import bisect
 import random
+import itertools
 
 from cloudscope.viz import plot_kde
 from cloudscope.viz import plot_time
@@ -71,6 +73,12 @@ class Sequence(Dynamo):
 
         return self.value
 
+    def reset(self):
+        """
+        Resets the value back to zero
+        """
+        self.value = 0
+
 
 class ExponentialSequence(Sequence):
     """
@@ -94,6 +102,50 @@ class ExponentialSequence(Sequence):
 
         return self.value
 
+    def reset(self):
+        """
+        Resets the power back to zero
+        """
+        self.power = 0
+
+
+class CharacterSequence(Sequence):
+    """
+    An infinite sequence of ASCII characters a-z, aa-zz, aaa-zzz, etc.
+    """
+
+    def __init__(self, chars=string.ascii_lowercase, upper=False, limit=None):
+        self.chars = chars.upper() if upper else chars
+        self.limit = limit.upper() if upper and limit else limit
+        self.wheel = self.character_products()
+        self.value = ""
+
+        if not self.chars:
+            raise UnknownType("No characters passed in for sequence!")
+
+    def next(self):
+        self.value = self.wheel.next()
+
+        if self.limit is not None and self.value == self.limit:
+            raise StopIteration("Character ceiling reached!")
+
+        return self.value
+
+    def character_products(self):
+        """
+        Internal function to make the generator.
+        """
+        for i in itertools.count(1):
+            for product in itertools.product(self.chars, repeat=i):
+                yield "".join(product)
+
+    def reset(self):
+        """
+        Resets the value back to zero
+        """
+        self.value = ""
+        self.wheel = self.character_products()
+
 ##########################################################################
 ## Distributions
 ##########################################################################
@@ -112,16 +164,18 @@ class Distribution(Dynamo):
         """
         Vizualizes the density estimate of the distribution.
         """
+        title = kwargs.pop('title',
+            '{} Distribution Plot'.format(
+            self.__class__.__name__.rstrip('Distribution')
+        ))
+
         random.seed(kwargs.pop('random_seed', settings.simulation.random_seed))
         series = [self.get() for x in xrange(n)]
         axe = plot_kde(series, **kwargs)
 
         axe.set_ylabel('frequency')
         axe.set_xlabel('value')
-        axe.set_title(
-            '{} Distribution Plot'.format(
-            self.__class__.__name__.rstrip('Distribution')
-        ))
+        axe.set_title(title)
 
         return axe
 

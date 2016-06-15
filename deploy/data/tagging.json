@@ -1,0 +1,58 @@
+{
+    "meta": {
+        "constant": "30ms",
+        "variable": "15-45ms",
+        "seed": 42,
+        "title": "Tagging Quorum",
+        "description": "Single Consistency Type: Strong Tag Consensus."
+    },
+    "nodes": [
+        {
+            "id": "r0",
+            "label": "Tagger 1",
+            "type": "storage",
+            "consistency": "medium",
+            "location": "cloud"
+        },
+        {
+            "id": "r1",
+            "label": "Tagger 2",
+            "type": "storage",
+            "consistency": "medium",
+            "location": "cloud"
+        },
+        {
+            "id": "r2",
+            "label": "Tagger 3",
+            "type": "storage",
+            "consistency": "medium",
+            "location": "cloud"
+        },
+        {
+            "id": "r3",
+            "label": "Tagger 4",
+            "type": "storage",
+            "consistency": "medium",
+            "location": "cloud"
+        },
+        {
+            "id": "r4",
+            "label": "Tagger 5",
+            "type": "storage",
+            "consistency": "medium",
+            "location": "cloud"
+        }
+    ],
+    "links": [
+        {"source": 0, "target": 1, "connection": "variable", "latency": [15, 45]},
+        {"source": 0, "target": 2, "connection": "variable", "latency": [15, 45]},
+        {"source": 0, "target": 3, "connection": "variable", "latency": [15, 45]},
+        {"source": 0, "target": 4, "connection": "variable", "latency": [15, 45]},
+        {"source": 1, "target": 2, "connection": "variable", "latency": [15, 45]},
+        {"source": 1, "target": 3, "connection": "variable", "latency": [15, 45]},
+        {"source": 1, "target": 4, "connection": "variable", "latency": [15, 45]},
+        {"source": 2, "target": 3, "connection": "variable", "latency": [15, 45]},
+        {"source": 2, "target": 4, "connection": "variable", "latency": [15, 45]},
+        {"source": 3, "target": 4, "connection": "variable", "latency": [15, 45]}
+    ]
+}

@@ -8,7 +8,7 @@ PYTHONPATH := $(LOCALPATH)/
 PYTHON_BIN := $(VIRTUAL_ENV)/bin
 
 # Export targets not associated with files
-.PHONY: test coverage pip virtualenv clean publish
+.PHONY: test coverage pip virtualenv clean publish uml
 
 # Clean build files
 clean:
@@ -18,6 +18,9 @@ clean:
 	-rm -rf build
 	-rm -rf dist
 	-rm -rf $(PROJECT).egg-info
+	-rm -rf site
+	-rm -rf classes_$(PROJECT).png
+	-rm -rf packages_$(PROJECT).png
 
 # Targets for testing
 test:
@@ -26,3 +29,7 @@ test:
 # Publish to gh-pages
 publish:
 	git subtree push --prefix=deploy origin gh-pages
+
+# Draw UML diagrams
+uml:
+	pyreverse -ASmy -k -o png -p $(PROJECT) $(LOCALPATH)

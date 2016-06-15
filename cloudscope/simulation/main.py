@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: main.py [] benjamin@bengfort.com $
+# ID: main.py [945ecd7] benjamin@bengfort.com $
 
 """
 The primary consistency fragmentation simulation.
@@ -23,9 +23,9 @@ import simpy
 from cloudscope.config import settings
 from cloudscope.simulation import Simulation
 from cloudscope.simulation.network import Network
-from cloudscope.simulation.workload import Workload
 from cloudscope.utils.serialize import JSONEncoder
-from cloudscope.simulation.replica import replica_factory
+from cloudscope.replica import replica_factory, Consistency
+from cloudscope.simulation.workload import create as create_workload
 
 ##########################################################################
 ## Primary Simulation
@@ -65,9 +65,11 @@ class ConsistencySimulation(Simulation):
         super(ConsistencySimulation, self).__init__(**kwargs)
 
         # Primary simulation variables.
-        self.users    = kwargs.get('users', settings.simulation.users)
-        self.replicas = []
-        self.network  = Network()
+        self.users     = kwargs.get('users', settings.simulation.users)
+        self.trace     = kwargs.get('trace', None)
+        self.n_objects = kwargs.get('objects', settings.simulation.max_objects_accessed)
+        self.replicas  = []
+        self.network   = Network()
 
     def complete(self):
         """
@@ -76,13 +78,29 @@ class ConsistencySimulation(Simulation):
         """
         self.results.settings['users'] = self.users
         self.results.topology = self.serialize()
+
+        # Compute Anti-Entropy
+        aedelays = map(float, [
+            node.ae_delay for node in
+            filter(lambda n: n.consistency == Consistency.LOW, self.replicas)
+        ])
+
+        if aedelays:
+            self.results.settings['anti_entropy_delay'] = int(sum(aedelays) / len(aedelays))
+
         super(ConsistencySimulation, self).complete()
 
     def script(self):
-        self.workload = [
-            Workload(self.env, self)
-            for user in xrange(self.users)
-        ]
+        # If a trace is passed in, then load the manual workload.
+        if self.trace:
+            self.workload = create_workload(self.env, self, trace=self.trace)
+
+        # Otherwise, generate a random workload with the number of users.
+        else:
+            self.workload = [
+                create_workload(self.env, self, objects=self.n_objects)
+                for user in xrange(self.users)
+            ]
 
     def dump(self, fobj, **kwargs):
         """

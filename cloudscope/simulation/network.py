@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: network.py [] benjamin@bengfort.com $
+# ID: network.py [945ecd7] benjamin@bengfort.com $
 
 """
 Implements the networking interface for the simulation.
@@ -31,6 +31,7 @@ from networkx.readwrite import json_graph
 
 from cloudscope.config import settings
 from cloudscope.exceptions import UnknownType
+from cloudscope.dynamo import Uniform, Normal
 from cloudscope.simulation.base import Process
 
 
@@ -40,6 +41,8 @@ from cloudscope.simulation.base import Process
 
 CONSTANT = "constant"
 VARIABLE = "variable"
+NORMAL   = "normal"
+
 
 Message  = namedtuple('Message', 'source, target, value, delay')
 
@@ -85,7 +88,7 @@ class Node(Process):
         event = self.env.timeout(message.delay, value=message)
         event.callbacks.append(target.recv)
 
-        # Return the event timeout 
+        # Return the event timeout
         return event
 
     def recv(self, event):
@@ -147,15 +150,23 @@ class Connection(object):
             assert isinstance(self._latency, int)
             return self._latency
 
-        # Variable Connections
-        if self.type == VARIABLE:
+        if not hasattr(self, '_latency_distribution'):
             assert isinstance(self._latency, (tuple, list))
-            return random.randint(*self._latency)
 
-        # Something went wrong
-        raise UnknownType(
-            "Unkown connection type, {!r}".format(self.type)
-        )
+            if self.type == VARIABLE:
+                self._latency_distribution = Uniform(*self._latency)
+
+            elif self.type == NORMAL:
+                self._latency_distribution = Normal(*self._latency)
+
+            else:
+                # Something went wrong
+                raise UnknownType(
+                    "Unkown connection type, {!r}".format(self.type)
+                )
+
+        # Non-constant connections (Variable, Normal)
+        return self._latency_distribution.get()
 
     def get_latency_range(self):
         """

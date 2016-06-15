@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: test_results.py [] benjamin@bengfort.com $
+# ID: test_results.py [8d16e6c] benjamin@bengfort.com $
 
 """
 Tetings for the results collection and serialization tool.

@@ -7,7 +7,7 @@
 # Copyright (C) 2015 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: base.py [] benjamin@bengfort.com $
+# ID: base.py [5300aa5] benjamin@bengfort.com $
 
 """
 Manages the rendering of Jinja2 templates to the deploy folder.
