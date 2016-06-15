@@ -21,7 +21,7 @@ import unittest
 
 from cloudscope.exceptions import UnknownType
 from cloudscope.simulation.network import Connection
-from cloudscope.simulation.network import CONSTANT, VARIABLE
+from cloudscope.simulation.network import CONSTANT, VARIABLE, NORMAL
 
 
 ##########################################################################
@@ -57,10 +57,43 @@ class ConnectionTests(unittest.TestCase):
             conn = Connection(None, None, None, latency=300, connection=VARIABLE)
             conn.latency()
 
+    def test_normal_latency(self):
+        """
+        Test normal latency connections.
+        """
+        conn  = Connection(None, None, None, latency=(30, 5), connection=NORMAL)
+        total = 0
+
+        # Create sample latencies
+        for idx in xrange(5000):
+            latency = conn.latency()
+            total  += latency
+
+            # Ensure that the latency is bounded to the normal distribution
+            self.assertGreater(latency, 0, "latency cannot be less than zero!")
+            self.assertLess(latency, 60, "latency is greater than 6 std devs from the mean?!")
+
+        # Test the mean
+        mean = float(total) / 5000.0
+        self.assertLess(30.0-mean, 1, "latency mean is not close enough to normal")
+
+        # Test latency invariant: latency is a tuple
+        with self.assertRaises(AssertionError):
+            conn = Connection(None, None, None, latency=300, connection=NORMAL)
+            conn.latency()
+
     def test_weird_connection_type(self):
         """
-        Ensure that connections can only be constant or variable
+        Ensure that connections can only be constant, normal, or variable
+        """
+        conn = Connection(None, None, None, latency=(5, 100), connection="weird")
+        with self.assertRaises(UnknownType):
+            conn.latency()
+
+    def test_bad_latency_type(self):
+        """
+        Ensure that the latency is a tuple or a list
         """
         conn = Connection(None, None, None, connection="weird")
-        with self.assertRaises(UnknownType):
+        with self.assertRaises(AssertionError):
             conn.latency()
