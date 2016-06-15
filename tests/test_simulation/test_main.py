@@ -110,8 +110,6 @@ class SimulationTests(unittest.TestCase):
         for metric in results['results'].keys():
             self.assertIn(metric, required | optional, "Unknown metric named '{}'".format(metric))
 
-
-    @unittest.skip("See issue #66")
     def test_eventual_simulation(self):
         """
         Run the eventually consistent simulation without errors
@@ -131,7 +129,7 @@ class SimulationTests(unittest.TestCase):
         # Check the results
         self.assertReliableResults(results)
 
-    @unittest.skip("See issue #66")
+    @unittest.skip("See issue #63")
     def test_raft_simulation(self):
         """
         Run the raft consensus simulation without errors
@@ -151,7 +149,7 @@ class SimulationTests(unittest.TestCase):
         # Check the results
         self.assertReliableResults(results)
 
-    @unittest.skip("See issue #66")
+    @unittest.skip("See issue #63")
     def test_tag_simulation(self):
         """
         Run the tag consensus simulation without errors
