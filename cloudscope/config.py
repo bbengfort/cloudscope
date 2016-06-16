@@ -123,6 +123,10 @@ class SimulationConfiguration(Configuration):
     # Tag Parameters
     session_timeout    = 4096 # Related to the mean delay between accesses
 
+    # Federated Parameters
+    sync_prob  = 0.3  # probability of eventual syncing with core consensus
+    local_prob = 0.6  # probability of local anti-entropy over wide area (wide area is 1-local_prob)
+
 class VisualizationConfiguration(Configuration):
 
     style         = "whitegrid"

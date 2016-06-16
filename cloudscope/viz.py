@@ -180,6 +180,7 @@ def draw_topology(G, layout='circular'):
     lmap = {
         'constant': 'solid',
         'variable': 'dashed',
+        'normal': 'dashdot',
     }
 
     draw = {

@@ -221,7 +221,7 @@ class EventualReplica(Replica):
             return
 
         # Randomly select a neighbor that also has eventual consistency.
-        target = random.choice(self.neighbors(self.consistency))
+        target = self.get_anti_entropy_neighbor()
 
         # Perform pairwise gossiping for every object in the cache.
         self.send(target, Gossip(tuple(self.cache.values()), len(self.cache)))
@@ -248,6 +248,12 @@ class EventualReplica(Replica):
         """
         self.timeout = Timer(self.env, self.ae_delay, self.gossip)
         return self.timeout.start()
+
+    def get_anti_entropy_neighbor(self):
+        """
+        Selects a neighbor to perform anti-entropy with.
+        """
+        return random.choice(self.neighbors(self.consistency))
 
     ######################################################################
     ## Event Handlers

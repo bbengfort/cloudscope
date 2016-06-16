@@ -159,6 +159,19 @@ class MultiObjectWriteLog(WriteLog):
     namespace of objects (not efficient, but practical).
     """
 
+    def __init__(self, *args, **kwargs):
+        super(MultiObjectWriteLog, self).__init__(*args, **kwargs)
+
+        # Keep track of the object namespace
+        self.namespace = set()
+
+    def append(self, version, term):
+        """
+        Appends a version and a term to the log.
+        """
+        self.namespace.add(version.name)
+        super(MultiObjectWriteLog, self).append(version, term)
+
     def search(self, name, start=None):
         """
         Searches the log for the name in reverse order.
@@ -186,3 +199,10 @@ class MultiObjectWriteLog(WriteLog):
         """
         entry = self.search(name, self.commitIndex)
         return entry.version
+
+    def items(self):
+        """
+        Returns an iterable of object names and their latest commit versions.
+        """
+        for name in self.namespace:
+            yield name, self.get_latest_commit(name)
