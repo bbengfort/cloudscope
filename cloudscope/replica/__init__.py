@@ -33,9 +33,9 @@ from cloudscope.config import settings
 ##########################################################################
 
 ReplicaTypes = {
-    # Consistency.STRONG: RaftReplica,
+    Consistency.STRONG: RaftReplica,
     # Consistency.STRONG: TieredRaftReplica,
-    Consistency.STRONG: FloatedRaftReplica,
+    # Consistency.STRONG: FloatedRaftReplica,
     Consistency.MEDIUM: TagReplica,
     Consistency.LOW: EventualReplica,
 }
