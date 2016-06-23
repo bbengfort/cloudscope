@@ -25,6 +25,8 @@ from .consensus import TagReplica
 from .consensus import FloatedRaftReplica
 from .consensus import TieredRaftReplica
 from .eventual import EventualReplica
+from .federated import FederatedRaftReplica
+from .federated import FederatedEventualReplica
 
 from cloudscope.config import settings
 
@@ -35,9 +37,12 @@ from cloudscope.config import settings
 ReplicaTypes = {
     # Consistency.STRONG: RaftReplica,
     # Consistency.STRONG: TieredRaftReplica,
-    Consistency.STRONG: FloatedRaftReplica,
+    # Consistency.STRONG: FloatedRaftReplica,
     Consistency.MEDIUM: TagReplica,
-    Consistency.LOW: EventualReplica,
+    # Consistency.LOW: EventualReplica,
+
+    Consistency.STRONG: FederatedRaftReplica,
+    Consistency.LOW: FederatedEventualReplica,
 }
 
 def replica_factory(simulation, **kwargs):
