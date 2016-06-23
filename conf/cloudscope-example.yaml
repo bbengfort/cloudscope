@@ -65,6 +65,9 @@ simulation:
     access_stddev: 512  # standard deviation of delay (milliseconds) between accesses
     read_prob: 0.8      # probability of read access; write probability is 1 - read_prob
 
+    # Integration parameter: default, floated, or federated
+    integration: default            
+
     # Eventual Parameters
     anti_entropy_delay: 3000        # delay in milliseconds (20x per minute)
     do_gossip: true                 # perform gossip protocol

@@ -110,6 +110,9 @@ class SimulationConfiguration(Configuration):
     access_stddev   = 512     # stddev of delay between accesses (milliseconds)
     read_prob       = 0.6     # probability of read access (write is 1-read_prob)
 
+    # Integration parameter: default, floated, or federated
+    integration     = "default"
+
     # Eventual Parameters
     anti_entropy_delay = 600  # delay in milliseconds (20x per minute)
     do_gossip   = True        # perform gossip protocol

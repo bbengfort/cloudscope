@@ -3,78 +3,78 @@
         "constant": "15ms",
         "variable": "N/A",
         "seed": null,
-        "title": "Single medium Cluster",
-        "description": "Toplogy for single medium cluster experiments."
+        "title": "Single Causal Cluster",
+        "description": "Toplogy for single causal cluster experiments."
     },
     "nodes": [
         {
             "id": "r0",
             "label": "Raft 1",
             "type": "storage",
-            "consistency": "medium",
+            "consistency": "causal",
             "location": "cloud"
         },
         {
             "id": "r1",
             "label": "Raft 2",
             "type": "storage",
-            "consistency": "medium",
+            "consistency": "causal",
             "location": "cloud"
         },
         {
             "id": "r2",
             "label": "Raft 3",
             "type": "storage",
-            "consistency": "medium",
+            "consistency": "causal",
             "location": "cloud"
         },
         {
             "id": "r3",
             "label": "Raft 4",
             "type": "storage",
-            "consistency": "medium",
+            "consistency": "causal",
             "location": "cloud"
         },
         {
             "id": "r4",
             "label": "Raft 5",
             "type": "storage",
-            "consistency": "medium",
+            "consistency": "causal",
             "location": "cloud"
         },
         {
             "id": "r5",
             "label": "Raft 6",
             "type": "storage",
-            "consistency": "medium",
+            "consistency": "causal",
             "location": "cloud"
         },
         {
             "id": "r6",
             "label": "Raft 7",
             "type": "storage",
-            "consistency": "medium",
+            "consistency": "causal",
             "location": "cloud"
         },
         {
             "id": "r7",
             "label": "Raft 8",
             "type": "storage",
-            "consistency": "medium",
+            "consistency": "causal",
             "location": "cloud"
         },
         {
             "id": "r8",
             "label": "Raft 9",
             "type": "storage",
-            "consistency": "medium",
+            "consistency": "causal",
             "location": "cloud"
         },
         {
             "id": "r9",
             "label": "Raft 10",
             "type": "storage",
-            "consistency": "medium",
+            "consistency": "causal",
             "location": "cloud"
         }
     ],

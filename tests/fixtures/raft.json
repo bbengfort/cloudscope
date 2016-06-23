@@ -11,21 +11,21 @@
             "id": "r0",
             "label": "Home Desktop",
             "type": "desktop",
-            "consistency": "strong",
+            "consistency": "raft",
             "location": "home"
         },
         {
             "id": "r1",
             "label": "Work Desktop",
             "type": "desktop",
-            "consistency": "strong",
+            "consistency": "raft",
             "location": "work"
         },
         {
             "id": "r2",
             "label": "Laptop",
             "type": "laptop",
-            "consistency": "strong",
+            "consistency": "raft",
             "location": "mobile"
         }
     ],

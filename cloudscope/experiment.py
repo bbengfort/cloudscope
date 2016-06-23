@@ -231,7 +231,7 @@ class LatencyVariation(ExperimentGenerator):
                         ]
                         node['heartbeat_interval'] = mean_latency * 5
 
-                    if node['consistency'] == Consistency.MEDIUM:
+                    if node['consistency'] == Consistency.EVENTUAL:
                         # Add tagging-specific information
                         node['session_timeout'] = mean_latency * 20
                         node['heartbeat_interval'] = mean_latency * 5

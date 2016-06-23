@@ -117,11 +117,11 @@ svg text.icon {
     fill: #91cf60;
 }
 
-.consistency-medium {
+.consistency-causal {
     fill: #ffffbf;
 }
 
-.consistency-low {
+.consistency-eventual {
     fill: #fc8d59;
 }
 

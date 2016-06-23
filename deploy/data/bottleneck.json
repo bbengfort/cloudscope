@@ -11,7 +11,7 @@
             "id": "r0",
             "label": "Bottleneck",
             "type": "laptop",
-            "consistency": "medium",
+            "consistency": "causal",
             "location": "mobile",
             "files": {}
         },
@@ -43,7 +43,7 @@
             "id": "r4",
             "label": "External Hard Disk",
             "type": "storage",
-            "consistency": "low",
+            "consistency": "eventual",
             "location": "mobile",
             "files": {}
         },
@@ -51,7 +51,7 @@
             "id": "r5",
             "label": "Netbook",
             "type": "laptop",
-            "consistency": "low",
+            "consistency": "eventual",
             "location": "mobile",
             "files": {}
         },
@@ -59,7 +59,7 @@
             "id": "r6",
             "label": "iPad",
             "type": "tablet",
-            "consistency": "low",
+            "consistency": "eventual",
             "location": "mobile",
             "files": {}
         },
@@ -67,7 +67,7 @@
             "id": "r7",
             "label": "iPhone",
             "type": "smartphone",
-            "consistency": "low",
+            "consistency": "eventual",
             "location": "mobile",
             "files": {}
         }

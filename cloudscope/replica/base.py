@@ -34,9 +34,13 @@ class Consistency(Enum):
     Enumerates various consistency guarentees
     """
 
-    STRONG = "strong"
-    MEDIUM = "medium"
-    LOW    = "low"
+    STRONG   = "strong"    # In this case refers to Raft
+    CAUSAL   = "causal"    # No implementation yet
+    EVENTUAL = "eventual"  # By default, anti-entropy with last update wins
+    RAFT     = "raft"      # Specifically a Raft consensus group
+    TAG      = "tag"       # Specifically a tag consensus group
+
+
 
 class Location(Enum):
     """
@@ -53,6 +57,14 @@ class Location(Enum):
     DESCHUTES = "Deschutes, OR"
     KEENE     = "Keene, NH"
     LUBBOCK   = "Lubbock, TX"
+
+    # WAN Site Locations (Stub)
+    ALPHA   = "alpha"
+    BRAVO   = "bravo"
+    CHARLIE = "charlie"
+    DELTA   = "delta"
+    ECHO    = "echo"
+
 
 class Device(Enum):
     """

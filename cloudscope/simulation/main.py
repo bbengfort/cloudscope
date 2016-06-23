@@ -82,7 +82,7 @@ class ConsistencySimulation(Simulation):
         # Compute Anti-Entropy
         aedelays = map(float, [
             node.ae_delay for node in
-            filter(lambda n: n.consistency == Consistency.LOW, self.replicas)
+            filter(lambda n: n.consistency == Consistency.EVENTUAL, self.replicas)
         ])
 
         if aedelays:
