@@ -30,6 +30,7 @@ from collections import namedtuple
 from networkx.readwrite import json_graph
 
 from cloudscope.config import settings
+from cloudscope.utils.statistics import mean
 from cloudscope.exceptions import UnknownType
 from cloudscope.dynamo import Uniform, Normal
 from cloudscope.simulation.base import Process
@@ -176,6 +177,28 @@ class Connection(object):
             return (self._latency, self._latency)
         return self._latency
 
+    def get_latency_mean(self):
+        """
+        Returns the mean latency based on the connection type.
+        """
+        if self.type == CONSTANT:
+            return self.latency
+        else:
+            # Make sure there is a latency distribution
+            _ = self.latency()
+            return self._latency_distribution.get_mean()
+
+    def get_latency_stddev(self):
+        """
+        Returns the standard deviation of the latency based on connection type.
+        """
+        if self.type == CONSTANT:
+            return 0.0
+        else:
+            # Make sure there is a latency distribution
+            _ = self.latency()
+            return self._latency_distribution.get_stddev()
+
     def serialize(self):
         return {
             "connection": self.type,
@@ -251,6 +274,61 @@ class Network(object):
             (conn, (min(late), max(late)))
             for conn, late in latencies.iteritems()
         ])
+
+    def compute_tick(self, model='howard', estimator='mean'):
+        """
+        Computes the tick, T of the network: a parameter that is measured
+        from the mean and standard deviation of latencies in the network.
+
+        The howard model proposes T = 2(mu + 2sd)
+        The bailis model proposes T = 10mu
+
+        For Raft parameters are usually set as follows:
+            - heartbeat interval = T/2
+            - election timeout = (T, 2T)
+
+        Anti-Entropy intervals can also be specified via T.
+
+        The estimator specifies how to choose the mean and standard deviation
+        from all the connections. Choices are mean, max, or min.
+        """
+
+        # Estimator mapping
+        estimators = {
+            'mean': mean,
+            'max': max,
+            'min': min,
+        }
+
+        # Select the estimator
+        if estimator not in estimators:
+            raise ValueError(
+                "Unknown estimator '{}', choose from {}".format(
+                    estimator, ", ".join(estimators.keys())
+                )
+            )
+        est = estimators[estimator]
+
+        # Compute the latency mean and standard deviation
+        lmu = est(map(lambda c: c.get_latency_mean(), self.iter_connections()))
+        lsd = est(map(lambda c: c.get_latency_stddev(), self.iter_connections()))
+
+        # Model mapping
+        models = {
+            'bailis': lambda mu, sd: 10*mu,
+            'howard': lambda mu, sd: 2*(mu + (2*sd)),
+        }
+
+        # Select the model
+        if model not in models:
+            raise ValueError(
+                "Unknown model '{}', choose from {}".format(
+                    model, ", ".join(models.keys())
+                )
+            )
+
+        # Compute T with the model and return
+        return models[model](lmu, lsd)
 
     def graph(self):
         """
