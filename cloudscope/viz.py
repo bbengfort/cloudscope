@@ -173,8 +173,10 @@ def draw_topology(G, layout='circular'):
     """
     cmap = {
         'strong': '#91cf60',
-        'medium': '#ffffbf',
-        'low': '#fc8d59',
+        'causal': '#ffffbf',
+        'eventual': '#fc8d59',
+        'raft': '#91cf60',
+        'tag': '#ffffbf',
     }
 
     lmap = {

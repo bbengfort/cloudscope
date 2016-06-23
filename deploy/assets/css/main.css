@@ -113,11 +113,11 @@ svg text.icon {
     cursor: pointer;
 }
 
-.consistency-strong {
+.consistency-strong, .consistency-raft {
     fill: #91cf60;
 }
 
-.consistency-causal {
+.consistency-causal, .consistency-tag {
     fill: #ffffbf;
 }
 
