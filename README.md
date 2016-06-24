@@ -69,7 +69,7 @@ In order to run a simulation you need a topology, many of which are in the `depl
     $ python scope.py simulate deploy/data/raft.json
     ```
 
-You should see a log of the simulation, as well as results written to your local directory. 
+You should see a log of the simulation, as well as results written to your local directory.
 
 ## Interactive Visualization
 
@@ -82,6 +82,24 @@ $ python scope.py serve
 ```
 
 You can then navigate to [http://localhost:8080](http://localhost:8080) in your web browser and the interactive visualization will appear.
+
+## Experimentation
+
+Currently we are running simulation experiments with replicas that implement various consensus and consistency algorithms in a variety of topologies and environments. The target is to produce results as follows:
+
+Experimental control variables:
+
+- increasing WAN latency, e.g. T (tick)
+- increasing number of nodes
+- increasing amounts of failure
+
+Metrics:
+
+- # forks
+- # stale reads
+- % visible (for full replication)
+- % committed
+- # of messages
 
 ## Contributing
 

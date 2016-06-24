@@ -21,6 +21,10 @@ import json
 
 from itertools import islice
 from collections import Counter
+from peak.util.imports import lazyModule
+
+# Lazy loading of optional dependencies
+pylab = lazyModule('pylab')
 
 ##########################################################################
 ## Statistical computation functions
@@ -122,11 +126,6 @@ class FreqDist(Counter):
         """
         Plot the samples from the frequency distribution. Requires pylab.
         """
-
-        try:
-            import pylab
-        except ImportError:
-            raise ValueError("The plot function requires matplotlib.")
 
         if len(args) == 0:
             args = [len(self)]

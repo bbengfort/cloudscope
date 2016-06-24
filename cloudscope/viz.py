@@ -177,6 +177,8 @@ def draw_topology(G, layout='circular'):
         'eventual': '#fc8d59',
         'raft': '#91cf60',
         'tag': '#ffffbf',
+        'low': '#fc8d59',
+        'medium': '#ffffbf',
     }
 
     lmap = {

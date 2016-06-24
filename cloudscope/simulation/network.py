@@ -31,9 +31,9 @@ from networkx.readwrite import json_graph
 
 from cloudscope.config import settings
 from cloudscope.utils.statistics import mean
-from cloudscope.exceptions import UnknownType
 from cloudscope.dynamo import Uniform, Normal
 from cloudscope.simulation.base import Process
+from cloudscope.exceptions import UnknownType, BadValue
 
 
 ##########################################################################
@@ -302,7 +302,7 @@ class Network(object):
 
         # Select the estimator
         if estimator not in estimators:
-            raise ValueError(
+            raise BadValue(
                 "Unknown estimator '{}', choose from {}".format(
                     estimator, ", ".join(estimators.keys())
                 )
@@ -321,7 +321,7 @@ class Network(object):
 
         # Select the model
         if model not in models:
-            raise ValueError(
+            raise BadValue(
                 "Unknown model '{}', choose from {}".format(
                     model, ", ".join(models.keys())
                 )

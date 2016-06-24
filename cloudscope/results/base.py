@@ -20,6 +20,9 @@ Manages the serialization of experimental results and their reporting.
 import json
 import cloudscope
 
+from .report import details as report_details
+from .report import topology as report_topology
+
 from cloudscope.config import settings
 from cloudscope.utils.serialize import JSONEncoder
 from cloudscope.utils.decorators import Timer, memoized
@@ -115,3 +118,9 @@ class Results(object):
         """
         finished = self.timer.finished if isinstance(self.timer, Timer) else self.timer['finished']
         return epochptime(finished)
+
+    def print_details(self):
+        return report_details(self)
+
+    def print_topology(self):
+        return report_topology(self)

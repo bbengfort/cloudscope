@@ -45,6 +45,13 @@ class UnknownType(CloudScopeException):
     pass
 
 
+class BadValue(CloudScopeException, ValueError):
+    """
+    CloudScope specific value error
+    """
+    pass
+
+
 class CannotGenerateExperiments(CloudScopeException):
     """
     Errors during the experiment generation process.
