@@ -66,7 +66,7 @@ class TimeSeriesAggregatorTests(unittest.TestCase):
         )
 
         self.assertIn(key, result)
-        self.assertEqual(result[key], 230400)
+        self.assertEqual(result[key], 230427)
 
     def test_handle_recv(self):
         """
@@ -78,11 +78,11 @@ class TimeSeriesAggregatorTests(unittest.TestCase):
         )
 
         self.assertIn(key, result)
-        self.assertEqual(result[key], 230398)
+        self.assertEqual(result[key], 230425)
 
         key = 'mean message latency (ms)'
         self.assertIn(key, result)
-        self.assertAlmostEqual(result[key], 50.0125, places=4)
+        self.assertAlmostEqual(result[key], 50.0112, places=4)
 
     def test_handle_read(self):
         """
@@ -120,7 +120,7 @@ class TimeSeriesAggregatorTests(unittest.TestCase):
         )
 
         self.assertIn(key, result)
-        self.assertEqual(result[key], 4)
+        self.assertEqual(result[key], 3)
 
     def test_handle_read_latency(self):
         """
@@ -133,7 +133,7 @@ class TimeSeriesAggregatorTests(unittest.TestCase):
 
         key = 'completed reads'
         self.assertIn(key, result)
-        self.assertEqual(result[key], 2)
+        self.assertEqual(result[key], 3)
 
         key = 'mean read latency (ms)'
         self.assertIn(key, result)
@@ -162,11 +162,11 @@ class TimeSeriesAggregatorTests(unittest.TestCase):
 
         key = 'visible writes'
         self.assertIn(key, result)
-        self.assertEqual(result[key], 9)
+        self.assertEqual(result[key], 11)
 
         key = 'mean visibility latency (ms)'
         self.assertIn(key, result)
-        self.assertAlmostEqual(result[key], 148.2727, places=4)
+        self.assertAlmostEqual(result[key], 126.0909, places=4)
 
     def test_handle_commit_latency(self):
         """
@@ -179,11 +179,11 @@ class TimeSeriesAggregatorTests(unittest.TestCase):
 
         key = 'committed writes'
         self.assertIn(key, result)
-        self.assertEqual(result[key], 9)
+        self.assertEqual(result[key], 11)
 
         key = 'mean commit latency (ms)'
         self.assertIn(key, result)
-        self.assertAlmostEqual(result[key], 203.4545, places=4)
+        self.assertAlmostEqual(result[key], 195.4545, places=4)
 
     def test_handle_write_latency(self):
         """

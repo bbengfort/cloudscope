@@ -177,10 +177,12 @@ class Replica(Node):
         if settings.simulation.count_messages:
             # Aggregate heartbeats
             if settings.simulation.aggregate_heartbeats:
+
+                # Check if actually an eppend entries or a heartbeat
                 if mtype == 'AppendEntries':
                     # Tag/Complex entries
                     if isinstance(message.value.entries, dict):
-                        if any(message.value.entries.values()):
+                        if not any(message.value.entries.values()):
                             mtype = 'Heartbeat'
 
                     # Raft/Standard entries
@@ -189,7 +191,7 @@ class Replica(Node):
 
 
             self.sim.results.update(
-                "sent", (self.id, self.env.now, mtype)
+                "sent", (message.source.id, message.target.id, self.env.now, mtype)
             )
 
         # Track total number of sent messages
@@ -222,7 +224,7 @@ class Replica(Node):
         # Track time series of recv messages
         if settings.simulation.count_messages:
             self.sim.results.update(
-                "recv", (self.id, self.env.now, mtype, message.delay)
+                "recv", (message.target.id, message.source.id, self.env.now, mtype, message.delay)
             )
 
         # Track total number of recv messages

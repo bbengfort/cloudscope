@@ -18,7 +18,7 @@ Analysis utilities for dealing with cloudscope results.
 ##########################################################################
 
 from operator import itemgetter
-from collections import defaultdict
+from collections import defaultdict, Counter
 
 from cloudscope.utils.statistics import mean, median
 from cloudscope.utils.strings import snake_case
@@ -79,7 +79,7 @@ class TimeSeriesAggregator(object):
         """
         Expects a time series in the form of:
 
-            (replica, sent at, message type)
+            (source, target, sent at, message type)
 
         Returns the total number of sent messages
         """
@@ -91,13 +91,18 @@ class TimeSeriesAggregator(object):
         """
         Expects a time series in the form of:
 
-            (replica, recv at, message type, delay)
+            (target, source, recv at, message type, delay)
 
         Returns the number of sent messages and the average dleay
         """
+        mtypes = Counter()
+        for val in values:
+            mtypes[val[3]] += 1
+
         return {
             label: len(values),
-            "mean message latency (ms)": mean(v[3] for v in values),
+            "mean message latency (ms)": mean(v[4] for v in values),
+            "message types": dict(mtypes),
         }
 
     def handle_read(self, label, values):
