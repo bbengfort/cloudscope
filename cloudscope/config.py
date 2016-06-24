@@ -82,7 +82,7 @@ class SimulationConfiguration(Configuration):
     max_sim_time    = 4320000
 
     # Network Parameters
-    count_messages       = False
+    count_messages       = True
     aggregate_heartbeats = True
     default_latency      = 800
     default_replica      = "storage"

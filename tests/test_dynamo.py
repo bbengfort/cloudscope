@@ -210,6 +210,45 @@ class DistributionTests(unittest.TestCase):
         with self.assertRaises(UnknownType):
             dist = UniformDistribution(1, 21.2)
 
+    def test_uniform_mean(self):
+        """
+        Test the mean computation for a uniform distribution
+        """
+        cases = (
+            ((1, 5), 3.0),
+            ((1.2, 5.8), 3.5),
+        )
+
+        for args, mean in cases:
+            dist = UniformDistribution(*args)
+            self.assertAlmostEqual(dist.get_mean(), mean)
+
+    def test_uniform_variance(self):
+        """
+        Test the variance computation for a uniform distribution
+        """
+        cases = (
+            ((1, 5), 1.33333),
+            ((1.2, 5.8), 1.76333),
+        )
+
+        for args, variance in cases:
+            dist = UniformDistribution(*args)
+            self.assertAlmostEqual(dist.get_variance(), variance, places=4)
+
+    def test_uniform_stddev(self):
+        """
+        Test the standard deviation computation for a uniform distribution
+        """
+        cases = (
+            ((1, 5), 1.1547),
+            ((1.2, 5.8), 1.3279),
+        )
+
+        for args, stddev in cases:
+            dist = UniformDistribution(*args)
+            self.assertAlmostEqual(dist.get_stddev(), stddev, places=4)
+
     def test_normal(self):
         """
         Weak test of normal distributions.
@@ -230,6 +269,45 @@ class DistributionTests(unittest.TestCase):
         mean    = total / samples
 
         self.assertAlmostEqual(mean, 0.0, places=2)
+
+    def test_normal_get_mean(self):
+        """
+        Test the mean computation for a normal distribution
+        """
+        cases = (
+            ((0, 1), 0),
+            ((12.4, 1.2), 12.4),
+        )
+
+        for args, mean in cases:
+            dist = NormalDistribution(*args)
+            self.assertAlmostEqual(dist.get_mean(), mean, places=4)
+
+    def test_normal_variance(self):
+        """
+        Test the variance computation for a normal distribution
+        """
+        cases = (
+            ((0, 1), 1),
+            ((12.4, 1.2), 1.44),
+        )
+
+        for args, variance in cases:
+            dist = NormalDistribution(*args)
+            self.assertAlmostEqual(dist.get_variance(), variance, places=4)
+
+    def test_normal_stddev(self):
+        """
+        Test the standard deviation computation for a normal distribution
+        """
+        cases = (
+            ((0, 1), 1),
+            ((12.4, 1.2), 1.2),
+        )
+
+        for args, stddev in cases:
+            dist = NormalDistribution(*args)
+            self.assertAlmostEqual(dist.get_stddev(), stddev, places=4)
 
     def test_bounded_normal(self):
         """

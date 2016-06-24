@@ -19,6 +19,7 @@ events or other sequences that we will use in our processes.
 ## Imports
 ##########################################################################
 
+import math
 import string
 import bisect
 import random
@@ -179,6 +180,24 @@ class Distribution(Dynamo):
 
         return axe
 
+    def get_mean(self):
+        """
+        Returns the computed mean of the distribution
+        """
+        return None
+
+    def get_variance(self):
+        """
+        Returns the computed variance of the distribution
+        """
+        return None
+
+    def get_stddev(self):
+        """
+        REturns the computed standard deviation of the distribution
+        """
+        return None
+
 
 class UniformDistribution(Distribution):
     """
@@ -216,6 +235,24 @@ class UniformDistribution(Distribution):
 
         return jump[self.dtype](*self.range)
 
+    def get_mean(self):
+        """
+        Returns the computed mean of the distribution
+        """
+        return 0.5 * sum(self.range)
+
+    def get_variance(self):
+        """
+        Returns the computed variance of the distribution
+        """
+        return float((self.range[1] - self.range[0]) ** 2) / 12.0
+
+    def get_stddev(self):
+        """
+        Returns the computed standard deviation of the distribution
+        """
+        return float(self.range[1] - self.range[0]) / math.sqrt(12.0)
+
 
 ## Alias for Uniform Distribution
 Uniform = UniformDistribution
@@ -232,6 +269,24 @@ class NormalDistribution(Distribution):
 
     def next(self):
         return random.gauss(self.mean, self.sigma)
+
+    def get_mean(self):
+        """
+        Returns the computed mean of the distribution
+        """
+        return self.mean
+
+    def get_variance(self):
+        """
+        Returns the computed variance of the distribution
+        """
+        return self.sigma ** 2
+
+    def get_stddev(self):
+        """
+        REturns the computed standard deviation of the distribution
+        """
+        return self.sigma
 
 
 ## Alias for Normal Distribution

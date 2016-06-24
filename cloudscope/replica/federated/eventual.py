@@ -65,7 +65,8 @@ class FederatedEventualReplica(EventualReplica):
             if neighbors: return random.choice(neighbors)
 
             # Otherwise choose any strong node that exists
-            return random.choice(self.neighbors(consistency=Consistency.STRONG))
+            neighbors = self.neighbors(consistency=Consistency.STRONG)
+            if neighbors: return random.choice(neighbors)
 
         # Decide if we should do anti-entropy locally or across the wide area.
         if random.random() <= self.local_prob:

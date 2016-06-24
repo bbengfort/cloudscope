@@ -4,45 +4,147 @@
 [![Coverage Status](https://coveralls.io/repos/github/bbengfort/cloudscope/badge.svg?branch=master)](https://coveralls.io/github/bbengfort/cloudscope?branch=master)
 [![Stories Ready](https://badge.waffle.io/bbengfort/cloudscope.png?label=ready&title=ready)](https://waffle.io/bbengfort/cloudscope)
 
-**Visualization of distributed systems and communications.**
+**Simulation and visualization of consistency in distributed systems.**
 
 [![Lens capped lunar eclipse of 2010][eclipse.jpg]][eclipse_flickr]
 
-## Basic Plan
+The original plan for CloudScope was to be a static site generator that would provide a visual simulation along the lines of [The Secret Lives of Data](http://thesecretlivesofdata.com/raft/) and [RaftScope](https://github.com/ongardie/raftscope). Since then, it has become an intricate distributed systems simulator that uses SimPy for discrete event simulation of message passing between replicas that implement a variety of consistency protocols. CloudScope is used for the research of distributed systems at the University of Maryland.
 
-Right now the plan is to have the `cloudscope` package generate a static site, which will then be placed into the `gh-pages` repository for hosting. A simple static web server can serve that site for development. Generation of the static site, in this case, is simply the generation of JSON data from graphs that are constructed by the `cloudscope` utility.
+CloudScope's primary features and functionality are:
 
-### Working Links
+- Simulation of a network of replicas described by a JSON topology
+- Generation of a workload of accesses or use of manual traces
+- Implementation of a variety of consistency and consensus algorithms
+- Analysis of the results of the simulations for various properties
+- Interactive visualization provided by an SVG/JavaScript animation
 
-The following are tabs that I have open when I'm working on either the simulation or the SVG visualization.
+CloudScope is continuing to evolve, so if you have any questions, please get in contact with us by messaging us through the GitHub issues.
 
-- [CloudScope](http://bbengfort.github.io/cloudscope/)
-- [Waffle Dev Board](https://waffle.io/bbengfort/cloudscope)
-- [Github Repository](https://github.com/bbengfort/cloudscope)
+## Getting Started
 
-#### Simulation
+This quick start is intended to get you setup with CloudScope in development mode so that you can tweak and run the simulations. CloudScope is still in alpha, so no packaging has been prepared for PyPi, etc.
 
-- [SimPy Reference](https://simpy.readthedocs.org/en/latest/)
+1. Fork the repository and clone your forked copy.
 
-#### SVG Visualization
+    ```
+    $ git clone git@github.com:bbengfort/cloudscope.git
+    $ cd cloudscope
+    ```
 
-- [Underscore.js Reference](http://underscorejs.org/)
-- [jQuery Reference](https://jquery.com/)
-- [Velocity.js Reference](http://julian.com/research/velocity/)
-- [Bootstrap Reference](http://getbootstrap.com/css/)
-- [Font Awesome Reference](https://fortawesome.github.io/Font-Awesome/cheatsheet/)
-- [SVG Reference](https://developer.mozilla.org/en-US/docs/Web/SVG)
+2. Create a virtual environment and install the dependencies.
 
+    ```
+    $ virtualenv venv
+    $ source venv/bin/activate
+    $ pip install -r requirements.txt
+    ```
 
-## About
+3. Add the project path to your `$PYTHONPATH` via the virtualenv
 
-Simple repository to visualize examples of data flow in distributed systems. Inspired by [The Secret Lives of Data](http://thesecretlivesofdata.com/raft/) and [RaftScope](https://github.com/ongardie/raftscope).
+    ```
+    $ echo $(pwd) > venv/lib/python2.7/site-packages/cloudscope.pth
+    ```
 
-The photo used in this README, &ldquo;[Lens capped lunar eclipse of 2010][eclipse_flickr]&rdquo; by [John](https://www.flickr.com/photos/jahdakinebrah/) is used under a [CC BY-NC 2.0](https://creativecommons.org/licenses/by-nc/2.0/) creative commons license.
+4. Create your local configuration file. You do a lot of experimental configurations in this file:
 
-## Other Information
+    ```
+    $ cp conf/cloudscope-example.yaml conf/cloudscope.yaml
+    ```
+
+5. Run the tests to make sure that everything is ok
+
+    ```
+    $ make test
+    ```
+
+6. At this point you can start using the `scope.py` utility:
+
+    ```
+    $ python scope.py --help
+    ```
+
+In order to run a simulation you need a topology, many of which are in the `deploy` folder for visualization. Try running a Raft consensus simulation as follows:
+
+    ```
+    $ python scope.py simulate deploy/data/raft.json
+    ```
+
+You should see a log of the simulation, as well as results written to your local directory.
+
+## Interactive Visualization
+
+Right now the plan is to have the `cloudscope` package generate a static site, which will then be placed into the `gh-pages` branch for hosting via GitHub static pages. A simple static web server can serve that site for development. Generation of the static site, in this case, is simply the generation of JSON data from graphs that are constructed by the `cloudscope` utility.
+
+The site is deployed to a folder called `deploy` in the root of the repository. It is this folder that is synchronized with the `gh-pages` branch. A simple server has been setup to statically render that folder in development. To run the server, simply:
+
+```bash
+$ python scope.py serve
+```
+
+You can then navigate to [http://localhost:8080](http://localhost:8080) in your web browser and the interactive visualization will appear.
+
+## Experimentation
+
+Currently we are running simulation experiments with replicas that implement various consensus and consistency algorithms in a variety of topologies and environments. The target is to produce results as follows:
+
+Experimental control variables:
+
+- increasing WAN latency, e.g. T (tick)
+- increasing number of nodes
+- increasing amounts of failure
+
+Metrics:
+
+- # forks
+- # stale reads
+- % visible (for full replication)
+- % committed
+- # of messages
+
+## Contributing
 
 [![Throughput Graph](https://graphs.waffle.io/bbengfort/cloudscope/throughput.svg)](https://waffle.io/bbengfort/cloudscope/metrics)
+
+CloudScope is open source, and I'd love your help. In particular, we are looking for folks to add replicas that add a variety of consensus algorithms (there are quite a few) to the mix, such as Paxos, ePaxos, Fast Paxos, and more. For more on this project, please ask about the &ldquo;Consensus Shootout&rdquo; If you would like to contribute, you can do so in the following ways:
+
+1. Add issues or bugs to the bug tracker: [https://github.com/bbengfort/cloudscope/issues](https://github.com/bbengfort/cloudscope/issues)
+2. Work on a card on the dev board: [https://waffle.io/bbengfort/cloudscope](https://waffle.io/bbengfort/cloudscope)
+3. Create a pull request in Github: [https://github.com/bbengfort/cloudscope/pulls](https://github.com/bbengfort/cloudscope/pulls)
+
+Note that labels in the Github issues are defined in the blog post: [How we use labels on GitHub Issues at Mediocre Laboratories](https://mediocre.com/forum/topics/how-we-use-labels-on-github-issues-at-mediocre-laboratories).
+
+To get started, fork the repository so that you have a local copy to work on. The repository is set up in a typical production/release/development cycle as described in _[A Successful Git Branching Model](http://nvie.com/posts/a-successful-git-branching-model/)_. Make sure that you checkout and are working on the `develop` branch at all times. Pull requests to master will not be accepted! A typical workflow is as follows:
+
+1. Select a card from the [dev board](https://waffle.io/bbengfort/cloudscope) - preferably one that is "ready" then move it to "in-progress".
+
+2. Create a branch off of develop called "feature-[feature name]", work and commit into that branch.
+
+        ~$ git checkout -b feature-myfeature develop
+
+3. Once you are done working (and everything is tested) merge your feature into develop.
+
+        ~$ git checkout develop
+        ~$ git merge --no-ff feature-myfeature
+        ~$ git branch -d feature-myfeature
+        ~$ git push origin develop
+
+4. Repeat. Releases will be routinely pushed into master via release branches, then deployed to the server.
+
+### Acknowledgements
+
+Thank you for all your help contributing to make CloudScope a great project!
+
+#### Maintainers
+
+- Benjamin Bengfort: [@bbengfort](https://github.com/bbengfort/)
+
+#### Contributors
+
+- Your name here!
+
+#### Attribution
+
+The photo used in this README, &ldquo;[Lens capped lunar eclipse of 2010][eclipse_flickr]&rdquo; by [John](https://www.flickr.com/photos/jahdakinebrah/) is used under a [CC BY-NC 2.0](https://creativecommons.org/licenses/by-nc/2.0/) creative commons license.
 
 ## Changelog
 

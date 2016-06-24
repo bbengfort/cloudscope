@@ -47,3 +47,17 @@ def decamelize(s):
     s = FCAPRE.sub(r'\1_\2', s)
     s = ACAPRE.sub(r'\1_\2', s)
     return s.lower()
+
+
+def snake_case(s):
+    """
+    Converts a string with spaces to snake_case.
+    """
+    return s.replace(" ", "_").lower()
+
+
+def title_snaked(text):
+    """
+    Converts a string in snake_case to Title Case
+    """
+    return " ".join([t.capitalize() for t in text.split("_")])

@@ -1,39 +1,79 @@
 # CloudScope
 
-**Visualization of distributed systems and communications.**
-
 ![Consistency Simulation Wireframe](img/wireframe.png)
+**Simulation and visualization of distributed systems and communications.**
 
-## Basic Plan
+The original plan for CloudScope was to be a static site generator that would provide a visual simulation along the lines of [The Secret Lives of Data](http://thesecretlivesofdata.com/raft/) and [RaftScope](https://github.com/ongardie/raftscope). Since then, it has become an intricate distributed systems simulator that uses SimPy for discrete event simulation of message passing between replicas that implement a variety of consistency protocols. CloudScope is used for the research of distributed systems at the University of Maryland.
 
-Right now the plan is to have the `cloudscope` package generate a static site, which will then be placed into the `gh-pages` repository for hosting. A simple static web server can serve that site for development. Generation of the static site, in this case, is simply the generation of JSON data from graphs that are constructed by the `cloudscope` utility.
+CloudScope's primary features and functionality are:
 
-## About
+- Simulation of a network of replicas described by a JSON topology
+- Generation of a workload of accesses or use of manual traces
+- Implementation of a variety of consistency and consensus algorithms
+- Analysis of the results of the simulations for various properties
+- Interactive visualization provided by an SVG/JavaScript animation
 
-Simple repository to visualize examples of data flow in distributed systems. Inspired by [The Secret Lives of Data](http://thesecretlivesofdata.com/raft/) and [RaftScope](https://github.com/ongardie/raftscope).
+CloudScope is continuing to evolve, so if you have any questions, please get in contact with us by messaging us through the GitHub issues.
 
-## Changelog
+## Getting Started
 
-The release versions that are tagged in Git. You can see the tags through the GitHub web application and download the tarball of the version you'd like.
+This quick start is intended to get you setup with CloudScope in development mode so that you can tweak and run the simulations. CloudScope is still in alpha, so no packaging has been prepared for PyPi, etc.
 
-The versioning uses a three part version system, "a.b.c" - "a" represents a major release that may not be backwards compatible. "b" is incremented on minor releases that may contain extra features, but are backwards compatible. "c" releases are bug fixes or other micro changes that developers should feel free to immediately update to.
+1. Fork the repository and clone your forked copy.
 
-### Version 0.4
+    ```
+    $ git clone git@github.com:bbengfort/cloudscope.git
+    $ cd cloudscope
+    ```
 
-* **tag**: [v0.4](https://github.com/bbengfort/cloudscope/releases/tag/v0.4)
-* **deployment**: Wednesday, June 15, 2016
-* **commit**: (see tag)
+2. Create a virtual environment and install the dependencies.
 
-In the course of research, things change. This release is an attempt to create a fixture for the initial progression of the research. There will be some pivots in upcoming releases, but Version 0.4 represents a stable platform for running simulations of various kinds for consistency modeling in a distributed storage system. This release saw the addition of _many_ features and bug squashes. An enumeration of these additions is on the GitHub release page. Together these features show the course of research over the Spring semester, and relate to the papers that will be published via the Version 0.5 release of this code. 
+    ```
+    $ virtualenv venv
+    $ source venv/bin/activate
+    $ pip install -r requirements.txt
+    ```
 
-### Version 0.3
+3. Add the project path to your `$PYTHONPATH` via the virtualenv
 
-* **tag**: [v0.3](https://github.com/bbengfort/cloudscope/releases/tag/v0.3)
-* **deployment**: Tuesday, February 23, 2016
-* **commit**: [00c5dd7](https://github.com/bbengfort/cloudscope/commit/00c5dd71d86f94dce5fd31b254a1c690c5ec1a53)
+    ```
+    $ echo $(pwd) > venv/lib/python2.7/site-packages/cloudscope.pth
+    ```
 
-This version implements the initial simulation prototype, and in particular handles eventual consistency and Raft quorum consistency. The two simulations that have been run and validated are homogenous consistency topologies (e.g. all eventual or all Raft). This version highlights the motivating examples for our work.
+4. Create your local configuration file. You do a lot of experimental configurations in this file:
 
-### Early Releases
+    ```
+    $ cp conf/cloudscope-example.yaml conf/cloudscope.yaml
+    ```
 
-Earlier releases that had the version 0.1 and 0.2 versions were MVP prototypes for the web visualization and the basic simulation. These releases organized differently, so they are not tagged in GitHub.
+5. Run the tests to make sure that everything is ok
+
+    ```
+    $ make test
+    ```
+
+6. At this point you can start using the `scope.py` utility:
+
+    ```
+    $ python scope.py --help
+    ```
+
+In order to run a simulation you need a topology, many of which are in the `deploy` folder for visualization. Try running a Raft consensus simulation as follows:
+
+    ```
+    $ python scope.py simulate deploy/data/raft.json
+    ```
+
+You should see a log of the simulation, as well as results written to your local directory.
+
+## Interactive Visualization
+
+Right now the plan is to have the `cloudscope` package generate a static site, which will then be placed into the `gh-pages` branch for hosting via GitHub static pages. A simple static web server can serve that site for development. Generation of the static site, in this case, is simply the generation of JSON data from graphs that are constructed by the `cloudscope` utility.
+
+The site is deployed to a folder called `deploy` in the root of the repository. It is this folder that is synchronized with the `gh-pages` branch. A simple server has been setup to statically render that folder in development. To run the server, simply:
+
+```bash
+$ python scope.py serve
+```
+
+You can then navigate to [http://localhost:8080](http://localhost:8080) in your web browser and the interactive visualization will appear.

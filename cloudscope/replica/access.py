@@ -250,7 +250,7 @@ class Read(Access):
 
             # Track the drop latency
             self.sim.results.update(
-                'missed read latency latency',
+                'missed read latency',
                 (self.owner.id, self.name, self.started, self.finished)
             )
 
