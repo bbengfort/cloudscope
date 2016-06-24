@@ -9,3 +9,4 @@ copyright: "&copy; 2016 University of Maryland, All Rights Reserved"
 pages:
     - "Introduction": index.md
     - "Workload": workload.md
+    - "About": about.md
