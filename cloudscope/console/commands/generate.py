@@ -26,6 +26,7 @@ from commis import Command
 from commis.exceptions import ConsoleError
 from cloudscope.experiment import LatencyVariation
 from cloudscope.experiment import AntiEntropyVariation
+from cloudscope.experiment import FederatedLatencyVariation
 from cloudscope.utils.serialize import JSONEncoder
 
 ##########################################################################
@@ -51,6 +52,7 @@ def csv(type=int):
 generators = {
     'latency': LatencyVariation,
     'entropy': AntiEntropyVariation,
+    'federated': FederatedLatencyVariation,
 }
 
 ##########################################################################
@@ -108,6 +110,13 @@ class GenerateCommand(Command):
             'metavar': 'min,max',
             'help': 'specify the anti-entropy delay range in experiments',
         },
+        '--tick-metric': {
+            'type': str,
+            'default': 'howard', 
+            'choices': ['howard', 'bailis'],
+            'metavar': 'method',
+            'help': 'specify tick computation method based on latency',
+        },
         'topology': {
             'nargs': 1,
             'type': argparse.FileType('r'),
@@ -147,9 +156,10 @@ class GenerateCommand(Command):
         latency   = dict(zip(('minimum', 'maximum', 'max_range'), args.latency))
         users     = dict(zip(('minimum', 'maximum', 'step'), args.users))
         aentropy  = dict(zip(('minimum', 'maximum'), args.anti_entropy))
+        tick      = {'method': args.tick_metric}
         generate  = Generator.load(
             topology, count=args.count, latency=latency,
-            users=users, anti_entropy=aentropy
+            users=users, anti_entropy=aentropy, tick_metric=tick,
         )
 
         # Create an iterable of generators if jittering is required.
