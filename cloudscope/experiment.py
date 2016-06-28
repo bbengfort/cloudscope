@@ -397,13 +397,26 @@ class FederatedLatencyVariation(LatencyVariation):
                 )
             )
 
-
         for latency in super(FederatedLatencyVariation, self).latencies(n):
             # Add the tick metrick to the latency parameters
             latency['tick_metric'] = int(round(models[model](
                 latency['latency_mean'], latency['latency_stddev']
             )))
             yield latency
+
+    def get_raft_params(self, tick):
+        """
+        Returns election_timeout, heartbeat_interval according to the tick.
+        """
+        eto = [tick, 2*tick]
+        hbi = int(round(float(tick) / 2.0))
+        return eto, hbi
+
+    def get_eventual_params(self, tick):
+        """
+        Returns the anti_entropy_delay according to the tick.
+        """
+        return int(round(float(tick) / 4.0))
 
     def update_node_params(self, node, **kwargs):
         """
@@ -422,12 +435,13 @@ class FederatedLatencyVariation(LatencyVariation):
 
         if node['consistency'] == Consistency.STRONG:
             # Add raft-specific information
-            node['election_timeout']   = [tick, 2*tick]
-            node['heartbeat_interval'] = int(round(float(tick) / 2.0))
+            eto, hbi = self.get_raft_params(tick)
+            node['election_timeout']   = eto
+            node['heartbeat_interval'] = hbi
 
         if node['consistency'] == Consistency.EVENTUAL:
             # Add eventual-specific information
-            node['anti_entropy_delay'] = int(round(float(tick) / 4.0))
+            node['anti_entropy_delay'] = self.get_eventual_params(tick)
 
     def update_link_params(self, link, **kwargs):
         """
@@ -438,5 +452,24 @@ class FederatedLatencyVariation(LatencyVariation):
         if link.get('area', None) == LOCAL_AREA:
             return
 
-        # Otherwise pass the link off to the super class to get modified. 
+        # Otherwise pass the link off to the super class to get modified.
         return super(FederatedLatencyVariation, self).update_link_params(link, **kwargs)
+
+    def update_experiment_meta(self, experiment, **kwargs):
+        """
+        In place update of the experiment meta data witih keyword arguments.
+        """
+        for key, val in kwargs.items():
+            experiment['meta'][key] = val
+
+        # Add the tick based parameters to the meta information
+        tick = kwargs.get('tick_metric')
+        experiment['meta']['tick_param_model'] = self.options['tick_metric']['method']
+
+        # Add the raft parameters to the meta information
+        eto, hbi = self.get_raft_params(tick)
+        experiment['meta']['election_timeout'] = eto
+        experiment['meta']['heartbeat_interval'] = hbi
+
+        # Add the eventual parameters to the meta information
+        experiment['meta']['anti_entropy_delay'] = self.get_eventual_params(tick)

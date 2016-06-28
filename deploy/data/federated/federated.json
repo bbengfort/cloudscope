@@ -4,7 +4,8 @@
         "variable": "15-1000ms",
         "seed": null,
         "title": "Federated Consistency",
-        "description": "A large group of eventually consistent nodes in 5 locations with a central core consensus group."
+        "description": "A large group of eventually consistent nodes in 5 locations with a central core consensus group.",
+        "type": "federated"
     },
     "nodes": [
         {

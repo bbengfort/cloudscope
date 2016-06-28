@@ -3,8 +3,9 @@
         "constant": "N/A",
         "variable": "15-1000ms",
         "seed": null,
-        "title": "Large Consensus Grooup",
-        "description": "A large group of sequentially consistent nodes enforced by Raft in 5 locations."
+        "title": "Large Consensus Group",
+        "description": "A large group of sequentially consistent nodes enforced by Raft in 5 locations.",
+        "type": "raft"
     },
     "nodes": [
         {

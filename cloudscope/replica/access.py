@@ -17,6 +17,7 @@ Wrappers for access events (reads and writes) passed to replicas.
 ## Imports
 ##########################################################################
 
+from cloudscope.config import settings
 from cloudscope.utils.decorators import Countable
 from cloudscope.exceptions import AccessError
 
@@ -177,6 +178,15 @@ class Access(object):
         """
         # Don't call complete multiple times.
         if self.is_completed():
+
+            # TODO: Deprecate the below weak sauce capture and raise an error like you should
+            # TODO: Stop being such a hacker and write good code. 
+            if settings.simulation.integration == 'federated':
+                self.owner.sim.logger.warn(
+                    "Attempting to complete {} after it was already completed!".format(self)
+                )
+                return
+
             raise AccessError(
                 "Attempting to complete {} after it was already completed!".format(self)
             )
