@@ -167,7 +167,12 @@ class Connection(object):
                 )
 
         # Non-constant connections (Variable, Normal)
-        return self._latency_distribution.get()
+        value = self._latency_distribution.get()
+
+        # If value is zero or negative, try again
+        if value < 1:
+            return self.latency()
+        return value 
 
     def get_latency_range(self):
         """

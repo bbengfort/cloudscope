@@ -20,6 +20,7 @@ See https://bl.ocks.org/mbostock/5577023
 
 import random
 
+from copy import copy
 from cloudscope.exceptions import BadValue
 
 ##########################################################################
@@ -75,8 +76,8 @@ class ColorMap(object):
         if isinstance(value, basestring):
             if value not in PALETTES:
                 raise BadValue("'{}' is not a registered color palette")
-            self._colors = PALETTES[value]
-        if isinstance(value, list):
+            self._colors = copy(PALETTES[value])
+        elif isinstance(value, list):
             self._colors = value
         else:
             self._colors = list(value)

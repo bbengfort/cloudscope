@@ -69,7 +69,9 @@ def runner(idx, path, **kwargs):
         # Return the string value of the JSON results.
         return output.getvalue()
     except Exception as e:
-        logger.error(str(e))
+        logger.error(
+            "Simulation {} (\"{}\") errored: {}".format(idx, sim.name, str(e))
+        )
 
         import traceback, sys
         return json.dumps({
@@ -120,7 +122,7 @@ class MultipleSimulationsCommand(Command):
         logger = logging.getLogger('cloudscope.simulation')
         logger.disabled = True
 
-        # Load the experiments and their options 
+        # Load the experiments and their options
         experiments = self.get_experiments(args)
 
         # Create a pool of processes and begin to execute experiments
@@ -154,6 +156,10 @@ class MultipleSimulationsCommand(Command):
             ).replace(" ", "-").lower()
             args.output = open(path, 'w')
         json.dump(output, args.output)
+
+        # If traceback, dump the errors out.
+        if args.traceback:
+            print(json.dumps(errors, indent=2))
 
         return (
             "{} simulations ({} compute time, {} errors) run by {} tasks in {}\n"

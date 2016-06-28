@@ -1,0 +1,368 @@
+{
+    "meta": {
+        "constant": "N/A",
+        "variable": "15-1000ms",
+        "seed": null,
+        "title": "Federated Consistency",
+        "description": "A large group of eventually consistent nodes in 5 locations with a central core consensus group.",
+        "type": "federated"
+    },
+    "nodes": [
+        {
+            "id": "a0",
+            "label": "Alpha 0",
+            "type": "desktop",
+            "consistency": "strong",
+            "location": "alpha-site"
+        },
+        {
+            "id": "a1",
+            "label": "Alpha 1",
+            "type": "laptop",
+            "consistency": "eventual",
+            "location": "alpha-site"
+        },
+        {
+            "id": "a2",
+            "label": "Alpha 2",
+            "type": "laptop",
+            "consistency": "eventual",
+            "location": "alpha-site"
+        },
+        {
+            "id": "a3",
+            "label": "Alpha 3",
+            "type": "laptop",
+            "consistency": "eventual",
+            "location": "alpha-site"
+        },
+        {
+            "id": "b0",
+            "label": "Bravo 0",
+            "type": "desktop",
+            "consistency": "strong",
+            "location": "bravo-site"
+        },
+        {
+            "id": "b1",
+            "label": "Bravo 1",
+            "type": "laptop",
+            "consistency": "eventual",
+            "location": "bravo-site"
+        },
+        {
+            "id": "b2",
+            "label": "Bravo 2",
+            "type": "laptop",
+            "consistency": "eventual",
+            "location": "bravo-site"
+        },
+        {
+            "id": "b3",
+            "label": "Bravo 3",
+            "type": "laptop",
+            "consistency": "eventual",
+            "location": "bravo-site"
+        },
+        {
+            "id": "c0",
+            "label": "Charlie 0",
+            "type": "desktop",
+            "consistency": "strong",
+            "location": "charlie-site"
+        },
+        {
+            "id": "c1",
+            "label": "Charlie 1",
+            "type": "laptop",
+            "consistency": "eventual",
+            "location": "charlie-site"
+        },
+        {
+            "id": "c2",
+            "label": "Charlie 2",
+            "type": "laptop",
+            "consistency": "eventual",
+            "location": "charlie-site"
+        },
+        {
+            "id": "c3",
+            "label": "Charlie 3",
+            "type": "laptop",
+            "consistency": "eventual",
+            "location": "charlie-site"
+        },
+        {
+            "id": "d0",
+            "label": "Delta 0",
+            "type": "desktop",
+            "consistency": "strong",
+            "location": "delta-site"
+        },
+        {
+            "id": "d1",
+            "label": "Delta 1",
+            "type": "laptop",
+            "consistency": "eventual",
+            "location": "delta-site"
+        },
+        {
+            "id": "d2",
+            "label": "Delta 2",
+            "type": "laptop",
+            "consistency": "eventual",
+            "location": "delta-site"
+        },
+        {
+            "id": "d3",
+            "label": "Delta 3",
+            "type": "laptop",
+            "consistency": "eventual",
+            "location": "delta-site"
+        },
+        {
+            "id": "e0",
+            "label": "Echo 0",
+            "type": "desktop",
+            "consistency": "strong",
+            "location": "echo-site"
+        },
+        {
+            "id": "e1",
+            "label": "Echo 1",
+            "type": "laptop",
+            "consistency": "eventual",
+            "location": "echo-site"
+        },
+        {
+            "id": "e2",
+            "label": "Echo 2",
+            "type": "laptop",
+            "consistency": "eventual",
+            "location": "echo-site"
+        },
+        {
+            "id": "e3",
+            "label": "Echo 3",
+            "type": "laptop",
+            "consistency": "eventual",
+            "location": "echo-site"
+        }
+    ],
+    "links": [
+        {"source": 0, "target": 1, "connection": "normal", "latency": [30, 5], "area": "local"},
+        {"source": 0, "target": 2, "connection": "normal", "latency": [30, 5], "area": "local"},
+        {"source": 0, "target": 3, "connection": "normal", "latency": [30, 5], "area": "local"},
+        {"source": 1, "target": 2, "connection": "normal", "latency": [30, 5], "area": "local"},
+        {"source": 1, "target": 3, "connection": "normal", "latency": [30, 5], "area": "local"},
+        {"source": 2, "target": 3, "connection": "normal", "latency": [30, 5], "area": "local"},
+
+        {"source": 4, "target": 5, "connection": "normal", "latency": [30, 5], "area": "local"},
+        {"source": 4, "target": 6, "connection": "normal", "latency": [30, 5], "area": "local"},
+        {"source": 4, "target": 7, "connection": "normal", "latency": [30, 5], "area": "local"},
+        {"source": 5, "target": 6, "connection": "normal", "latency": [30, 5], "area": "local"},
+        {"source": 5, "target": 7, "connection": "normal", "latency": [30, 5], "area": "local"},
+        {"source": 6, "target": 7, "connection": "normal", "latency": [30, 5], "area": "local"},
+
+        {"source": 8, "target": 9, "connection": "normal", "latency": [30, 5], "area": "local"},
+        {"source": 8, "target": 10, "connection": "normal", "latency": [30, 5], "area": "local"},
+        {"source": 8, "target": 11, "connection": "normal", "latency": [30, 5], "area": "local"},
+        {"source": 9, "target": 10, "connection": "normal", "latency": [30, 5], "area": "local"},
+        {"source": 9, "target": 11, "connection": "normal", "latency": [30, 5], "area": "local"},
+        {"source": 10, "target": 11, "connection": "normal", "latency": [30, 5], "area": "local"},
+
+        {"source": 12, "target": 13, "connection": "normal", "latency": [30, 5], "area": "local"},
+        {"source": 12, "target": 14, "connection": "normal", "latency": [30, 5], "area": "local"},
+        {"source": 12, "target": 15, "connection": "normal", "latency": [30, 5], "area": "local"},
+        {"source": 13, "target": 14, "connection": "normal", "latency": [30, 5], "area": "local"},
+        {"source": 13, "target": 15, "connection": "normal", "latency": [30, 5], "area": "local"},
+        {"source": 14, "target": 15, "connection": "normal", "latency": [30, 5], "area": "local"},
+
+        {"source": 16, "target": 17, "connection": "normal", "latency": [30, 5], "area": "local"},
+        {"source": 16, "target": 18, "connection": "normal", "latency": [30, 5], "area": "local"},
+        {"source": 16, "target": 19, "connection": "normal", "latency": [30, 5], "area": "local"},
+        {"source": 17, "target": 18, "connection": "normal", "latency": [30, 5], "area": "local"},
+        {"source": 17, "target": 19, "connection": "normal", "latency": [30, 5], "area": "local"},
+        {"source": 18, "target": 19, "connection": "normal", "latency": [30, 5], "area": "local"},
+
+        {"source": 0, "target": 4, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 0, "target": 8, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 0, "target": 12, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 0, "target": 16, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+
+        {"source": 0, "target": 5, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 0, "target": 6, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 0, "target": 7, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 0, "target": 9, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 0, "target": 10, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 0, "target": 11, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 0, "target": 13, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 0, "target": 14, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 0, "target": 15, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 0, "target": 17, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 0, "target": 18, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 0, "target": 19, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+
+        {"source": 1, "target": 4, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 1, "target": 5, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 1, "target": 6, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 1, "target": 7, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 1, "target": 8, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 1, "target": 9, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 1, "target": 10, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 1, "target": 11, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 1, "target": 12, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 1, "target": 13, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 1, "target": 14, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 1, "target": 15, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 1, "target": 16, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 1, "target": 17, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 1, "target": 18, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 1, "target": 19, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+
+        {"source": 2, "target": 4, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 2, "target": 5, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 2, "target": 6, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 2, "target": 7, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 2, "target": 8, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 2, "target": 9, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 2, "target": 10, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 2, "target": 11, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 2, "target": 12, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 2, "target": 13, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 2, "target": 14, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 2, "target": 15, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 2, "target": 16, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 2, "target": 17, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 2, "target": 18, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 2, "target": 19, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+
+        {"source": 3, "target": 4, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 3, "target": 5, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 3, "target": 6, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 3, "target": 7, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 3, "target": 8, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 3, "target": 9, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 3, "target": 10, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 3, "target": 11, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 3, "target": 12, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 3, "target": 13, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 3, "target": 14, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 3, "target": 15, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 3, "target": 16, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 3, "target": 17, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 3, "target": 18, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 3, "target": 19, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+
+        {"source": 4, "target": 8, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 4, "target": 12, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 4, "target": 16, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+
+        {"source": 4, "target": 9, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 4, "target": 10, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 4, "target": 11, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 4, "target": 13, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 4, "target": 14, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 4, "target": 15, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 4, "target": 17, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 4, "target": 18, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 4, "target": 19, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+
+        {"source": 5, "target": 8, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 5, "target": 9, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 5, "target": 10, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 5, "target": 11, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 5, "target": 12, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 5, "target": 13, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 5, "target": 14, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 5, "target": 15, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 5, "target": 16, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 5, "target": 17, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 5, "target": 18, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 5, "target": 19, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+
+        {"source": 6, "target": 8, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 6, "target": 9, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 6, "target": 10, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 6, "target": 11, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 6, "target": 12, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 6, "target": 13, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 6, "target": 14, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 6, "target": 15, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 6, "target": 16, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 6, "target": 17, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 6, "target": 18, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 6, "target": 19, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+
+        {"source": 7, "target": 8, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 7, "target": 9, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 7, "target": 10, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 7, "target": 11, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 7, "target": 12, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 7, "target": 13, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 7, "target": 14, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 7, "target": 15, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 7, "target": 16, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 7, "target": 17, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 7, "target": 18, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 7, "target": 19, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+
+        {"source": 8, "target": 12, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 8, "target": 16, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+
+        {"source": 8, "target": 13, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 8, "target": 14, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 8, "target": 15, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 8, "target": 17, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 8, "target": 18, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 8, "target": 19, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+
+        {"source": 9, "target": 12, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 9, "target": 13, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 9, "target": 14, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 9, "target": 15, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 9, "target": 16, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 9, "target": 17, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 9, "target": 18, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 9, "target": 19, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+
+        {"source": 10, "target": 12, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 10, "target": 13, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 10, "target": 14, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 10, "target": 15, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 10, "target": 16, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 10, "target": 17, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 10, "target": 18, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 10, "target": 19, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+
+        {"source": 11, "target": 12, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 11, "target": 13, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 11, "target": 14, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 11, "target": 15, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 11, "target": 16, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 11, "target": 17, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 11, "target": 18, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 11, "target": 19, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+
+        {"source": 12, "target": 16, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+
+        {"source": 12, "target": 17, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 12, "target": 18, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 12, "target": 19, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+
+        {"source": 13, "target": 16, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 13, "target": 17, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 13, "target": 18, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 13, "target": 19, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+
+        {"source": 14, "target": 16, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 14, "target": 17, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 14, "target": 18, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 14, "target": 19, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+
+        {"source": 15, "target": 16, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 15, "target": 17, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 15, "target": 18, "connection": "normal", "latency": [1000, 175], "area": "wide"},
+        {"source": 15, "target": 19, "connection": "normal", "latency": [1000, 175], "area": "wide"}
+    ]
+}

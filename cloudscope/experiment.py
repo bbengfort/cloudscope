@@ -23,8 +23,16 @@ import collections
 from copy import deepcopy
 from cloudscope.dynamo import Uniform
 from cloudscope.config import settings
+from cloudscope.exceptions import BadValue
 from cloudscope.exceptions import CannotGenerateExperiments
 from cloudscope.replica.base import Consistency
+from cloudscope.simulation.network import CONSTANT, VARIABLE, NORMAL
+
+
+## Area constants
+LOCAL_AREA = "local"
+WIDE_AREA  = "wide"
+
 
 ##########################################################################
 ## Helper Functions
@@ -203,11 +211,17 @@ class LatencyVariation(ExperimentGenerator):
         high  = self.options['latency']['maximum']
         mrng  = self.options['latency']['max_range']
 
-        width = min(mrng, (high / n))
+        # Width specifies how to spread mean latencies and also the stddev
+        width  = min(mrng, (high / n))
 
         for latency in spread(n, low, high, width):
             mean = int(sum(map(float, latency)) / len(latency))
-            yield latency, mean
+            stddev = (float(latency[1] - mean) / 2.5)
+            yield {
+                'latency_range': latency,
+                'latency_mean': mean,
+                'latency_stddev': stddev,
+            }
 
     def generate(self, n=None):
         n = n or self.count
@@ -218,35 +232,72 @@ class LatencyVariation(ExperimentGenerator):
 
         # Begin the experiment generation process.
         for n_users in self.users():
-            for latency, mean_latency in self.latencies(n):
+            for latency_kwargs in self.latencies(n):
                 # Create an experiment with n_user/latency dimensions
                 experiment = deepcopy(self.template)
 
                 # Update the nodes with latency-specific settings.
                 for node in experiment['nodes']:
-                    if node['consistency'] == Consistency.STRONG:
-                        # Add raft-specific information
-                        node['election_timeout']   = [
-                            mean_latency * 10, mean_latency * 20
-                        ]
-                        node['heartbeat_interval'] = mean_latency * 5
+                    self.update_node_params(node, **latency_kwargs)
 
-                    if node['consistency'] == Consistency.EVENTUAL:
-                        # Add tagging-specific information
-                        node['session_timeout'] = mean_latency * 20
-                        node['heartbeat_interval'] = mean_latency * 5
 
                 # Update the links with latency-specific settings.
                 for link in experiment['links']:
-                    if link['connection'] == 'variable':
-                        link['latency'] = latency
-                    else:
-                        link['latency'] = mean_latency
+                    self.update_link_params(link, **latency_kwargs)
 
-                experiment['meta']['users'] = n_users
+                # Update the experiment with meta information
+                self.update_experiment_meta(experiment, users=n_users, **latency_kwargs)
 
+                # Yield the current experiment
                 yield experiment
 
+    def update_node_params(self, node, **kwargs):
+        """
+        In place update of the node in the JSON structure according to the
+        parameters being worked on in the experiment generator.
+        """
+        mean_latency = kwargs['latency_mean']
+
+        if node['consistency'] == Consistency.STRONG:
+            # Add raft-specific information
+            node['election_timeout']   = [
+                mean_latency * 10, mean_latency * 20
+            ]
+            node['heartbeat_interval'] = mean_latency * 5
+
+        if node['consistency'] == Consistency.TAG:
+            # Add tagging-specific information
+            node['session_timeout'] = mean_latency * 20
+            node['heartbeat_interval'] = mean_latency * 5
+
+    def update_link_params(self, link, **kwargs):
+        """
+        In place update of the link in the JSON structure according to the
+        parameters being worked on in the experiment generator.
+        """
+        if link['connection'] == VARIABLE:
+            link['latency'] = kwargs['latency_range']
+
+        elif link['connection'] == CONSTANT:
+            link['latency'] = kwargs['latency_mean']
+
+        elif link['connection'] == NORMAL:
+            link['latency'] = [
+                kwargs['latency_mean'], kwargs['latency_stddev']]
+
+        else:
+            link['latency'] = kwargs['latency_mean']
+
+    def update_experiment_meta(self, experiment, **kwargs):
+        """
+        In place update of the experiment meta data witih keyword arguments.
+        """
+        for key, val in kwargs.items():
+            experiment['meta'][key] = val
+
+##########################################################################
+## Vary anti-entropy delays
+##########################################################################
 
 class AntiEntropyVariation(LatencyVariation):
     """
@@ -292,3 +343,133 @@ class AntiEntropyVariation(LatencyVariation):
 
                 experiment['meta']['anti_entropy_delay'] = ae_delay
                 yield experiment
+
+
+##########################################################################
+## Federated Experiment Generator
+##########################################################################
+
+class FederatedLatencyVariation(LatencyVariation):
+    """
+    A specialization of the latency variation mechanism that only varies the
+    latency in the wide area (not the local area) and updates node parameters
+    such as anti-entropy delay, heartbeat interval, and election timeout with
+    a "tick" measure as computed by either the Bailis or the the Howard
+    measurements. Note therefore that the parameters are entirely dependent on
+    the latency of the WIDE area (not the local area).
+    """
+
+    def get_defaults(self, options):
+        """
+        Update the LatencyVariation defaults with anti-entropy options.
+        """
+        defaults = nested_update({
+            'tick_metric': {
+                'method': 'howard', # Can be either Howard or Bailis for now.
+            }
+        }, options)
+
+        return super(FederatedLatencyVariation, self).get_defaults(defaults)
+
+    def latencies(self, n):
+        """
+        Computes tick (T), and associates it with the latency arguments
+        computed by the super class (LatencyVariation).
+
+        T is a parameter that is measured from the mean and stddev of latency.
+
+        The howard model proposes T = 2(mu + 2sd)
+        The bailis model proposes T = 10mu
+        """
+
+        # Model mapping
+        models = {
+            'bailis': lambda mu, sd: 10*mu,
+            'howard': lambda mu, sd: 2*(mu + (2*sd)),
+        }
+
+        # Select the model
+        model = self.options['tick_metric']['method']
+        if model not in models:
+            raise BadValue(
+                "Unknown model '{}', choose from {}".format(
+                    model, ", ".join(models.keys())
+                )
+            )
+
+        for latency in super(FederatedLatencyVariation, self).latencies(n):
+            # Add the tick metrick to the latency parameters
+            latency['tick_metric'] = int(round(models[model](
+                latency['latency_mean'], latency['latency_stddev']
+            )))
+            yield latency
+
+    def get_raft_params(self, tick):
+        """
+        Returns election_timeout, heartbeat_interval according to the tick.
+        """
+        eto = [tick, 2*tick]
+        hbi = int(round(float(tick) / 2.0))
+        return eto, hbi
+
+    def get_eventual_params(self, tick):
+        """
+        Returns the anti_entropy_delay according to the tick.
+        """
+        return int(round(float(tick) / 4.0))
+
+    def update_node_params(self, node, **kwargs):
+        """
+        Node parameters are set based on T
+
+        Raft parameters are set as follows:
+
+            - heartbeat interval = T/2
+            - election timeout = (T, 2T)
+
+        Eventual parameters are set as follows:
+
+            - anti-entropy delay = T/4
+        """
+        tick = kwargs['tick_metric']
+
+        if node['consistency'] == Consistency.STRONG:
+            # Add raft-specific information
+            eto, hbi = self.get_raft_params(tick)
+            node['election_timeout']   = eto
+            node['heartbeat_interval'] = hbi
+
+        if node['consistency'] == Consistency.EVENTUAL:
+            # Add eventual-specific information
+            node['anti_entropy_delay'] = self.get_eventual_params(tick)
+
+    def update_link_params(self, link, **kwargs):
+        """
+        In place update of the link in the JSON structure according to the
+        parameters being worked on in the experiment generator.
+        """
+        # Do not modify "local" area links if specified in the topology.
+        if link.get('area', None) == LOCAL_AREA:
+            return
+
+        # Otherwise pass the link off to the super class to get modified.
+        return super(FederatedLatencyVariation, self).update_link_params(link, **kwargs)
+
+    def update_experiment_meta(self, experiment, **kwargs):
+        """
+        In place update of the experiment meta data witih keyword arguments.
+        """
+        for key, val in kwargs.items():
+            experiment['meta'][key] = val
+
+        # Add the tick based parameters to the meta information
+        tick = kwargs.get('tick_metric')
+        experiment['meta']['tick_param_model'] = self.options['tick_metric']['method']
+
+        # Add the raft parameters to the meta information
+        eto, hbi = self.get_raft_params(tick)
+        experiment['meta']['election_timeout'] = eto
+        experiment['meta']['heartbeat_interval'] = hbi
+
+        # Add the eventual parameters to the meta information
+        experiment['meta']['anti_entropy_delay'] = self.get_eventual_params(tick)

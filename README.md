@@ -100,6 +100,10 @@ Metrics:
 - % visible (for full replication)
 - % committed
 - # of messages
+- read latency
+- write latency
+- visibility latency
+- commit latency
 
 ## Contributing
 

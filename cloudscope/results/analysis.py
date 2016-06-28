@@ -386,23 +386,32 @@ def create_per_experiment_dataframe(results):
     """
 
     try:
-        results = iter(results)
+        iter(results)
     except TypeError:
         raise BadValue(
             "This analysis function requires a collection of results objects"
         )
 
     table = []
-    meta  = list(results_values(results, 'topology', 'meta'))
     conf  = list(results_values(results, 'settings'))
 
     for idx, results in enumerate(results_values(results, 'results')):
         data = {'eid': "e{:0>2}".format(idx)}
 
         # Pull information from the configuration
+        data['type'] = conf[idx]['type']
         data['users'] = conf[idx]['users']
+        data['tick metric (T)'] = conf[idx]['tick_metric']
+        data['mean latency (ms)'] = conf[idx]['latency_mean']
+        data['latency range (ms)'] = conf[idx]['latency_range']
+        data['standard deviation of latency (ms)'] = conf[idx]['latency_stddev']
         data['anti-entropy delay (ms)'] = conf[idx]['anti_entropy_delay']
         data['heartbeat interval (ms)'] = conf[idx]['heartbeat_interval']
+        data['election timeout (ms, ms)'] = conf[idx]['election_timeout']
+
+        # TODO: Replace with actual data
+        # data['T parameter model'] = conf[idx]['tick_param_model']
+        data['T parameter model'] = 'bailis'
 
         # Aggregate the timeseries resuts data
         for key, values in results.iteritems():

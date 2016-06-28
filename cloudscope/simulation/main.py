@@ -48,6 +48,7 @@ class ConsistencySimulation(Simulation):
             csim.name = data['meta']['title']
             csim.description = data['meta']['description']
             csim.users = data['meta'].get('users', csim.users)
+            csim.results.settings.update(data['meta'])
 
             # Add replicas to the simulation
             for node in data['nodes']:

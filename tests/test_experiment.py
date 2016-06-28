@@ -295,16 +295,16 @@ class LatencyVariationTests(unittest.TestCase, NestedAssertionMixin):
         latency   = {'minimum': 0, 'maximum': 1000, 'max_range': 1000}
         generator = LatencyVariation(self.template, latency=latency, count=10)
         expected  = [
-            ([0, 100], 50),
-            ([100, 200], 150),
-            ([200, 300], 250),
-            ([300, 400], 350),
-            ([400, 500], 450),
-            ([500, 600], 550),
-            ([600, 700], 650),
-            ([700, 800], 750),
-            ([800, 900], 850),
-            ([900, 1000], 950),
+            {'latency_range': [0, 100], 'latency_mean': 50, 'latency_stddev': 20.0},
+            {'latency_range': [100, 200], 'latency_mean': 150, 'latency_stddev': 20.0},
+            {'latency_range': [200, 300], 'latency_mean': 250, 'latency_stddev': 20.0},
+            {'latency_range': [300, 400], 'latency_mean': 350, 'latency_stddev': 20.0},
+            {'latency_range': [400, 500], 'latency_mean': 450, 'latency_stddev': 20.0},
+            {'latency_range': [500, 600], 'latency_mean': 550, 'latency_stddev': 20.0},
+            {'latency_range': [600, 700], 'latency_mean': 650, 'latency_stddev': 20.0},
+            {'latency_range': [700, 800], 'latency_mean': 750, 'latency_stddev': 20.0},
+            {'latency_range': [800, 900], 'latency_mean': 850, 'latency_stddev': 20.0},
+            {'latency_range': [900, 1000], 'latency_mean': 950, 'latency_stddev': 20.0},
         ]
 
         self.assertEqual(list(generator.latencies(10)), expected)

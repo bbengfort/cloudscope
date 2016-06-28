@@ -19,7 +19,7 @@ Implements sequential (strong) consistency in a federated environment.
 
 from cloudscope.replica.consensus import RaftReplica
 from cloudscope.replica.eventual import Gossip
-from cloudscope.replica.eventual import Response as GossipResponse
+from cloudscope.replica.eventual import GossipResponse
 
 ##########################################################################
 ## Federated Sequential (Raft) Replica
@@ -77,14 +77,3 @@ class FederatedRaftReplica(RaftReplica):
 
         # Respond to the sender
         self.send(message.source, GossipResponse(updates, len(updates), success))
-
-    def on_write_response_rpc(self, message):
-        """
-        Completes the write if the remote write was successful.
-
-        TODO: This might be BAD -- more investigation required.
-        """
-        rpc = message.value
-        if rpc.success:
-            if not rpc.access.complete:
-                rpc.access.complete()

@@ -82,6 +82,20 @@ class ConnectionTests(unittest.TestCase):
             conn = Connection(None, None, None, latency=300, connection=NORMAL)
             conn.latency()
 
+    def test_non_zero_latency(self):
+        """
+        Ensure latency cannot be zero
+        """
+        conn  = Connection(None, None, None, latency=(-2, 2), connection=VARIABLE)
+        for _ in xrange(200):
+            latency = conn.latency()
+            self.assertGreater(latency, 0, "latency cannot be less than zero!")
+
+        conn  = Connection(None, None, None, latency=(0, 1), connection=NORMAL)
+        for _ in xrange(200):
+            latency = conn.latency()
+            self.assertGreater(latency, 0, "latency cannot be less than zero!")
+
     def test_weird_connection_type(self):
         """
         Ensure that connections can only be constant, normal, or variable
