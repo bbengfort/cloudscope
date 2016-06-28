@@ -100,15 +100,21 @@ def extract_nodes(results):
             # Expecting the first item in every series to be the replica id
             nodes[value[0]][key].append(value)
 
-    # TODO: add node information from topology (particularly node type)
-
-    # Compute the aggregates and return
-    return {
+    # Compute the aggregates for each series
+    vertices = {
         node: merge([
             aggregator(key, values) for key, values in series.iteritems()
         ])
         for node, series in nodes.iteritems()
     }
+
+    # Add the meta information from the topology
+    for meta in results.topology['nodes']:
+        vid = meta['id']
+        for key, val in meta.items():
+            vertices[vid][key] = val
+
+    return vertices
 
 
 def extract_edges(results):
@@ -134,7 +140,7 @@ def extract_edges(results):
         for key, values in series.iteritems()
     }
 
-    # TODO: add link information from the topology 
+    # TODO: add link information from the topology
 
     # Add edge weights to the nodes
     total = float(sum(results.messages['sent'].values()))
@@ -149,11 +155,50 @@ def extract_edges(results):
     return edges
 
 
+def extract_message_edges(results):
+    """
+    Rather than parse the graph from the topology, the graph is constructed
+    from the results, inspecting actual communication rather than physical
+    connections.
+
+    Extract message edges grabs information about how nodes are connected by
+    inspecting the `recv` series as in extract_edges. However, this function
+    adds more edges by filtering on message type not just aggregating all
+    total messages between nodes.
+    """
+
+    # Get edge information from the results object
+    series = defaultdict(list)
+    for value in results.results['recv']:
+        # value is (target, source, recv at, message type, delay)
+        series[(value[1], value[0], value[3])].append(value)
+
+    edges = {
+        key: aggregator('recv', values)
+        for key, values in series.iteritems()
+    }
+
+    # TODO: add link information from the topology
+
+    # Add edge weights to the nodes
+    total = float(sum(results.messages['sent'].values()))
+    highest = float(max(e['recv'] for e in edges.values()))
+
+    for key in edges.keys():
+        count = edges[key].pop('recv')
+        edges[key]['weight'] = float(count) / total
+        edges[key]['norm'] = float(count) / highest
+        edges[key]['count'] = count
+        edges[key]['label'] = key[2]
+
+    return edges
+
+
 ##########################################################################
 ## Graph Tool graph generation
 ##########################################################################
 
-def extract_graph(results, kind='graph_tool'):
+def extract_graph(results, kind='graph_tool', **kwargs):
     """
     Extracts a graph from the node and edge extractor from the results.
     Kind can be either graph_tool (gt) or networkx (nx), returns a directed
@@ -174,10 +219,10 @@ def extract_graph(results, kind='graph_tool'):
             )
         )
 
-    return extractors[kind](results)
+    return extractors[kind](results, **kwargs)
 
 
-def extract_graph_tool_graph(results):
+def extract_graph_tool_graph(results, **kwargs):
     """
     Constructs a graph-tool Graph, which is not trivial.
     To get back to edge colors by type, create an inner function which only
@@ -189,12 +234,12 @@ def extract_graph_tool_graph(results):
     G = gt.Graph(directed=True)
 
     # Construct the Graph Properties
-    kwargs = results.settings
-    kwargs.update(results.topology['meta'])
-    kwargs['name'] = "Communications Graph: {}".format(kwargs.get('title', 'CloudScope Simulation'))
+    graph = results.settings
+    graph.update(results.topology['meta'])
+    graph['name'] = "Communications Graph: {}".format(graph.get('title', 'CloudScope Simulation'))
 
     # Add the Graph Properties
-    for key, value in kwargs.items():
+    for key, value in graph.items():
         tname, value, key = get_prop_type(value, key)
         prop = G.new_graph_property(tname)
         G.graph_properties[key] = prop  # Set the PropertyMap
@@ -202,7 +247,11 @@ def extract_graph_tool_graph(results):
 
     # Extract the nodes and the edges
     nodes = extract_nodes(results)
-    edges = extract_edges(results)
+
+    if kwargs.get('by_message_type', False):
+        edges = extract_message_edges(results)
+    else:
+        edges = extract_edges(results)
 
     # Add the node properties
     nprops = set() # cache to only add properties once
@@ -256,19 +305,19 @@ def extract_graph_tool_graph(results):
 
 
     # Add the edges
-    for (source, target), data in edges.items():
-        src = vertices[source]
-        dst = vertices[target]
+    for edge, data in edges.items():
+        src = vertices[edge[0]]
+        dst = vertices[edge[1]]
         e = G.add_edge(src, dst)
 
         # Add edge properties
-        data['sender'] = source
-        data['receiver'] = target
+        data['sender'] = edge[0]
+        data['receiver'] = edge[1]
         for key, value in data.items():
             G.ep[key][e] = value
 
     return G
 
 
-def extract_networkx_graph(results):
+def extract_networkx_graph(results, **kwargs):
     raise NotImplementedError("Not implemented quite yet.")
