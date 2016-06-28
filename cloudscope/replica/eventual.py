@@ -69,7 +69,7 @@ DO_RUMORING = settings.simulation.do_rumoring
 
 ## RPC Message Definition
 Gossip   = namedtuple('Gossip', 'entries, length')
-Response = namedtuple('Response', 'entries, length, success')
+GossipResponse = namedtuple('GossipResponse', 'entries, length, success')
 
 
 ##########################################################################
@@ -290,9 +290,9 @@ class EventualReplica(Replica):
         success = True if updates else False
 
         # Respond to the sender
-        self.send(message.source, Response(updates, len(updates), success))
+        self.send(message.source, GossipResponse(updates, len(updates), success))
 
-    def on_response_rpc(self, message):
+    def on_gossip_response_rpc(self, message):
         """
         Handles the response to pairwise gossiping, updating entries from the
         responder to your gossip with the latest news.

@@ -68,6 +68,7 @@ class Version(object):
         """
         self.writer    = replica
         self.parent    = parent
+        self.children  = []
         self.version   = self.counter.next()
         self.committed = False
         self.tag       = kwargs.get('tag', None)
@@ -155,16 +156,31 @@ class Version(object):
         """
         return not self.version == self.counter.value
 
+    def is_forked(self):
+        """
+        Detect if we have multiple children or not.
+        """
+        return len(self.children) > 1
+
     def nextv(self, replica, **kwargs):
         """
         Returns a clone of this version, incremented to the next version.
         """
-        return self.__class__(
+        nv = self.__class__(
             replica, parent=self, level=self.level
         )
 
-    # Alias for next version
-    fork = nextv
+        # Append the next version to your children
+        self.children.append(nv)
+
+        # Detect if we've forked the write
+        if self.is_forked():
+            # Count the number of forked writes
+            self.writer.sim.results.update(
+                'forked writes', (self.writer.id, self.writer.env.now)
+            )
+
+        return nv
 
     def contiguous(self):
         """

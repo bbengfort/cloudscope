@@ -84,7 +84,7 @@ class VersionTests(unittest.TestCase):
         """
         v1 = Version(self.replica)
         self.sim.env.now = 42
-        v2 = v1.fork(random.choice([r for r in self.sim.replicas if r != self.replica]))
+        v2 = v1.nextv(random.choice([r for r in self.sim.replicas if r != self.replica]))
 
         self.assertIsInstance(v2, Version)
         self.assertEqual(v2.parent, v1)
@@ -150,7 +150,7 @@ class VersionTests(unittest.TestCase):
         self.assertFalse(v1.is_stale())
 
         self.sim.env.now = 42
-        v2 = v1.fork(random.choice([r for r in self.sim.replicas if r != self.replica]))
+        v2 = v1.nextv(random.choice([r for r in self.sim.replicas if r != self.replica]))
         self.assertTrue(v1.is_stale())
         self.assertFalse(v2.is_stale())
 
@@ -160,7 +160,7 @@ class VersionTests(unittest.TestCase):
         """
 
         v1 = Version(self.replica)
-        v2 = v1.fork(self.replica)
+        v2 = v1.nextv(self.replica)
 
         self.assertLess(v1, v2)
         self.assertLessEqual(v1, v2)
@@ -180,7 +180,7 @@ class VersionTests(unittest.TestCase):
         self.assertEqual(str(version), "root->1")
 
         for idx in xrange(100):
-            version = version.fork(self.replica)
+            version = version.nextv(self.replica)
 
         self.assertEqual(str(version), "100->101")
 
@@ -192,17 +192,17 @@ class VersionTests(unittest.TestCase):
         version = Version(self.replica)
 
         for idx in xrange(5):
-            version = version.fork(self.replica)
+            version = version.nextv(self.replica)
 
         # Now we split
-        version_a = version.fork(self.replica)
-        version_b = version.fork(self.replica)
+        version_a = version.nextv(self.replica)
+        version_b = version.nextv(self.replica)
 
         for idx in xrange(3):
-            version_a = version_a.fork(self.replica)
+            version_a = version_a.nextv(self.replica)
 
         for idx in xrange(9):
-            version_b = version_b.fork(self.replica)
+            version_b = version_b.nextv(self.replica)
 
         self.assertEqual(str(version_a), '')
         self.assertEqual(str(version_b), '')
@@ -254,14 +254,14 @@ class MultiVersionTests(unittest.TestCase):
         A = Version.new('A')
         a1 = A(self.replica)
         self.sim.env.now += 10
-        a2 = a1.fork(other)
+        a2 = a1.nextv(other)
 
         self.sim.env.now += 10
         B = Version.new('B')
         b1 = B(other)
 
         self.sim.env.now += 10
-        b2 = b1.fork(self.replica)
+        b2 = b1.nextv(self.replica)
 
         self.assertIsInstance(a2, A)
         self.assertIsInstance(b2, B)
@@ -364,13 +364,13 @@ class MultiVersionTests(unittest.TestCase):
         self.assertFalse(b.is_stale())
 
         self.sim.env.now += 42
-        b2 = b.fork(self.replica)
+        b2 = b.nextv(self.replica)
         self.assertTrue(b.is_stale())
         self.assertFalse(a.is_stale())
         self.assertFalse(b2.is_stale())
 
         self.sim.env.now += 42
-        a2 = a.fork(self.replica)
+        a2 = a.nextv(self.replica)
         self.assertTrue(a.is_stale())
         self.assertTrue(b.is_stale())
         self.assertFalse(a2.is_stale())
@@ -382,10 +382,10 @@ class MultiVersionTests(unittest.TestCase):
         """
         A = Version.new('A')
         a1 = A(self.replica)
-        a2 = a1.fork(self.replica)
+        a2 = a1.nextv(self.replica)
         B = Version.new('B')
         b1 = B(self.replica)
-        b2 = b1.fork(self.replica)
+        b2 = b1.nextv(self.replica)
 
         self.assertLess(a1, a2)
         self.assertLess(b1, b2)
@@ -434,8 +434,8 @@ class MultiVersionTests(unittest.TestCase):
         self.assertEqual(str(b), "root->B.1")
 
         for idx in xrange(100):
-            a = a.fork(self.replica)
-            b = b.fork(self.replica)
+            a = a.nextv(self.replica)
+            b = b.nextv(self.replica)
 
         self.assertEqual(str(a), "A.100->A.101")
         self.assertEqual(str(b), "B.100->B.101")

@@ -145,15 +145,15 @@ class MultiObjectWriteLogTests(unittest.TestCase):
             self.log.append(obj, 1)
 
         # Create unordered log objects.
-        self.log.append(a.fork(replica()), 2)
-        self.log.append(a.fork(replica()), 2)
-        self.log.append(a.fork(replica()), 2)
-        self.log.append(a.fork(replica()), 3)
-        self.log.append(a.fork(replica()), 3)
-        self.log.append(b.fork(replica()), 3)
-        self.log.append(b.fork(replica()), 4)
-        self.log.append(b.fork(replica()), 4)
-        self.log.append(c.fork(replica()), 4)
+        self.log.append(a.nextv(replica()), 2)
+        self.log.append(a.nextv(replica()), 2)
+        self.log.append(a.nextv(replica()), 2)
+        self.log.append(a.nextv(replica()), 3)
+        self.log.append(a.nextv(replica()), 3)
+        self.log.append(b.nextv(replica()), 3)
+        self.log.append(b.nextv(replica()), 4)
+        self.log.append(b.nextv(replica()), 4)
+        self.log.append(c.nextv(replica()), 4)
         self.log.append(d, 5)
 
         self.log.commitIndex = 9

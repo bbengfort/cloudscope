@@ -180,7 +180,7 @@ class Access(object):
         if self.is_completed():
 
             # TODO: Deprecate the below weak sauce capture and raise an error like you should
-            # TODO: Stop being such a hacker and write good code. 
+            # TODO: Stop being such a hacker and write good code.
             if settings.simulation.integration == 'federated':
                 self.owner.sim.logger.warn(
                     "Attempting to complete {} after it was already completed!".format(self)

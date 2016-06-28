@@ -54,16 +54,16 @@
       this.broadcast(vers);
     };
 
-    // Updates a particular version (forks) and replicates it.
+    // Updates a particular version (writes to it) and replicates it.
     this.update = function(version) {
       var vers = this.files[version];
-      var fork = vers.fork();
+      var nextv = vers.nextv();
 
       // Replace the file we have in our storage with the new version.
       // and replicate the update across the network (updating the sim)
-      this.files[fork.version] = fork;
+      this.files[nextv.version] = nextv;
       this.sim.updateState();
-      this.broadcast(fork);
+      this.broadcast(nextv);
     };
 
     // Sends a message to the destination
@@ -215,8 +215,8 @@
       return this;
     }
 
-    // Fork a new version from this version
-    this.fork = function(options) {
+    // Create a new version with this version as parent
+    this.nextv = function(options) {
       this.updated = Date.now();
 
       options = options || {};
