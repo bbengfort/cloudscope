@@ -322,6 +322,7 @@ class Write(Access):
             - dropped writes
         """
         super(Write, self).drop()
+        print("DROP on {} CALLED!".format(self))
 
         # Track the drop latency
         self.sim.results.update(
@@ -329,12 +330,12 @@ class Write(Access):
             (self.owner.id, self.name, self.started, self.finished)
         )
 
-        # Count the number of missed reads
+        # Count the number of dropped writes
         self.sim.results.update(
             'dropped writes', (self.owner.id, self.env.now)
         )
 
-        # Log the missed read
+        # Log the dropped write
         self.sim.logger.info(
             "dropped write of object {} on {}".format(self.name, self)
         )

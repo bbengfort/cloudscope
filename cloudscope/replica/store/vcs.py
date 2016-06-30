@@ -19,6 +19,7 @@ Definition of what a replica actually stores and manages (data objects).
 
 from cloudscope.replica.access import Write
 from cloudscope.dynamo import Sequence, CharacterSequence
+from cloudscope.exceptions import WorkloadException
 
 
 ##########################################################################
@@ -158,14 +159,26 @@ class Version(object):
 
     def is_forked(self):
         """
-        Detect if we have multiple children or not.
+        Detect if we have multiple children or not. This is a "magic" method
+        of determining if the fork exists or not ... for now. We need to make
+        this "non-magic" soon.
         """
+        # TODO: Non-magic version of this
         return len(self.children) > 1
 
     def nextv(self, replica, **kwargs):
         """
         Returns a clone of this version, incremented to the next version.
         """
+        # TODO: ADD THIS BACK IN!
+        # Do not allow dropped writes to be incremented
+        # if self.access.is_dropped():
+        #     msg = (
+        #         "Cannot write to a dropped version! "
+        #         "{} {} attempting to write {}"
+        #     ).format(self.writer.__class__.__name__, self.writer, self)
+        #     raise WorkloadException(msg)
+
         nv = self.__class__(
             replica, parent=self, level=self.level
         )

@@ -141,6 +141,18 @@ class TimeSeriesAggregator(object):
             label: len(values),
         }
 
+    def handle_missed_reads(self, label, values):
+        """
+        Expects a time series in the form of:
+
+            (owner, timestamp)
+
+        Returns the number of missed reads
+        """
+        return {
+            label: len(values),
+        }
+
     def handle_read_latency(self, label, values):
         """
         Expects a time series in the form of:
@@ -154,6 +166,18 @@ class TimeSeriesAggregator(object):
             "mean read latency (ms)": mean(v[3] - v[2] for v in values),
         }
 
+    def handle_missed_read_latency(self, label, values):
+        """
+        Expects a time series in the form of:
+
+            (owner, version, started, finished)
+
+        Returns the mean read missed latency
+        """
+        return {
+            "mean missed read latency (ms)": mean(v[3] - v[2] for v in values),
+        }
+
     def handle_stale_reads(self, label, values):
         """
         Expects a time series in the form of:
@@ -161,6 +185,18 @@ class TimeSeriesAggregator(object):
             (owner, timestamp)
 
         Returns the number of stale reads
+        """
+        return {
+            label: len(values),
+        }
+
+    def handle_dropped_writes(self, label, values):
+        """
+        Expects a time series in the form of:
+
+            (owner, timestamp)
+
+        Returns the number of dropped_writes
         """
         return {
             label: len(values),
@@ -203,6 +239,18 @@ class TimeSeriesAggregator(object):
         return {
             "completed writes": len(values),
             "mean write latency (ms)": mean(v[3] - v[2] for v in values),
+        }
+
+    def handle_dropped_write_latency(self, label, values):
+        """
+        Expects a time series in the form of:
+
+            (owner, version, started, finished)
+
+        Returns the mean dropped write latency
+        """
+        return {
+            "mean dropped write latency (ms)": mean(v[3] - v[2] for v in values),
         }
 
     def handle_session_length(self, label, values):
@@ -280,9 +328,12 @@ def create_per_replica_dataframe(results):
 
     # Create the data frame and compute final aggregations
     df = pd.DataFrame(sorted(table, key=itemgetter('replica')))
-    df['missed reads'] = df['reads'] - df['completed reads']
-    df['dropped writes'] = df['writes'] - df ['visible writes']
+    df['partially replicated writes'] = df['writes'] - df ['visible writes']
     df['visibility ratio'] = df['visible writes'] / df['writes']
+
+    # Remove the "unforked writes"
+    if 'unforked writes' in df.columns:
+        df['forked writes'] -= df['unforked writes']
 
     return df
 

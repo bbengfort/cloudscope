@@ -18,6 +18,7 @@ Implements sequential (strong) consistency in a federated environment.
 ##########################################################################
 
 from cloudscope.replica.consensus import RaftReplica
+from cloudscope.replica.consensus.raft import WriteResponse
 from cloudscope.replica.eventual import Gossip
 from cloudscope.replica.eventual import GossipResponse
 
@@ -77,3 +78,29 @@ class FederatedRaftReplica(RaftReplica):
 
         # Respond to the sender
         self.send(message.source, GossipResponse(updates, len(updates), success))
+
+    def on_remote_write_rpc(self, message):
+        """
+        Reject forked writes if they come in.
+        """
+        access = message.value.version
+
+        # Check to make sure the write isn't forked - if it is, then reject.
+        if access.version.parent and access.version.parent.is_forked():
+            access.drop()
+            success = False
+
+            # Count the number of "unforked" writes
+            # TODO: THIS IS A COMPLETE HACK!
+            # TODO: GET RID OF THIS!
+            self.sim.results.update(
+                'unforked writes', (access.version.parent.writer.id, self.env.now)
+            )
+
+
+        else:
+            self.write(access)
+            success = True
+
+        # Send the write response
+        self.send(message.source, WriteResponse(self.currentTerm, success, access))
