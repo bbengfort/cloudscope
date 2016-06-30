@@ -27,17 +27,21 @@ except ImportError:
 from cloudscope.replica import Replica, Location, Consistency, Device
 from cloudscope.dynamo import Sequence
 from cloudscope.simulation.base import Simulation
+from cloudscope.results import Results
 
 
 MockEnvironment = mock.create_autospec(simpy.Environment, autospec=True)
 MockSimulation  = mock.create_autospec(Simulation, autospec=True)
+MockResults     = mock.create_autospec(Results, autospec=True)
 MockReplica     = mock.create_autospec(Replica, autospec=True)
 sequence        = Sequence()
 
 def get_mock_simulation(**kwargs):
     simulation     = MockSimulation()
     simulation.env = MockEnvironment()
+    simulation.results = MockResults()
 
+    simulation.__name__ = "MockSimulation"
     # Set specific properties and attributes
     simulation.env.process = mock.MagicMock()
     simulation.env.now  = kwargs.get('now', 42)
@@ -58,6 +62,9 @@ def get_mock_replica(simulation, **kwargs):
 
     replica = Replica(simulation)
     replica = mock.create_autospec(replica, instance=True)
+    replica.__name__ = "MockReplica"
+    replica.sim = simulation
+
     for key, val in kwargs.items():
         setattr(replica, key, val)
 
