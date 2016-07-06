@@ -78,9 +78,9 @@ class VersionTests(unittest.TestCase):
         # Reset the version counter
         Version.counter.reset()
 
-    def test_fork(self):
+    def test_nextv(self):
         """
-        Test the forking of a version.
+        Test getting the next version of an object.
         """
         v1 = Version(self.replica)
         self.sim.env.now = 42
@@ -375,6 +375,97 @@ class MultiVersionTests(unittest.TestCase):
         self.assertTrue(b.is_stale())
         self.assertFalse(a2.is_stale())
         self.assertFalse(b2.is_stale())
+
+    def test_is_forked(self):
+        """
+        Test the fork detection mechanism of multiple versions.
+        """
+        # Create new version history for an object named A
+        A = Version.new('A')
+
+        # Create the first version
+        a1 = A(self.replica)
+        self.assertFalse(a1.is_forked())
+
+        # Create another version
+        a2 = a1.nextv(self.replica)
+        self.assertFalse(a1.is_forked())
+        self.assertFalse(a2.is_forked())
+
+        # Create a fork!
+        a3 = a1.nextv(self.replica)
+        self.assertTrue(a1.is_forked())
+        self.assertFalse(a2.is_forked())
+        self.assertFalse(a3.is_forked())
+
+        # Create another version from a2
+        a4 = a2.nextv(self.replica)
+        self.assertTrue(a1.is_forked())
+        self.assertFalse(a2.is_forked())
+        self.assertFalse(a3.is_forked())
+        self.assertFalse(a4.is_forked())
+
+        # Create a fork from a2!
+        a5 = a2.nextv(self.replica)
+        self.assertTrue(a1.is_forked())
+        self.assertTrue(a2.is_forked())
+        self.assertFalse(a3.is_forked())
+        self.assertFalse(a4.is_forked())
+        self.assertFalse(a5.is_forked())
+
+        # Create another fork from a1!
+        a6 = a1.nextv(self.replica)
+        self.assertTrue(a1.is_forked())
+        self.assertTrue(a2.is_forked())
+        self.assertFalse(a3.is_forked())
+        self.assertFalse(a4.is_forked())
+        self.assertFalse(a5.is_forked())
+        self.assertFalse(a6.is_forked())
+
+    def test_unforking(self):
+        """
+        Test "unforking" a version by dropping the child access.
+        """
+        # Create new version history for an object named A
+        A = Version.new('A')
+
+        # Create the first version
+        a1 = A(self.replica)
+        self.assertFalse(a1.is_forked())
+
+        # Create another version
+        a2 = a1.nextv(self.replica)
+        self.assertFalse(a1.is_forked())
+        self.assertFalse(a2.is_forked())
+
+        # Create a fork!
+        a3 = a1.nextv(self.replica)
+        self.assertTrue(a1.is_forked())
+        self.assertFalse(a2.is_forked())
+        self.assertFalse(a3.is_forked())
+
+        # Now drop a3 and "unfork" it.
+        a3.access.drop()
+        self.assertFalse(a1.is_forked())
+        self.assertFalse(a2.is_forked())
+        self.assertFalse(a3.is_forked())
+
+        # Create two more forks!
+        a4 = a1.nextv(self.replica)
+        a5 = a1.nextv(self.replica)
+        self.assertTrue(a1.is_forked())
+        self.assertFalse(a2.is_forked())
+        self.assertFalse(a3.is_forked())
+        self.assertFalse(a4.is_forked())
+        self.assertFalse(a5.is_forked())
+
+        # Drop a4 but a1 remains forked
+        a4.access.drop()
+        self.assertTrue(a1.is_forked())
+
+        # Drop a5 which unforks a1
+        a5.access.drop()
+        self.assertFalse(a1.is_forked())
 
     def test_version_comparison(self):
         """

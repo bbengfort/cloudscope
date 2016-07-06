@@ -152,8 +152,8 @@ class RaftReplica(ConsensusReplica):
             # Record the number of attempts for the access
             access.attempts += 1
 
-            # Fetch the latest commit from the log
-            latest = self.log.get_latest_commit(access.name)
+            # Fetch the latest version from the log
+            latest = self.log.get_latest_version(access.name)
 
             # Perform the write
             if latest is None:
