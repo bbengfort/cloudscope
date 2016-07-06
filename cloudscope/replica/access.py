@@ -322,7 +322,6 @@ class Write(Access):
             - dropped writes
         """
         super(Write, self).drop()
-        print("DROP on {} CALLED!".format(self))
 
         # Track the drop latency
         self.sim.results.update(

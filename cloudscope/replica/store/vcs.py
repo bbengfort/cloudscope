@@ -164,7 +164,9 @@ class Version(object):
         this "non-magic" soon.
         """
         # TODO: Non-magic version of this
-        return len(self.children) > 1
+        # Right now we are computing how many un-dropped children exist
+        dropped = lambda child: not child.access.is_dropped()
+        return len(filter(dropped, self.children)) > 1
 
     def nextv(self, replica, **kwargs):
         """

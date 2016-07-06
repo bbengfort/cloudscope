@@ -459,10 +459,7 @@ def create_per_experiment_dataframe(results):
         data['anti-entropy delay (ms)'] = conf[idx]['anti_entropy_delay']
         data['heartbeat interval (ms)'] = conf[idx]['heartbeat_interval']
         data['election timeout (ms, ms)'] = conf[idx]['election_timeout']
-
-        # TODO: Replace with actual data
-        # data['T parameter model'] = conf[idx]['tick_param_model']
-        data['T parameter model'] = 'bailis'
+        data['T parameter model'] = conf[idx]['tick_param_model']
 
         # Aggregate the timeseries resuts data
         for key, values in results.iteritems():
@@ -470,4 +467,11 @@ def create_per_experiment_dataframe(results):
 
         table.append(data)
 
-    return pd.DataFrame(table)
+    df = pd.DataFrame(table)
+    df = df.fillna(0)
+
+    # Remove the "unforked writes"
+    if 'unforked writes' in df.columns:
+        df['inconsistent writes'] = df['forked writes'] - df['unforked writes']
+
+    return df
