@@ -38,7 +38,7 @@ from collections import Counter, defaultdict
 TRACERE = re.compile(r'^trace-(\d+)ms-(\d+)user.tsv$')
 
 ##########################################################################
-## Command
+## Per process runner function
 ##########################################################################
 
 def runner(idx, path, **kwargs):
@@ -80,6 +80,10 @@ def runner(idx, path, **kwargs):
             'error': str(e),
         })
 
+
+##########################################################################
+## Command
+##########################################################################
 
 class MultipleSimulationsCommand(Command):
 

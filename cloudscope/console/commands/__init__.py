@@ -24,3 +24,4 @@ from .multi import MultipleSimulationsCommand
 from .generate import GenerateCommand
 from .traces import TracesCommand
 from .config import SettingsCommand
+from .inspect import InspectCommand

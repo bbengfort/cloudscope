@@ -39,6 +39,7 @@ COMMANDS    = [
     GenerateCommand,
     TracesCommand,
     SettingsCommand,
+    InspectCommand,
 ]
 
 ##########################################################################
