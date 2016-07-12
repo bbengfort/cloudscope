@@ -70,7 +70,7 @@ def runner(idx, path, **kwargs):
         return output.getvalue()
     except Exception as e:
         logger.error(
-            "Simulation {} (\"{}\") errored: {}".format(idx, sim.name, str(e))
+            "Simulation {} ({}) errored: {}".format(idx, path, str(e))
         )
 
         import traceback, sys

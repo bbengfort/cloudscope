@@ -50,6 +50,11 @@ class ConsistencySimulation(Simulation):
             csim.users = data['meta'].get('users', csim.users)
             csim.results.settings.update(data['meta'])
 
+            # If the trace exists in the simulation meta, use it.
+            # Do not use the trace if it has been specified in the kwargs.
+            if csim.trace is None and 'trace' in data['meta']:
+                csim.trace = data['meta']['trace']
+
             # Add replicas to the simulation
             for node in data['nodes']:
                 csim.replicas.append(replica_factory(csim, **node))
