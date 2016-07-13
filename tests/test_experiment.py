@@ -283,7 +283,8 @@ class LatencyVariationTests(unittest.TestCase, NestedAssertionMixin):
         generator    = LatencyVariation(self.template, users=users_opts, latency=latency_opts)
         expected     = {
             'users': {'minimum': 1, 'maximum': 5, 'step': 1},
-            'latency': {'minimum': 5, 'maximum': 3000, 'max_range': 800}
+            'latency': {'minimum': 5, 'maximum': 3000, 'max_range': 800},
+            'traces': [],
         }
 
         self.assertEqual(generator.options, expected)
@@ -422,6 +423,7 @@ class AntiEntropyVariationTests(unittest.TestCase, NestedAssertionMixin):
             'users': {'minimum': 1, 'maximum': 5, 'step': 1},
             'latency': {'minimum': 5, 'maximum': 3000, 'max_range': 800},
             'anti_entropy': {'minimum': 100, 'maximum': settings.simulation.anti_entropy_delay},
+            'traces': [],
         }
 
         self.assertEqual(generator.options, expected)

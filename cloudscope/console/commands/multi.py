@@ -30,7 +30,9 @@ from cStringIO import StringIO
 from cloudscope.config import settings
 from cloudscope.utils.decorators import Timer
 from cloudscope.utils.timez import humanizedelta
+from cloudscope.utils.notify import notify as send_mail
 from cloudscope.simulation.main import ConsistencySimulation
+from cloudscope.exceptions import NotifyError
 from commis.exceptions import ConsoleError
 from collections import Counter, defaultdict
 
@@ -108,6 +110,12 @@ class MultipleSimulationsCommand(Command):
             'metavar': 'PATH',
             'help': 'specify the path to the trace file with accesses',
         },
+        ('-E', '--notify'): {
+            'type': str,
+            'default': None,
+            'metavar': 'EMAIL',
+            'help': 'specify an email address for notification when complete'
+        },
         # Note: can't use argparse.FileType('r') here because of too many open files error!
         'topology': {
             'nargs': "+",
@@ -165,13 +173,17 @@ class MultipleSimulationsCommand(Command):
         if args.traceback:
             print(json.dumps(errors, indent=2))
 
-        return (
+        # Construct complete message for notification
+        notice = (
             "{} simulations ({} compute time, {} errors) run by {} tasks in {}\n"
             "Results for {} written to {}"
         ).format(
             len(results), humanizedelta(seconds=duration) or "0 seconds",
             len(errors), args.tasks, timer, simulation, args.output.name
         )
+
+        self.notify(args.notify, notice, errors)
+        return notice
 
     def get_experiments(self, args):
         """
@@ -221,3 +233,48 @@ class MultipleSimulationsCommand(Command):
             return traces
 
         return trace
+
+    def notify(self, recipient, notice, errors):
+        """
+        Notifies the recipient that the simulation is complete and sends the
+        results and any errors as attachments.
+        """
+
+        # If no recipient is specified, don't worry about it
+        if not recipient: return
+
+        # Otherwise compose an actual message.
+        message = (
+            "Hello,\n\n"
+            "This is the CloudScope multi-simulation command. "
+            "I wanted to let you know the following:\n\n{}\n\n"
+        ).format(notice)
+
+        # Add the errors
+        if errors:
+            message += "The following errors occurred:\n\n"
+            for error in errors:
+                message += "    - {}".format(error['error'])
+
+        else:
+            message += "No errors occurred!\n\n"
+
+        # Send the conclusion
+        message += (
+            "Thank you for simulating with CloudScope,\n"
+            "The CloudScope Agent"
+        )
+
+        # Create the subject and the logger
+        subject = "Cloudscope Multi-Simulation Complete!"
+        logger  = logging.getLogger('cloudscope')
+
+        # Attempt to send the email and catch error if unable.
+        try:
+            success = send_mail(recipient, subject, message)
+            if success:
+                logger.info("Sent notification email to {}".format(recipient))
+            else:
+                logger.warning("Could not send notification email to {}".format(recipient))
+        except NotifyError as e:
+            logger.error("Could not notify {}: {}".format(recipient, e))
