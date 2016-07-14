@@ -21,6 +21,7 @@ import os
 import re
 import json
 import glob
+import time
 import logging
 import argparse
 import multiprocessing as mp
@@ -51,6 +52,7 @@ def runner(idx, path, **kwargs):
     logger = logging.getLogger('cloudscope')
 
     try:
+
         with open(path, 'r') as fobj:
             sim = ConsistencySimulation.load(fobj, **kwargs)
 
@@ -70,6 +72,7 @@ def runner(idx, path, **kwargs):
 
         # Return the string value of the JSON results.
         return output.getvalue()
+
     except Exception as e:
         logger.error(
             "Simulation {} ({}) errored: {}".format(idx, path, str(e))
@@ -77,6 +80,7 @@ def runner(idx, path, **kwargs):
 
         import traceback, sys
         return json.dumps({
+            'idx': idx,
             'success': False,
             'traceback': "".join(traceback.format_exception(*sys.exc_info())),
             'error': str(e),
@@ -137,49 +141,63 @@ class MultipleSimulationsCommand(Command):
         # Load the experiments and their options
         experiments = self.get_experiments(args)
 
+        # Open an output file for results if one isn't specified
+        if args.output is None:
+            path = "multisim-results-{}.json".format("%Y%m%d%H%M%S", time.localtime())
+            args.output = open(path, 'w+')
+
         # Create a pool of processes and begin to execute experiments
         with Timer() as timer:
-            pool    = mp.Pool(processes=args.tasks)
-            results = [
+            pool   = mp.Pool(processes=args.tasks)
+            tasks  = [
                 pool.apply_async(runner, (i+1,x), k)
                 for i, (x, k) in enumerate(experiments)
             ]
 
-            # Compute output and errors
-            output   = [json.loads(p.get()) for p in results]
-            errors   = filter(lambda d: 'error' in d, output)
-            output   = filter(lambda d: 'error' not in d, output)
+            # Data structures for holding results
+            deltas = []
+            errors = []
+
+            # Compute timing and errors and write results to disk
+            # This causes the multisim to join!
+            for task in tasks:
+
+                # Pop the results off of the task queue
+                result = json.loads(task.get())
+
+                # If there is an error, add it to the errors and go on
+                if 'error' in result:
+                    errors.append(result)
+                    continue
+
+                # Otherwise append the timing duration
+                deltas.append(
+                    result['timer']['finished'] - result['timer']['started']
+                )
+
+                # And write the results to disk, one result per-line.
+                # NOTE: This is the new style multi-result output for memory saving
+                args.output.write(json.dumps(result) + "\n")
 
             # Compute duration
-            duration = sum([
-                result['timer']['finished'] - result['timer']['started']
-                for result in output
-            ])
+            duration = sum(deltas)
 
-            # Compute the most common simulation name
-            names = Counter(d['simulation'] for d in output)
-            simulation = names.most_common(1)
-            simulation = simulation[0][0] if simulation else "(No Simulation Completed)"
-
-        # Dump the output data to a file.
-        if args.output is None:
-            path = "{}-multi-{}.json".format(
-                output[0]['simulation'], int(output[0]['timer']['finished'])
-            ).replace(" ", "-").lower()
-            args.output = open(path, 'w')
-        json.dump(output, args.output)
-
+        # TIMER COMPLETE!
         # If traceback, dump the errors out.
         if args.traceback:
-            print(json.dumps(errors, indent=2))
+            for idx, error in enumerate(errors):
+                banner = "="*36
+                print ("{}\nError #{}:\n{}\n\n{}\n").format(
+                    banner, idx+1, banner, error['traceback']
+                )
 
         # Construct complete message for notification
         notice = (
             "{} simulations ({} compute time, {} errors) run by {} tasks in {}\n"
-            "Results for {} written to {}"
+            "Results written to {}"
         ).format(
-            len(results), humanizedelta(seconds=duration) or "0 seconds",
-            len(errors), args.tasks, timer, simulation, args.output.name
+            len(tasks), humanizedelta(seconds=duration) or "0 seconds",
+            len(errors), args.tasks, timer, args.output.name
         )
 
         self.notify(args.notify, notice, errors)
@@ -189,10 +207,11 @@ class MultipleSimulationsCommand(Command):
         """
         Returns experiment, keyword argument pairs for each experiment.
         """
-        trace = self.get_traces(args.trace)
 
+        # Add partitions and other workload information
+        # Or simply add those things to the topology to be run.
         options = {
-            'trace': trace if not isinstance(trace, dict) else None
+            'trace': args.trace
         }
 
         for topology in args.topology:
@@ -203,36 +222,7 @@ class MultipleSimulationsCommand(Command):
                     "Could not find topology file at '{}'".format(topology)
                 )
 
-            # Detect if there are multiple traces and handle by user.
-            # TODO: also create multiple accesses as well.
-            if isinstance(trace, dict):
-                with open(path, 'r') as f:
-                    users = json.load(f)['meta']['users']
-
-                # Set the trace to the correct number of users.
-                options['trace'] = trace[users][0]['path']
-
             yield path, options
-
-    def get_traces(self, trace):
-        """
-        Parses the trace file name if it's a directory for its properties.
-        SPECIAL METHOD: TODO MAKE MORE ROBUST!
-        """
-
-        if trace and os.path.isdir(trace):
-            traces  = defaultdict(list)
-
-            for path in glob.glob(os.path.join(trace, "trace-*")):
-                props = TRACERE.match(os.path.basename(path))
-                props = dict(zip(('access', 'users'), map(int, props.groups())))
-                props['path'] = path
-
-                traces[props['users']].append(props)
-
-            return traces
-
-        return trace
 
     def notify(self, recipient, notice, errors):
         """
@@ -254,8 +244,8 @@ class MultipleSimulationsCommand(Command):
         if errors:
             message += "The following errors occurred:\n\n"
             for error in errors:
-                message += "    - {}".format(error['error'])
-
+                message += "    - {}\n".format(error['error'])
+            message += "\n"
         else:
             message += "No errors occurred!\n\n"
 

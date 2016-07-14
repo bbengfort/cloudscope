@@ -371,7 +371,21 @@ def create_messages_dataframe(results):
 ## Results collection utilities
 ##########################################################################
 
-def results_values(results, *keys):
+def result_value(result, *keys):
+    """
+    Collects a key from the result object or dictionary, supporting nested
+    keys and complex object lookups. See also iter_results_values.
+    """
+    for key in keys:
+        if isinstance(result, dict):
+            result = result.get(key, {})
+        else:
+            result = getattr(result, key, {})
+
+    return result
+
+
+def iter_results_values(results, *keys):
     """
     Collects all the values for a particular key or nested keys from all
     results in the results collection. Input can be either a Results object
@@ -388,14 +402,7 @@ def results_values(results, *keys):
     for result in results:
         # Each result is a single Result object or a dict
         # Continue fetching value from each subkey
-        for key in keys:
-            if isinstance(result, dict):
-                result = result.get(key, {})
-            else:
-                result = getattr(result, key, {})
-
-        # Yield the value for this result
-        yield result
+        yield result_value(result *keys)
 
 
 def create_settings_dataframe(results, exclude=None):
@@ -443,26 +450,26 @@ def create_per_experiment_dataframe(results):
             "This analysis function requires a collection of results objects"
         )
 
-    table = []
-    conf  = list(results_values(results, 'settings'))
 
-    for idx, results in enumerate(results_values(results, 'results')):
+    table = []
+    for idx, result in enumerate(results):
         data = {'eid': "e{:0>2}".format(idx)}
+        conf = result_value(result, 'settings')
 
         # Pull information from the configuration
-        data['type'] = conf[idx]['type']
-        data['users'] = conf[idx]['users']
-        data['tick metric (T)'] = conf[idx]['tick_metric']
-        data['mean latency (ms)'] = conf[idx]['latency_mean']
-        data['latency range (ms)'] = conf[idx]['latency_range']
-        data['standard deviation of latency (ms)'] = conf[idx]['latency_stddev']
-        data['anti-entropy delay (ms)'] = conf[idx]['anti_entropy_delay']
-        data['heartbeat interval (ms)'] = conf[idx]['heartbeat_interval']
-        data['election timeout (ms, ms)'] = conf[idx]['election_timeout']
-        data['T parameter model'] = conf[idx]['tick_param_model']
+        data['type'] = conf['type']
+        data['users'] = conf['users']
+        data['tick metric (T)'] = conf['tick_metric']
+        data['mean latency (ms)'] = conf['latency_mean']
+        data['latency range (ms)'] = conf['latency_range']
+        data['standard deviation of latency (ms)'] = conf['latency_stddev']
+        data['anti-entropy delay (ms)'] = conf['anti_entropy_delay']
+        data['heartbeat interval (ms)'] = conf['heartbeat_interval']
+        data['election timeout (ms, ms)'] = conf['election_timeout']
+        data['T parameter model'] = conf['tick_param_model']
 
         # Aggregate the timeseries resuts data
-        for key, values in results.iteritems():
+        for key, values in result_value(result, 'results').iteritems():
             data.update(aggregator(key, values))
 
         table.append(data)

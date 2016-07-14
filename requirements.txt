@@ -5,7 +5,7 @@ networkx==1.10
 # Visualization and Analysis
 #seaborn==0.7.0
 #matplotlib==1.5.1
-#numpy==1.10.4
+#numpy==1.11.0
 #scipy==0.17.0
 #pandas==0.17.1
 #cycler==0.9.0
@@ -35,9 +35,16 @@ mock==1.3.0
 pbr==1.8.1
 funcsigs==0.4
 
+# Moving to Python 3
+future==0.15.2
+
+# Profiling
+memory-profiler==0.41
+psutil==4.3.0
+
 # Pip stuff
-#Python==2.7.10
-#pip==8.1.1
-#wheel==0.24.0
-#setuptools==19.4
+#Python==2.7.11
+#pip==8.1.2
+#wheel==0.29.0
+#setuptools==23.0.0
 #wsgiref==0.1.2
