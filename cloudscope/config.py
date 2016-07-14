@@ -54,6 +54,18 @@ class ServerConfiguration(Configuration):
     port        = 8080
 
 
+class NotifyConfiguration(Configuration):
+    """
+    Email settings so that CloudScope can send email messages
+    """
+
+    username    = None
+    password    = None
+    email_host  = None
+    email_port  = None
+    fail_silent = True
+
+
 ##########################################################################
 ## Logging Configuration
 ##########################################################################
@@ -159,6 +171,9 @@ class CloudScopeConfiguration(Configuration):
 
     # Simulation parameters
     simulation = SimulationConfiguration()
+
+    # Notification parameters
+    notify     = NotifyConfiguration()
 
     # Visualization parameters
     vizualization = VisualizationConfiguration()

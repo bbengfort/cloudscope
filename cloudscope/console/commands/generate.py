@@ -98,6 +98,12 @@ class GenerateCommand(Command):
             'metavar': 'min,max,step',
             'help': 'specify the range of users in experiments',
         },
+        '--traces': {
+            'type': csv(str),
+            'default': [],
+            'metavar': 'trace, trace, ...',
+            'help': 'specify a trace file or a trace per user range',
+        },
         '--latency': {
             'type': csv(int),
             'default': (5,3000,1200),
@@ -112,7 +118,7 @@ class GenerateCommand(Command):
         },
         '--tick-metric': {
             'type': str,
-            'default': 'howard', 
+            'default': 'howard',
             'choices': ['howard', 'bailis'],
             'metavar': 'method',
             'help': 'specify tick computation method based on latency',
@@ -156,9 +162,10 @@ class GenerateCommand(Command):
         latency   = dict(zip(('minimum', 'maximum', 'max_range'), args.latency))
         users     = dict(zip(('minimum', 'maximum', 'step'), args.users))
         aentropy  = dict(zip(('minimum', 'maximum'), args.anti_entropy))
+        traces    = args.traces
         tick      = {'method': args.tick_metric}
         generate  = Generator.load(
-            topology, count=args.count, latency=latency,
+            topology, count=args.count, latency=latency, traces=traces,
             users=users, anti_entropy=aentropy, tick_metric=tick,
         )
 

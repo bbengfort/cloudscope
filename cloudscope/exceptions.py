@@ -59,6 +59,13 @@ class CannotGenerateExperiments(CloudScopeException):
     pass
 
 
+class NotifyError(CloudScopeException):
+    """
+    Could not send a CloudScope notification via email. 
+    """
+    pass
+
+
 ##########################################################################
 ## Simulation Exception Hierarchy
 ##########################################################################
