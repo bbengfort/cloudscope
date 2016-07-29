@@ -82,6 +82,13 @@ class ConsistencySimulation(Simulation):
         Ensure the topology is part of the results, as well as any configured
         variables on that don't match the settings.
         """
+        # Log that the trace read is complete
+        self.logger.info(
+            "access trace complete for {} accesses on {} objects".format(
+                self.workload.count, len(self.workload.objects),
+            )
+        )
+
         self.results.settings['users'] = self.users
         self.results.topology = self.serialize()
 

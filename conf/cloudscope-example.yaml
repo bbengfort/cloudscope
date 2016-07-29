@@ -59,13 +59,11 @@ simulation:
     users: 1                  # number of simulated users creating traces
     max_objects_accessed: 1   # maximum number of objects that can be accessed
     synchronous_access: false # each access has to wait on the previous access to be triggered
-    valid_locations:          # locations to allow user to move to.
-        - home
-        - work
-        - mobile
+    invalid_locations:        # locations to disallow user to move to.
+        - cloud
 
-    invalid_types:      # replica types that shouldn't have accesses.
-        - storage
+    invalid_types:            # replica types that shouldn't have accesses.
+        - backup
 
     move_prob: 0.2      # probability of moving locations
     switch_prob: 0.4    # probability of switching devices

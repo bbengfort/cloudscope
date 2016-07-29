@@ -106,13 +106,13 @@ class SimulationConfiguration(Configuration):
     synchronous_access   = False # each access has to wait on the previous access to be triggered
 
     # Locations to allow users to move to
-    valid_locations = [
-        "home", "work", "mobile"
+    invalid_locations = [
+        "cloud",
     ]
 
     # Replica types that shouldn't have accesses.
     invalid_types   = [
-        "storage"
+        "backup",
     ]
 
     move_prob       = 0.2     # probability of moving locations
