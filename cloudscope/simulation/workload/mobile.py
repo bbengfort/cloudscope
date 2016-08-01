@@ -47,6 +47,8 @@ class MobileWorkload(RoutineWorkload):
     Note that locations and devices are filtered via the settings.
     """
 
+    location = None
+
     # Specify what locations are valid to move to.
     invalid_locations = frozenset([
         Location.get(loc) for loc in settings.simulation.invalid_locations
