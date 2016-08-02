@@ -47,6 +47,8 @@ class MobileWorkload(RoutineWorkload):
     Note that locations and devices are filtered via the settings.
     """
 
+    # This kills the property from the super class.
+    # TODO: this is a HACK -- remove it! 
     location = None
 
     # Specify what locations are valid to move to.
@@ -138,7 +140,7 @@ class MobileWorkload(RoutineWorkload):
         if self.do_move.get() or self.location is None:
             if self.move():
                 self.sim.logger.info(
-                    "{} has moved to {} on their {}.".format(
+                    "{} has moved to {} on {}.".format(
                         self.name, self.location, self.device
                     )
                 )
@@ -148,7 +150,7 @@ class MobileWorkload(RoutineWorkload):
         if self.do_switch.get() or self.device is None:
             if self.switch():
                 self.sim.logger.debug(
-                    "{} has switched devices to their {} ({})".format(
+                    "{} has switched devices to {} ({})".format(
                         self.name, self.device, self.location
                     )
                 )

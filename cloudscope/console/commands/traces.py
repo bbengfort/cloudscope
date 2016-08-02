@@ -19,6 +19,7 @@ Generates random traces to pass directly to the simulations (as input).
 
 import sys
 import random
+import logging
 import argparse
 
 from operator import itemgetter
@@ -28,8 +29,10 @@ from commis import Command
 from cloudscope.config import settings
 from cloudscope.dynamo import CharacterSequence
 from cloudscope.simulation.main import ConsistencySimulation
-from cloudscope.simulation.workload import Workload
-from cloudscope.replica.access import READ, WRITE
+from cloudscope.simulation.workload import WorkloadAllocation
+from cloudscope.simulation.workload.traces import TracesWriter
+from cloudscope.simulation.workload.cases import BestCaseAllocation
+from cloudscope.simulation.workload.cases import PingPongWorkload
 
 ##########################################################################
 ## Command
@@ -90,6 +93,10 @@ class TracesCommand(Command):
         """
         Uses the multi-object workload to generate a traces file.
         """
+        # Disable logging during trace generation
+        logger = logging.getLogger('cloudscope.simulation')
+        logger.disabled = True
+
         # Simulation arguments
         kwargs = {
             'users': args.users,
@@ -100,131 +107,38 @@ class TracesCommand(Command):
 
         # Create simulation
         simulation = ConsistencySimulation.load(args.data[0], **kwargs)
-        simulation.script()
 
-        # Fetch workload from the simulation
-        workload   = simulation.workload
-
-        # If we're in manual mode, execute that and return.
+        # Create or select the correct simulation
         if args.best_case:
-            return self.best_case_trace(workload, args)
+            workload = BestCaseAllocation(
+                simulation, args.objects, 'random',
+            )
+            workload.allocate_many(args.users)
 
-        if args.ping_pong:
-            return self.ping_pong_trace(workload, args)
+        elif args.ping_pong:
+            factory = CharacterSequence(upper=True)
+            objects = [factory.next() for _ in range(args.objects)]
+            workload = PingPongWorkload(
+                simulation, simulation.replicas[:args.users], objects=objects,
+            )
 
-        if args.tiered:
-            return self.tiered_trace(workload, args)
+        elif args.tiered:
+            raise NotImplementedError("Tiered hasn't been refactored")
 
-        # Write the traces to disk
-        for idx, access in enumerate(self.compute_accesses(workload, args.timesteps)):
-            args.output.write("\t".join(access) + "\n")
+        else:
+            simulation.script()
+            workload = simulation.workload
+
+        # Create the traces writer and write the traces to disk
+        writer = TracesWriter(workload, args.timesteps)
+        rows   = writer.write(args.output)
 
         return (
             "traced {} accesses on {} objects by {} users over {} timesteps\n"
             "wrote the trace file to {}"
         ).format(
-            idx+1, args.objects, args.users, args.timesteps, args.output.name
+            rows, args.objects, args.users, args.timesteps, args.output.name
         )
-
-    def compute_accesses(self, workload, until=None):
-        # Determine the maximum simulation time
-        until = until or settings.simulation.max_sim_time
-
-        # Set up the access computation
-        if isinstance(workload, Workload):
-            workload = [workload]
-
-        timestep = 0
-        schedule = defaultdict(list)
-
-        # Initialize the schedule
-        for work in workload:
-            schedule[int(work.next_access.get())].append(work)
-
-        # Iterate through time
-        while timestep < until:
-            # Update the timestep to the next time in schedule
-            timestep = min(schedule.keys())
-
-            # Perform accesses for all scheduled workloads
-            for work in schedule.pop(timestep):
-                work.update()
-                access = READ if work.do_read.get() else WRITE
-                yield (str(timestep), work.device.id, work.current, access)
-
-                # Reschedule the work
-                schedule[int(work.next_access.get()) + timestep].append(work)
-
-    def best_case_trace(self, workload, args):
-        """
-        Manual function to generate a "best case" trace for tagging: that is
-        where each replica server only accesses its own objects.
-        """
-        until    = args.timesteps
-        sequence = CharacterSequence(upper=True)
-
-        nodes = defaultdict(dict)
-        for idx, work in enumerate(workload):
-            work.move()
-            nodes[work]['dev'] = work.device.id
-            nodes[work]['obj'] = [sequence.next() for _ in xrange(3)]
-            nodes[work]['tme'] = 0
-            nodes[work]['acs'] = WRITE
-
-        output = []
-
-        # Each node is going to access a single object
-        for idx in xrange(1000):
-            for work, info in nodes.items():
-                info['tme'] += int(work.next_access.get())
-                if info['tme'] > until:
-                    break
-
-                info['acs'] = READ if work.do_read.get() else WRITE
-
-                output.append(
-                    (info['tme'], info['dev'], random.choice(info['obj']), info['acs'])
-                )
-
-        for line in sorted(output, key=itemgetter(0)):
-            args.output.write("\t".join((str(s) for s in line)) + "\n")
-
-        return "manual \"best case\" trace generated with {} accesses for {} devices".format(len(output), len(nodes))
-
-    def ping_pong_trace(self, workload, args):
-        """
-        Manual trace generation function to create a "ping pong" scenario
-        where the tag bounces between replica servers.
-        """
-        until = args.timesteps
-        tag   = ['A', 'B', 'C', 'D', 'E']
-        time  = 0
-        nodes = {work.device.id: work for work in workload if not work.move()}
-        bingo = random.choice(nodes.keys())
-        work  = nodes[bingo]
-        N     = 5000
-
-        for idx in xrange(N):
-
-            # Do we switch to a new writer with some small probability?
-            if random.random() < 0.1:
-                bingo = random.choice(nodes.keys())
-
-            # Update the time and determine the access
-            time  += int(work.next_access.get())
-            if time > until:
-                break
-
-            # Write the random
-            obj    = random.choice(tag)
-            access = READ if work.do_read.get() else WRITE
-
-            # Write out the trace
-            args.output.write(
-                "{}\t{}\t{}\t{}\n".format(time, bingo, obj, access)
-            )
-
-        return "manual \"ping pong\" trace generated with {} accesses for {} devices".format(idx+1, len(nodes))
 
     def tiered_trace(self, workload, args):
         """

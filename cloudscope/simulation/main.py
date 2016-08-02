@@ -105,16 +105,10 @@ class ConsistencySimulation(Simulation):
         super(ConsistencySimulation, self).complete()
 
     def script(self):
-        # If a trace is passed in, then load the manual workload.
-        if self.trace:
-            self.workload = create_workload(self.env, self, trace=self.trace)
-
-        # Otherwise, generate a random workload with the number of users.
-        else:
-            self.workload = [
-                create_workload(self.env, self, objects=self.n_objects)
-                for user in xrange(self.users)
-            ]
+        # Create the workload that generates accesses as though they are users. 
+        self.workload = create_workload(
+            self, trace=self.trace, objects=self.n_objects, users=self.users
+        )
 
     def dump(self, fobj, **kwargs):
         """

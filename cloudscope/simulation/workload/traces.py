@@ -18,8 +18,10 @@ Methodology for loading accesses from a file and replaying them.
 ##########################################################################
 
 from .base import Workload
+from .multi import WorkloadCollection
 
-from collections import namedtuple
+from cloudscope.config import settings
+from collections import namedtuple, defaultdict
 from cloudscope.utils.decorators import memoized
 from cloudscope.utils.timez import humanizedelta
 from cloudscope.replica.access import READ, WRITE
@@ -208,3 +210,70 @@ class TracesWorkload(Workload):
                     humanizedelta(milliseconds=wait)
                 )
             )
+
+##########################################################################
+## Traces Writer
+##########################################################################
+
+class TracesWriter(object):
+    """
+    This object wraps a workload or workload collection and writes the
+    trace that the workload generates to disk. This allows any generic
+    workload to be used in trace generation for simulation and experiments.
+    """
+
+    def __init__(self, workload, timesteps=None):
+        """
+        Initialize the writer with a workload and a maximum number of steps.
+        """
+
+        # Ensure that the workload is a collection to standardize
+        if not isinstance(workload, WorkloadCollection):
+            workload = WorkloadCollection(workload)
+
+        # Set properties on the writer object
+        self.workload  = workload
+        self.timesteps = timesteps or settings.simulation.max_sim_time
+
+    def write(self, fobj):
+        """
+        Writes out a complete trace to the passed in file-like object.
+        Returns the number of rows written the the file.
+        """
+        for idx, access in enumerate(self):
+            fobj.write("\t".join(access) + "\n")
+
+        return idx + 1
+
+    def __iter__(self):
+        """
+        Returns a generator that yields the entire trace of accesses.
+        """
+
+        timestep = 0
+        schedule = defaultdict(list)
+
+        # Initialize the schedule
+        for work in self.workload:
+            schedule[int(work.wait())].append(work)
+
+        # Iterate through time
+        while timestep < self.timesteps:
+            # Update the timestep to the next time in the schedule
+            timestep = min(schedule.keys())
+
+            # Perform accesses for all scheduled workloads
+            for work in schedule.pop(timestep):
+                # Trigger access
+                access = work.access()
+
+                # Create the access trace
+                yield TraceAccess(
+                    str(timestep), access.owner.id, access.name, access.type
+                )
+
+                # Update the workload
+                work.update()
+
+                # Reschedule the work
+                schedule[int(work.wait()) + timestep].append(work)

@@ -1,4 +1,4 @@
-# cloudscope.simulation.workload.synchronous
+# cloudscope.simulation.workload.synchro
 # Synchronous workloads for testing simulation timing.
 #
 # Author:   Benjamin Bengfort <bengfort@cs.umd.edu>
@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: synchronous.py [] benjamin@bengfort.com $
+# ID: synchro.py [] benjamin@bengfort.com $
 
 """
 Synchronous workloads for testing simulation timing.

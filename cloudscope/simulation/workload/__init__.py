@@ -21,6 +21,8 @@ from .base import Workload
 from .base import RoutineWorkload
 from .traces import TracesWorkload
 from .mobile import MobileWorkload
+from .multi import WorkloadCollection
+from .multi import WorkloadAllocation
 
 from cloudscope.config import settings
 from cloudscope.dynamo import CharacterSequence
@@ -29,7 +31,26 @@ from cloudscope.dynamo import CharacterSequence
 ## Factory Function
 ##########################################################################
 
-def create(env, sim, **kwargs):
+def workload_factory(sim, **kwargs):
+    """
+    Returns a callable that will create workloads with the given specs.
+    """
+    import random
+
+    objects = kwargs.pop('objects', settings.simulation.max_objects_accessed)
+    factory = CharacterSequence(upper=True)
+    objects = [
+        factory.next() for _ in range(objects)
+    ]
+
+    def make_workload():
+        device = random.choice(sim.replicas)
+        return MobileWorkload(sim, device=device, objects=objects, **kwargs)
+
+    return make_workload
+
+
+def create(sim, **kwargs):
     """
     Returns the correct workload class depending on synchronous or async
     accesses, multiple objects or not, and whether or not a trace exists.
@@ -46,11 +67,9 @@ def create(env, sim, **kwargs):
 
 
     # Otherwise construct random workload generator
-    objects = kwargs.pop('objects', settings.simulation.max_objects_accessed)
-    factory = CharacterSequence(upper=True)
-    objects = [
-        factory.next() for _ in range(objects)
-    ]
-    import random
-    device = random.choice(sim.replicas)
-    return MobileWorkload(sim, device=device, objects=objects, **kwargs)
+    users = kwargs.pop('users', settings.simulation.users)
+    factory = workload_factory(sim, **kwargs)
+
+    return WorkloadCollection(*[
+        factory() for _ in xrange(users)
+    ])
