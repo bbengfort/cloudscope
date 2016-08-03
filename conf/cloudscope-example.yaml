@@ -35,11 +35,11 @@ server:
 
 # Notification Settings
 notify:
-    username:    nil   # username to the email provider (e.g. gmail address)
-    password:    nil   # password to the email provider (e.g. gmail password)
-    email_host:  nil   # host name of the email service (e.g. smtp.gmail.com)
-    email_port:  nil   # port of the secure smtp (e.g. 587)
-    fail_silent: true  # if there is an error, ignore or raise a new one.
+    username:    null   # username to the email provider (e.g. gmail address)
+    password:    null   # password to the email provider (e.g. gmail password)
+    email_host:  null   # host name of the email service (e.g. smtp.gmail.com)
+    email_port:  null   # port of the secure smtp (e.g. 587)
+    fail_silent: true   # if there is an error, ignore or raise a new one.
 
 # Simulation Settings
 simulation:
@@ -56,15 +56,17 @@ simulation:
     default_consistency: strong
 
     # Workload Parameters
-    users: 1                  # number of simulated users creating traces
-    max_objects_accessed: 1   # maximum number of objects that can be accessed
-    synchronous_access: false # each access has to wait on the previous access to be triggered
-    invalid_locations:        # locations to disallow user to move to.
+    users: 1                   # number of simulated users creating traces
+    max_users_location: null   # limit the number of users per location
+    max_objects_accessed: 1    # maximum number of objects that can be accessed (per user)
+    synchronous_access: false  # each access has to wait on the previous access to be triggered
+    invalid_locations:         # locations to disallow user to move to.
         - cloud
 
     invalid_types:            # replica types that shouldn't have accesses.
         - backup
 
+    conflict_prob: 0.0  # probability of object overlap and potential access conflict
     move_prob: 0.2      # probability of moving locations
     switch_prob: 0.4    # probability of switching devices
     object_prob: 0.3    # probability of switching the currently accessed object

@@ -102,7 +102,8 @@ class SimulationConfiguration(Configuration):
 
     # Workload Parameters
     users                = 1     # number of simulated users creating traces
-    max_objects_accessed = 1     # maximum number of objects that can be accessed
+    max_users_location   = None  # limit the number of users per location
+    max_objects_accessed = 1     # maximum number of objects that can be accessed (per user)
     synchronous_access   = False # each access has to wait on the previous access to be triggered
 
     # Locations to allow users to move to
@@ -115,6 +116,7 @@ class SimulationConfiguration(Configuration):
         "backup",
     ]
 
+    conflict_prob   = 0.0     # probability of object overlap and potential access conflict
     move_prob       = 0.2     # probability of moving locations
     switch_prob     = 0.3     # probability of switching devices
     object_prob     = 0.3     # probability of switching the currently accessed object

@@ -21,55 +21,43 @@ from .base import Workload
 from .base import RoutineWorkload
 from .traces import TracesWorkload
 from .mobile import MobileWorkload
+from .cases import PingPongWorkload
+
 from .multi import WorkloadCollection
 from .multi import WorkloadAllocation
+from .cases import BestCaseAllocation
+from .multi import TopologyWorkloadAllocation
+from .conflict import ConflictWorkloadAllocation
 
 from cloudscope.config import settings
-from cloudscope.dynamo import CharacterSequence
 
 ##########################################################################
 ## Factory Function
 ##########################################################################
 
-def workload_factory(sim, **kwargs):
-    """
-    Returns a callable that will create workloads with the given specs.
-    """
-    import random
-
-    objects = kwargs.pop('objects', settings.simulation.max_objects_accessed)
-    factory = CharacterSequence(upper=True)
-    objects = [
-        factory.next() for _ in range(objects)
-    ]
-
-    def make_workload():
-        device = random.choice(sim.replicas)
-        return MobileWorkload(sim, device=device, objects=objects, **kwargs)
-
-    return make_workload
-
-
 def create(sim, **kwargs):
     """
-    Returns the correct workload class depending on synchronous or async
-    accesses, multiple objects or not, and whether or not a trace exists.
+    Returns the correct workload for the simulation. There are currently two
+    possible workloads to return depending on the kwargs:
 
-    Returns a single workload; to generate multiple workloads, must generate.
+        - Load the accesses from a trace file
+        - Create a conflict/topology allocating workload for n users.
+
+    See the workload allocation objects for more information. 
     """
     # Create a manual trace if it's passed in
-    trace = kwargs.get('trace', None)
+    trace = kwargs.pop('trace', None)
     if trace:
         if settings.simulation.synchronous_access:
-            return SynchronousTracesWorkload(trace, env, sim)
+            raise NotImplementedError(
+                "Synchronous workloads not implemented yet"
+            )
         else:
             return TracesWorkload(trace, sim)
 
 
-    # Otherwise construct random workload generator
+    # Otherwise construct a conflict generation workload.
     users = kwargs.pop('users', settings.simulation.users)
-    factory = workload_factory(sim, **kwargs)
-
-    return WorkloadCollection(*[
-        factory() for _ in xrange(users)
-    ])
+    workload = ConflictWorkloadAllocation(sim, **kwargs)
+    workload.allocate_many(users)
+    return workload

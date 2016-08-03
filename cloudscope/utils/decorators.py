@@ -45,6 +45,31 @@ def memoized(fget):
 
     return property(fget_memoized)
 
+
+def setter(fset):
+    """
+    Returns a property attribute for new-style classes that defines behavior
+    when setting the value, but not when getting it.
+    """
+    attr_name = '_{0}'.format(fset.__name__)
+
+    def fget(self):
+        """
+        Returns the internal, wrapped property that is set automatically.
+        """
+        if not hasattr(self, attr_name):
+            raise AttributeError(
+                "No value for {} has been set!".format(fset.__name__)
+            )
+        return getattr(self, attr_name)
+
+    @wraps(fset)
+    def fset_setter(self, value):
+        setattr(self, attr_name, fset(self, value))
+
+    return property(fget, fset_setter)
+
+
 ##########################################################################
 ## Timer functions
 ##########################################################################

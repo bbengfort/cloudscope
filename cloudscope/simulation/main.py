@@ -105,9 +105,9 @@ class ConsistencySimulation(Simulation):
         super(ConsistencySimulation, self).complete()
 
     def script(self):
-        # Create the workload that generates accesses as though they are users. 
+        # Create the workload that generates accesses as though they are users.
         self.workload = create_workload(
-            self, trace=self.trace, objects=self.n_objects, users=self.users
+            self, trace=self.trace, n_objects=self.n_objects, users=self.users
         )
 
     def dump(self, fobj, **kwargs):
