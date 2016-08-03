@@ -109,9 +109,9 @@ class TracesCommand(Command):
         simulation = ConsistencySimulation.load(args.data[0], **kwargs)
 
         # Create or select the correct simulation
-        if args.best_case:
+        if args.best_case or args.tiered:
             workload = BestCaseAllocation(
-                simulation, args.objects, 'random',
+                simulation, args.objects, selection='random',
             )
             workload.allocate_many(args.users)
 
@@ -121,9 +121,6 @@ class TracesCommand(Command):
             workload = PingPongWorkload(
                 simulation, simulation.replicas[:args.users], objects=objects,
             )
-
-        elif args.tiered:
-            raise NotImplementedError("Tiered hasn't been refactored")
 
         else:
             simulation.script()
@@ -138,39 +135,4 @@ class TracesCommand(Command):
             "wrote the trace file to {}"
         ).format(
             rows, args.objects, args.users, args.timesteps, args.output.name
-        )
-
-    def tiered_trace(self, workload, args):
-        """
-        Manual trace generation to create a "tiered quorum" scenario where
-        accesses to a single tag only occur in a single location, e.g. the
-        tag space is divided evenly on a per-replica basis.
-
-        Each item in the workload represents a user. Each user should be
-        restricted to their own location, and not allowed to move locations,
-        they should also be restricted to their own portion of the tagset.
-        """
-        sequence  = CharacterSequence(upper=True)
-        locations = workload[0].locations.keys()
-
-        # Delete the locations from the workload not assigned.
-        # Assign a specific tag space to that workload.
-        for idx, work in enumerate(workload):
-            loc = idx % len(locations)
-            for jdx, key in enumerate(work.locations.keys()):
-                if jdx != loc:
-                    del work.locations[key]
-
-            work.objects = [sequence.next() for _ in xrange(args.objects)]
-
-
-        # Write the traces to disk
-        for idx, access in enumerate(self.compute_accesses(workload, args.timesteps)):
-            args.output.write("\t".join(access) + "\n")
-
-        return (
-            "traced {} accesses in {} locations ({} objects per location) by {} users over {} timesteps\n"
-            "wrote the trace file to {}"
-        ).format(
-            idx+1, len(locations), args.objects, args.users, args.timesteps, args.output.name
         )

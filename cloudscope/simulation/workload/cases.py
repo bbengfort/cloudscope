@@ -24,13 +24,9 @@ Currently implemented cases:
 ## Imports
 ##########################################################################
 
-import random
-
-from .base import Workload
 from .base import RoutineWorkload
-from .multi import WorkloadAllocation
+from .multi import TopologyWorkloadAllocation
 
-from copy import copy
 from cloudscope.config import settings
 from cloudscope.dynamo import CharacterSequence
 from cloudscope.dynamo import Bernoulli, Discrete
@@ -38,21 +34,10 @@ from cloudscope.exceptions import WorkloadException
 
 
 ##########################################################################
-## Module Constants
-##########################################################################
-
-RANDOM_SELECT = 'random'
-ROUNDS_SELECT = 'rounds'
-
-SELECTION_STRATEGIES = (
-    RANDOM_SELECT, ROUNDS_SELECT,
-)
-
-##########################################################################
 ## "Best Case"
 ##########################################################################
 
-class BestCaseAllocation(WorkloadAllocation):
+class BestCaseAllocation(TopologyWorkloadAllocation):
     """
     Allocates each device it's own object space by maintaining a static
     reference to an object factory, so that no matter what, replica servers
@@ -61,63 +46,30 @@ class BestCaseAllocation(WorkloadAllocation):
 
     object_factory = CharacterSequence(upper=True)
 
-    def __init__(self, sim, n_objects=None, selection=ROUNDS_SELECT, **defaults):
+    def __init__(self, sim, n_objects=None, **defaults):
         """
         Initialize the best case allocation with the number of objects
-        per replica server, as well as the device selection strategy. The
-        device selection strategy is a string that can be one of:
-
-            - random: randomly choose a device without replacement
-            - rounds: choose devices in order until none are left
+        per replica server such that no device will get the same object space.
 
         Allocate can then be called at will with no further parameters.
         """
-        if selection not in SELECTION_STRATEGIES:
-            raise WorkloadException(
-                "'{}' not a valid selection strategy, choose from {}".format(
-                    selection, ", ".join(SELECTION_STRATEGIES)
-                )
-            )
 
         super(BestCaseAllocation, self).__init__(sim, **defaults)
         self.n_objects = n_objects or settings.simulation.max_objects_accessed
-        self.selection = selection
-        self.devices   = copy(sim.replicas)
-
-    def select(self):
-        """
-        Make a device selection based on the selection strategy
-        """
-        if self.selection == ROUNDS_SELECT:
-            return self.devices.pop()
-
-        if self.selection == RANDOM_SELECT:
-            device = random.choice(self.devices)
-            self.devices.remove(device)
-            return device
 
     def allocate(self, **kwargs):
         """
         Allocates the next device with the next object space.
         """
-        # Create allocation parameters
-        device  = self.select()
         objects = [
             self.object_factory.next() for _ in range(self.n_objects)
         ]
-        current = random.choice(objects)
+        current = Discrete(objects).get()
 
         # Allocate the workload
         super(BestCaseAllocation, self).allocate(
-            device, objects, current, **kwargs
+            objects, current, **kwargs
         )
-
-    def allocate_many(self, num, **kwargs):
-        """
-        Allocate a specific number of best case devices.
-        """
-        for _ in range(num):
-            self.allocate(**kwargs)
 
 
 ##########################################################################
@@ -145,7 +97,7 @@ class PingPongWorkload(RoutineWorkload):
         self.players = devices
         self.do_move = Bernoulli(kwargs.get('move_prob', settings.simulation.move_prob))
 
-        kwargs['device'] = random.choice(devices)
+        kwargs['device'] = Discrete(devices).get()
         super(PingPongWorkload, self).__init__(sim, **kwargs)
 
     def move(self):

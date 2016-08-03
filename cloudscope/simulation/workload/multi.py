@@ -22,10 +22,28 @@ can enforce rules like only one user on a device at a time, etc.
 ## Imports
 ##########################################################################
 
-from .base import Workload, RoutineWorkload
+from .base import Workload
+from .base import RoutineWorkload
 
-from collections import MutableSequence
+from cloudscope.dynamo import Discrete
+from cloudscope.config import settings
+from cloudscope.dynamo import CharacterSequence
 from cloudscope.exceptions import WorkloadException
+
+from copy import copy
+from collections import MutableSequence
+
+
+##########################################################################
+## Module Constants
+##########################################################################
+
+RANDOM_SELECT = 'random'
+ROUNDS_SELECT = 'rounds'
+
+SELECTION_STRATEGIES = (
+    RANDOM_SELECT, ROUNDS_SELECT,
+)
 
 
 ##########################################################################
@@ -111,4 +129,67 @@ class WorkloadAllocation(WorkloadCollection):
             self.workload_class(
                 self.sim, device=device, objects=objects, current=current, **extra
             )
+        )
+
+    def allocate_many(self, num, **kwargs):
+        """
+        Allocate a specific number of best case devices.
+        """
+        for _ in range(num):
+            self.allocate(**kwargs)
+
+
+##########################################################################
+## Topological Workload Allocator
+##########################################################################
+
+class TopologyWorkloadAllocation(WorkloadAllocation):
+    """
+    Automatically allocates devices from the simulation topology using the
+    specified allocation strategy. The device selection strategy is a
+    string that can be one of:
+
+        - random: randomly choose a device without replacement
+        - rounds: choose devices in order until none are left
+
+    Allocate can be called with no devie as a result.
+    """
+
+    def __init__(self, sim, selection=ROUNDS_SELECT, **defaults):
+        """
+        Initialize with the simulation that contains the topology as well as
+        the device selection strategy which can be either random or rounds.
+        """
+        if selection not in SELECTION_STRATEGIES:
+            raise WorkloadException(
+                "'{}' not a valid selection strategy, choose from {}".format(
+                    selection, ", ".join(SELECTION_STRATEGIES)
+                )
+            )
+
+        self.selection = selection
+        self.devices   = copy(sim.replicas)
+        super(TopologyWorkloadAllocation, self).__init__(sim, **defaults)
+
+    def select(self):
+        """
+        Make a device selection based on the selection strategy
+        """
+        if self.selection == ROUNDS_SELECT:
+            return self.devices.pop()
+
+        if self.selection == RANDOM_SELECT:
+            device = Discrete(self.devices).get()
+            self.devices.remove(device)
+            return device
+
+    def allocate(self, objects=None, current=None, **kwargs):
+        """
+        Allocate automatically selects a device using the selection strategy.
+        """
+        # Allocate a device if not passed in.
+        device = kwargs.pop('device', None) or self.select()
+
+        super(TopologyWorkloadAllocation, self).allocate(
+            device, objects, current, **kwargs
         )
