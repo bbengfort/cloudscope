@@ -174,6 +174,8 @@ class Connection(object):
         target: if they are the same then local, otherwise wide.
         """
         if value is None:
+            if not self.source or not self.target:
+                return None
             if self.source.location == self.target.location:
                 return LOCAL_AREA
             return WIDE_AREA
