@@ -124,6 +124,14 @@ class SimulationConfiguration(Configuration):
     access_stddev   = 512     # stddev of delay between accesses (milliseconds)
     read_prob       = 0.6     # probability of read access (write is 1-read_prob)
 
+    # Outage Parameters
+    outage_prob      = 0.0    # per-link probability of an outage
+    outage_mean      = 5400   # mean outage duration in milliseconds
+    outage_stddev    = 512    # standard deviation of outage duration in milliseconds
+    online_mean      = 10800  # mean online duration in milliseconds
+    online_stddev    = 512    # standard deviation of ounline duration in milliseconds
+    partition_across = "wide" # types of links to cut, one of wide, local, both, node, or leader
+
     # Integration parameter: default, floated, or federated
     integration     = "default"
 
