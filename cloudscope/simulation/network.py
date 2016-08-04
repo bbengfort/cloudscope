@@ -93,7 +93,9 @@ class Node(Process):
         # If the connection is offline drop the message
         if not self.connections[target].online:
             raise NetworkError(
-                "Cannot send message when connection is offline!"
+                "{} cannot send message to {} when connection is offline!".format(
+                    self, target
+                )
             )
 
         # Create a message named tuple
@@ -110,6 +112,13 @@ class Node(Process):
         """
         The recv message interface required by connectible objects.
         """
+        if not self.connections[event.value.source].online:
+            raise NetworkError(
+                "{} cannot recv messages from {} when connection is offline!".format(
+                    self, event.value.source
+                )
+            )
+
         # Unpack the message from the timeout event
         return event.value
 

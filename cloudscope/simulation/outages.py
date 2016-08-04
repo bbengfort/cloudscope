@@ -18,14 +18,14 @@ Generate and replay outages in the network, similar to workload traces.
 ##########################################################################
 
 from cloudscope.config import settings
-from cloudscope.utils.decorators import setter
-from cloudscope.dynamo import BoundedNormal, Bernoulli
-from cloudscope.simulation.base import NamedProcess
 from cloudscope.utils.timez import humanizedelta
-from cloudscope.exceptions import BadValue
+from cloudscope.simulation.base import NamedProcess
+from cloudscope.dynamo import BoundedNormal, Bernoulli
+from cloudscope.utils.decorators import setter, memoized
+from cloudscope.exceptions import BadValue, OutagesException
 from cloudscope.simulation.network import WIDE_AREA, LOCAL_AREA
 
-from collections import Sequence, defaultdict
+from collections import Sequence, defaultdict, namedtuple
 
 
 ##########################################################################
@@ -67,9 +67,7 @@ def create(sim, **kwargs):
     # Create an outages reader process if passed in.
     outages = kwargs.pop('outages', None)
     if outages:
-        raise NotImplementedError(
-            "Outage trace not implemented yet!"
-        )
+        return OutageScript(outages, sim, **kwargs)
 
     # Otherwise construct outages genrator processes
     return Outages(sim, **kwargs)
@@ -104,8 +102,10 @@ class OutageGenerator(NamedProcess):
 
         self.sim = sim
         self.connections = connections
-        self.state = ONLINE # Must be set after connections!
         self.do_outage = Bernoulli(kwargs.pop('outage_prob', settings.simulation.outage_prob))
+
+        # NOTE: This will not call any methods on the connections (on purpose)
+        self._state = ONLINE
 
         # Distribution of outage duration
         self.outage_duration = BoundedNormal(
@@ -145,7 +145,7 @@ class OutageGenerator(NamedProcess):
             self.update_outage_state()
 
         else:
-            raise BadValue(
+            raise OutagesException(
                 "Unknown state: '{}' set either {} or {}".format(
                     state, ONLINE, OUTAGE
                 )
@@ -158,22 +158,26 @@ class OutageGenerator(NamedProcess):
         Sets the state of the generator to online.
         NOTE - should not be called by clients but can be subclassed!
         """
-        for conn in self.connections:
-            conn.up()
-            self.sim.logger.debug(
-                "{} is now online".format(conn)
-            )
+        # If we were previously offline:
+        if self.state == OUTAGE:
+            for conn in self.connections:
+                conn.up()
+                self.sim.logger.debug(
+                    "{} is now online".format(conn)
+                )
 
     def update_outage_state(self):
         """
         Sets the state of the generator to outage.
         NOTE - should not be called by clients but can be subclassed!
         """
-        for conn in self.connections:
-            conn.down()
-            self.sim.logger.debug(
-                "{} is now offline".format(conn)
-            )
+        # If we were previously online:
+        if self.state == ONLINE:
+            for conn in self.connections:
+                conn.down()
+                self.sim.logger.debug(
+                    "{} is now offline".format(conn)
+                )
 
     def duration(self):
         """
@@ -230,7 +234,7 @@ class OutageGenerator(NamedProcess):
 
 
 ##########################################################################
-## Outages
+## Outages Collection
 ##########################################################################
 
 class Outages(Sequence):
@@ -266,7 +270,7 @@ class Outages(Sequence):
 
         # Check the outage types strategy
         if partition_across not in PARTITION_TYPES:
-            raise BadValue(
+            raise OutagesException(
                 "'{}' is not a valid outage type.".format(partition_across)
             )
 
@@ -352,3 +356,227 @@ class Outages(Sequence):
 
     def __len__(self):
         return len(self.outage_generators)
+
+
+##########################################################################
+## Outages Writer and Reader
+##########################################################################
+
+OutageEvent = namedtuple("OutageEvent", "timestep, state, source, target")
+
+class OutagesWriter(object):
+    """
+    This object wraps an Outages collection of one or more OutageGenerator
+    objects and writes the generated results to disk, which can be read by an
+    OutagesReader object and replayed by a ScriptedOutages generator.
+    """
+
+    def __init__(self, outages, timesteps=None):
+        """
+        Initializes a writer with the outages collection and a maximum number
+        of timesteps to write to each outages script file.
+        """
+        self.outages = outages
+        self.timesteps = timesteps or settings.simulation.max_sim_time
+
+    def write(self, fobj):
+        """
+        Writes out a complete script of outages to the passed in file-like
+        object. Returns the number of rows written to the file.
+        """
+        for idx, outage in enumerate(self):
+            fobj.write("{}\t{}\t{}\t{}\n".format(*outage))
+        return idx + 1
+
+    def __iter__(self):
+        """
+        Returns a generator that yields a complete script of outages.
+        """
+
+        timestep = 0
+        schedule = defaultdict(list)
+        states   = {}
+
+        # Initialze the schedule and state tracking
+        for generator in self.outages:
+            states[generator] = generator.state
+            schedule[int(generator.duration())].append(generator)
+
+        # Iterate through time
+        while timestep < self.timesteps:
+            # Update the timestep to the next time in the schedule
+            timestep = min(schedule.keys())
+
+            # Determine outages for all scheduled workloads
+            for generator in schedule.pop(timestep):
+                # Update the state of the outage generator
+                generator.update()
+
+                # Reschedule the generator
+                schedule[int(generator.duration()) + timestep].append(generator)
+
+                # If the state not changed keep going otherwise update state
+                if states[generator] == generator.state: continue
+                states[generator] = generator.state
+
+                # Yield outage events for each connection in the generator
+                for conn in generator.connections:
+                    yield OutageEvent(
+                        timestep, generator.state, conn.source.id, conn.target.id
+                    )
+
+
+class OutagesReader(object):
+    """
+    A generator that parses and yields outage events from a TSV on disk.
+    """
+
+    def __init__(self, path):
+        """
+        Primary input is the location on disk of the outages script.
+        """
+        self.path = path
+
+    def parse(self, line):
+        """
+        Parses and validates a line from an outages file.
+        """
+        # Parse the line, splitting on whitespace
+        line = line.strip().split()
+
+        # Validate the length
+        if len(line) != 4:
+            raise OutagesException(
+                "Unparsable line: '{}'".format(" ".join(line))
+            )
+
+        # Validate the outage state
+        if line[1] not in {OUTAGE, ONLINE}:
+            raise OutagesException(
+                "Unknown outage state '{}' must be {} or {}".format(
+                    line[1], OUTAGE, ONLINE
+                )
+            )
+
+        # Parse the timestep
+        line[0] = int(float(line[0]))
+
+        return OutageEvent(*line)
+
+    def __iter__(self):
+        """
+        Reads the traces and yields the outage event tuple. Assumes a TSV
+        file format structured as follows:
+
+            timestep    state   source  target
+
+        Where source and target are the replica ids and the state is online
+        or offline (e.g. take the connection between source and target up or
+        down at that particular timestep).
+        """
+        with open(self.path, 'r') as fobj:
+            for line in fobj:
+                yield self.parse(line)
+
+
+##########################################################################
+## OutageScript
+##########################################################################
+
+# TODO: Make a class hierarchy and extend this from the OutageGenerator base
+class OutageScript(NamedProcess):
+    """
+    A deterministic method of providing outages and partitions through an
+    outages script - a TSV file that contains the timestamp, state, and
+    connection information (source, target) of the network links to manage.
+    """
+
+    def __init__(self, path, sim, **kwargs):
+        self.sim     = sim                 # Hook to the simulation for logging
+        self.path    = path                # path on disk to the outages script
+        self.reader  = OutagesReader(path) # handle to the outages reader object
+        self.clock   = 0                   # maintain time since last outage
+        self.count   = 0                   # number of events in the script file
+        self.network = sim.network         # get the connections between replicas
+        self.connections = []              # track the connections managed by the script
+
+        # Initialize the Process
+        super(OutageScript, self).__init__(sim.env)
+
+    @memoized
+    def devices(self):
+        """
+        Mapping of replica IDs to deice for easy selection.
+        """
+        return {
+            device.id: device for device in self.sim.replicas
+        }
+
+    def get_device(self, id):
+        """
+        Looks up a device by it's id.
+        """
+        if id not in self.devices:
+            raise OutagesException(
+                "Unkown device with replica id '{}'".format(id)
+            )
+
+        return self.devices[id]
+
+    def get_connnection(self, src, dst):
+        """
+        Returns a connection object from two device ids, adding it to the list
+        of managed connections if it is not already there.
+        """
+        source = self.get_device(src)
+        target = self.get_device(dst)
+
+        conn   = self.network.connections.get(source, {}).get(target, None)
+
+        if conn is None:
+            raise OutagesException(
+                "No connection between {} and {}".format(source, target)
+            )
+
+        if conn not in self.connections:
+            self.connections.append(conn)
+
+        return conn
+
+    def run(self):
+        """
+        Reads in outage events (must be ordered by timestep) and makes the
+        connections specified either up or down according to the event state.
+        """
+
+        # Read through the outage events in an ordered fashion.
+        # Note this will only generate outages until they are exhaused.
+        for event in self.reader:
+
+            # Validate that the event occurs now or at the clock
+            if event.timestep < self.clock:
+                raise OutagesException(
+                    "Unordered outage event '{}' occured at time {}".format(
+                        event, self.clock
+                    )
+                )
+
+            # Compute delay in simulation and timeout
+            # If the delay is zero then this will just keep going
+            delay = event.timestep - self.clock
+            yield self.env.timeout(delay)
+
+            # Update our internal clock
+            self.clock = self.env.now
+
+            # Take the connection up or down depending on the event.
+            conn = self.get_connnection(event.source, event.target)
+            if event.state == ONLINE:
+                conn.up()
+
+            if event.state == OUTAGE:
+                conn.down()
+
+            self.sim.logger.warn(
+                "{} is now {}".format(conn, event.state)
+            )

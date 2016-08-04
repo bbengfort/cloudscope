@@ -216,8 +216,14 @@ class Replica(Node):
         route incomming messages to their correct RPC handler or raise an
         exception if it cannot find the access method.
         """
-        # Get the unpacked message from the event.
-        message = super(Replica, self).recv(event)
+        try:
+            # Get the unpacked message from the event.
+            message = super(Replica, self).recv(event)
+        except NetworkError:
+            # Drop the message if the network connection is down
+            return self.on_dropped_message(event.value.target, event.value.value)
+
+        # Get the message type for logging
         mtype = message.value.__class__.__name__ if message.value else "None"
 
         # Debug logging of the message recv
