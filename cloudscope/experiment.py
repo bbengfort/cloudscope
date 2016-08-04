@@ -27,11 +27,7 @@ from cloudscope.exceptions import BadValue
 from cloudscope.exceptions import CannotGenerateExperiments
 from cloudscope.replica.base import Consistency
 from cloudscope.simulation.network import CONSTANT, VARIABLE, NORMAL
-
-
-## Area constants
-LOCAL_AREA = "local"
-WIDE_AREA  = "wide"
+from cloudscope.simulation.network import WIDE_AREA, LOCAL_AREA
 
 
 ##########################################################################

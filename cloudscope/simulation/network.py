@@ -1,3 +1,4 @@
+ # -*- coding: utf-8 -*-
 # cloudscope.simulation.network
 # Implements the networking interface for the simulation.
 #
@@ -33,6 +34,8 @@ from cloudscope.config import settings
 from cloudscope.utils.statistics import mean
 from cloudscope.dynamo import Uniform, Normal
 from cloudscope.simulation.base import Process
+from cloudscope.utils.decorators import setter
+from cloudscope.exceptions import NetworkError
 from cloudscope.exceptions import UnknownType, BadValue
 
 
@@ -40,11 +43,16 @@ from cloudscope.exceptions import UnknownType, BadValue
 ## Module Constants
 ##########################################################################
 
-CONSTANT = "constant"
-VARIABLE = "variable"
-NORMAL   = "normal"
+## Connection Constants
+CONSTANT   = "constant"
+VARIABLE   = "variable"
+NORMAL     = "normal"
 
+## Area Constants
+WIDE_AREA  = "wide"
+LOCAL_AREA = "local"
 
+## Message data structure
 Message  = namedtuple('Message', 'source, target, value, delay')
 
 ##########################################################################
@@ -82,6 +90,14 @@ class Node(Process):
         """
         The send messsage interface required by connectible objects.
         """
+        # If the connection is offline drop the message
+        if not self.connections[target].online:
+            raise NetworkError(
+                "{} cannot send message to {} when connection is offline!".format(
+                    self, target
+                )
+            )
+
         # Create a message named tuple
         message = self.pack(target, value)
 
@@ -96,6 +112,13 @@ class Node(Process):
         """
         The recv message interface required by connectible objects.
         """
+        if not self.connections[event.value.source].online:
+            raise NetworkError(
+                "{} cannot recv messages from {} when connection is offline!".format(
+                    self, event.value.source
+                )
+            )
+
         # Unpack the message from the timeout event
         return event.value
 
@@ -135,17 +158,37 @@ class Connection(object):
         self.source   = source
         self.target   = target
         self.type     = kwargs.get('connection', CONSTANT)
-        self.active   = kwargs.get('active', True)
+        self.online   = kwargs.get('online', True)
+        self.area     = kwargs.get('area', None)
 
         # Set the latency protected variable
         self._latency = kwargs.get(
             'latency', settings.simulation.default_latency
         )
 
+    @setter
+    def area(self, value):
+        """
+        If the area is set directly, then it is stored as such. Otherwise the
+        area is computed by inspecting the locations of the source and the
+        target: if they are the same then local, otherwise wide.
+        """
+        if value is None:
+            if self.source.location == self.target.location:
+                return LOCAL_AREA
+            return WIDE_AREA
+        return value
+
     def latency(self):
         """
         Computes the latency from the latency range.
         """
+        # If we're not online then raise an exception.
+        if not self.online:
+            raise NetworkError(
+                "Cannot get latency for an offline connection!"
+            )
+
         # Constant Connections
         if self.type == CONSTANT:
             assert isinstance(self._latency, int)
@@ -173,6 +216,18 @@ class Connection(object):
         if value <= 1:
             return self.latency()
         return value
+
+    def up(self):
+        """
+        Make the connection online.
+        """
+        self.online = True
+
+    def down(self):
+        """
+        Take the connection offline (cannot send messages)
+        """
+        self.online = False
 
     def get_latency_range(self):
         """
@@ -207,9 +262,21 @@ class Connection(object):
     def serialize(self):
         return {
             "connection": self.type,
-            "active": self.active,
+            "online": self.online,
             "latency": self._latency,
         }
+
+    def __str__(self):
+        """
+        Returns a representation of the connection object.
+        """
+        arrow = {
+            CONSTANT: "→",
+            VARIABLE: "⇝",
+            NORMAL: "⇴",
+        }[self.type]
+
+        return "{} {} {}".format(self.source, arrow, self.target)
 
 ##########################################################################
 ## Network of connections

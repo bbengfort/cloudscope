@@ -26,6 +26,7 @@ from cloudscope.simulation.network import Network
 from cloudscope.utils.serialize import JSONEncoder
 from cloudscope.replica import replica_factory, Consistency
 from cloudscope.simulation.workload import create as create_workload
+from cloudscope.simulation.outages import create as create_outages
 
 ##########################################################################
 ## Primary Simulation
@@ -55,6 +56,11 @@ class ConsistencySimulation(Simulation):
             if csim.trace is None and 'trace' in data['meta']:
                 csim.trace = data['meta']['trace']
 
+            # If the outages exists in the simulation meta, use it.
+            # Do not use the outages if it has been specified in the kwargs.
+            if csim.outages is None and 'outages' in data['meta']:
+                csim.outages = data['meta']['outages']
+
             # Add replicas to the simulation
             for node in data['nodes']:
                 csim.replicas.append(replica_factory(csim, **node))
@@ -73,6 +79,7 @@ class ConsistencySimulation(Simulation):
         # Primary simulation variables.
         self.users     = kwargs.get('users', settings.simulation.users)
         self.trace     = kwargs.get('trace', None)
+        self.outages   = kwargs.get('outages', None)
         self.n_objects = kwargs.get('objects', settings.simulation.max_objects_accessed)
         self.replicas  = []
         self.network   = Network()
@@ -82,6 +89,14 @@ class ConsistencySimulation(Simulation):
         Ensure the topology is part of the results, as well as any configured
         variables on that don't match the settings.
         """
+        # Log that the trace read is complete
+        if self.trace:
+            self.logger.info(
+                "access trace complete for {} accesses on {} objects".format(
+                    self.workload.count, len(self.workload.objects),
+                )
+            )
+
         self.results.settings['users'] = self.users
         self.results.topology = self.serialize()
 
@@ -97,16 +112,13 @@ class ConsistencySimulation(Simulation):
         super(ConsistencySimulation, self).complete()
 
     def script(self):
-        # If a trace is passed in, then load the manual workload.
-        if self.trace:
-            self.workload = create_workload(self.env, self, trace=self.trace)
+        # Create the workload that generates accesses as though they are users.
+        self.workload   = create_workload(
+            self, trace=self.trace, n_objects=self.n_objects, users=self.users
+        )
 
-        # Otherwise, generate a random workload with the number of users.
-        else:
-            self.workload = [
-                create_workload(self.env, self, objects=self.n_objects)
-                for user in xrange(self.users)
-            ]
+        # Create the outages that generate partitions for realistic networks.
+        self.partitions = create_outages(self, outages=self.outages)
 
     def dump(self, fobj, **kwargs):
         """

@@ -61,7 +61,7 @@ class CannotGenerateExperiments(CloudScopeException):
 
 class NotifyError(CloudScopeException):
     """
-    Could not send a CloudScope notification via email. 
+    Could not send a CloudScope notification via email.
     """
     pass
 
@@ -91,6 +91,13 @@ class WorkloadException(SimulationException):
     pass
 
 
+class OutagesException(SimulationException):
+    """
+    Something went wrong in the outages generation.
+    """
+    pass
+    
+
 class AccessError(SimulationException):
     """
     Something went wrong with an access event (read or write).
@@ -108,5 +115,30 @@ class RaftRPCException(SimulationException):
 class TagRPCException(SimulationException):
     """
     Something went wrong in the Tag Consensus RPC scheme.
+    """
+    pass
+
+
+##########################################################################
+## Simulation Warnings
+##########################################################################
+
+class CloudScopeWarning(Warning):
+    """
+    Root warnings for the CloudScope library/package.
+    """
+    pass
+
+
+class SimulationWarning(CloudScopeWarning):
+    """
+    Warn about something going down in the simulation.
+    """
+    pass
+
+
+class WorkloadWarning(SimulationWarning):
+    """
+    Warn that something is going down with the workload.
     """
     pass

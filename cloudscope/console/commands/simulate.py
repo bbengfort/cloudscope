@@ -56,6 +56,12 @@ class SimulateCommand(Command):
             'metavar': 'PATH',
             'help': 'specify the path to the trace file with accesses',
         },
+        ('-O', '--outages'): {
+            'type': str,
+            'default': None,
+            'metavar': 'PATH',
+            'help': 'specify the path to the outages script',
+        },
         'data': {
             'nargs': '+',
             'type': argparse.FileType('r'),
@@ -89,7 +95,9 @@ class SimulateCommand(Command):
         Most common use case for the simulation runner: simply runs a single
         simulation, loading it from the data file.
         """
-        sim = ConsistencySimulation.load(args.data[0], trace=args.trace)
+        sim = ConsistencySimulation.load(
+            args.data[0], trace=args.trace, outages=args.outages
+        )
         sim.run()
 
         # Dump the output data to a file.
@@ -111,7 +119,7 @@ class SimulateCommand(Command):
         with Timer() as timer:
 
             sims   = [
-                ConsistencySimulation.load(fobj, trace=args.trace)
+                ConsistencySimulation.load(fobj, trace=args.trace, outages=args.outages)
                 for fobj in args.data
             ]
             output = [StringIO() for sim in sims]

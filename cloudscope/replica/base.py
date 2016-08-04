@@ -23,7 +23,7 @@ from cloudscope.simulation.network import Node
 from cloudscope.utils.enums import Enum
 from cloudscope.utils.strings import decamelize
 from cloudscope.replica.access import Read, Write
-from cloudscope.exceptions import AccessError
+from cloudscope.exceptions import AccessError, NetworkError
 
 ##########################################################################
 ## Enumerations
@@ -161,8 +161,14 @@ class Replica(Node):
         results analysis, and does final preperatory work for sent messages.
         Simply logs that the message has been sent.
         """
-        # Call the super method to queue the message on the network
-        event   = super(Replica, self).send(target, value)
+
+        try:
+            # Call the super method to queue the message on the network
+            event   = super(Replica, self).send(target, value)
+        except NetworkError:
+            # Drop the message if the network connection is down
+            return self.on_dropped_message(target, value)
+
         message = event.value
         mtype = message.value.__class__.__name__ if message.value else "None"
 
@@ -210,8 +216,14 @@ class Replica(Node):
         route incomming messages to their correct RPC handler or raise an
         exception if it cannot find the access method.
         """
-        # Get the unpacked message from the event.
-        message = super(Replica, self).recv(event)
+        try:
+            # Get the unpacked message from the event.
+            message = super(Replica, self).recv(event)
+        except NetworkError:
+            # Drop the message if the network connection is down
+            return self.on_dropped_message(event.value.target, event.value.value)
+
+        # Get the message type for logging
         mtype = message.value.__class__.__name__ if message.value else "None"
 
         # Debug logging of the message recv
@@ -356,6 +368,46 @@ class Replica(Node):
         property for more detail (this is called on set).
         """
         pass
+
+    def on_dropped_message(self, target, value):
+        """
+        Called when there is a network error and a message that is being sent
+        is dropped - subclasses can choose to retry the message or send to
+        someone else. For now, we'll just record and log the drop.
+        """
+        # Get the message type from the value.
+        mtype = value.__class__.__name__ if value else "None"
+
+        # Debug logging of the message dropped
+        self.sim.logger.debug(
+            "message {} dropped from {} to {} at {}".format(
+                mtype, self, target, self.env.now
+            )
+        )
+
+        # Track time series of dropped messages
+        if settings.simulation.count_messages:
+            # Aggregate heartbeats
+            if settings.simulation.aggregate_heartbeats:
+
+                # Check if actually an eppend entries or a heartbeat
+                if mtype == 'AppendEntries':
+                    # Tag/Complex entries
+                    if isinstance(value.entries, dict):
+                        if not any(value.entries.values()):
+                            mtype = 'Heartbeat'
+
+                    # Raft/Standard entries
+                    if not value.entries:
+                        mtype = 'Heartbeat'
+
+
+            self.sim.results.update(
+                "dropped", (self.id, target.id, self.env.now, mtype)
+            )
+
+        # Track total number of dropped messages
+        self.sim.results.messages['dropped'][mtype] += 1
 
     ######################################################################
     ## Object data model

@@ -102,25 +102,35 @@ class SimulationConfiguration(Configuration):
 
     # Workload Parameters
     users                = 1     # number of simulated users creating traces
-    max_objects_accessed = 1     # maximum number of objects that can be accessed
+    max_users_location   = None  # limit the number of users per location
+    max_objects_accessed = 1     # maximum number of objects that can be accessed (per user)
     synchronous_access   = False # each access has to wait on the previous access to be triggered
 
     # Locations to allow users to move to
-    valid_locations = [
-        "home", "work", "mobile"
+    invalid_locations = [
+        "cloud",
     ]
 
     # Replica types that shouldn't have accesses.
     invalid_types   = [
-        "storage"
+        "backup",
     ]
 
+    conflict_prob   = 0.0     # probability of object overlap and potential access conflict
     move_prob       = 0.2     # probability of moving locations
     switch_prob     = 0.3     # probability of switching devices
     object_prob     = 0.3     # probability of switching the currently accessed object
     access_mean     = 1800    # mean delay between accesses (milliseconds)
     access_stddev   = 512     # stddev of delay between accesses (milliseconds)
     read_prob       = 0.6     # probability of read access (write is 1-read_prob)
+
+    # Outage Parameters
+    outage_prob      = 0.0    # per-link probability of an outage
+    outage_mean      = 5400   # mean outage duration in milliseconds
+    outage_stddev    = 512    # standard deviation of outage duration in milliseconds
+    online_mean      = 10800  # mean online duration in milliseconds
+    online_stddev    = 512    # standard deviation of ounline duration in milliseconds
+    partition_across = "wide" # types of links to cut, one of wide, local, both, node, or leader
 
     # Integration parameter: default, floated, or federated
     integration     = "default"

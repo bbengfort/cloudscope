@@ -59,7 +59,7 @@ class Results(object):
         self.randseed   = settings.simulation.random_seed
         self.timesteps  = settings.simulation.max_sim_time
         self.settings   = dict(settings.simulation.options())
-        self.messages   = {"sent": Counter(), "recv": Counter()}
+        self.messages   = {"sent": Counter(), "recv": Counter(), "dropped": Counter()}
 
         # Set any properties that need to be serialized (override above)
         for key, val in kwargs.iteritems():

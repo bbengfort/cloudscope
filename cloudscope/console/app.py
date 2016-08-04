@@ -40,6 +40,7 @@ COMMANDS    = [
     TracesCommand,
     SettingsCommand,
     InspectCommand,
+    OutagesCommand,
 ]
 
 ##########################################################################
