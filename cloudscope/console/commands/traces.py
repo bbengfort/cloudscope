@@ -18,12 +18,8 @@ Generates random traces to pass directly to the simulations (as input).
 ##########################################################################
 
 import sys
-import random
 import logging
 import argparse
-
-from operator import itemgetter
-from collections import defaultdict
 
 from commis import Command
 from cloudscope.config import settings
@@ -91,7 +87,7 @@ class TracesCommand(Command):
 
     def handle(self, args):
         """
-        Uses the multi-object workload to generate a traces file.
+        Uses built in workloads and the TracesWriter to generate a trace file.
         """
         # Disable logging during trace generation
         logger = logging.getLogger('cloudscope.simulation')

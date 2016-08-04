@@ -548,6 +548,8 @@ class OutageScript(NamedProcess):
         Reads in outage events (must be ordered by timestep) and makes the
         connections specified either up or down according to the event state.
         """
+        # Track how many connections have outage events together.
+        local_count = 1
 
         # Read through the outage events in an ordered fashion.
         # Note this will only generate outages until they are exhaused.
@@ -562,12 +564,23 @@ class OutageScript(NamedProcess):
                 )
 
             # Compute delay in simulation and timeout
-            # If the delay is zero then this will just keep going
+            # If the delay is not zero then wait in simulation time.
             delay = event.timestep - self.clock
-            yield self.env.timeout(delay)
+            if delay == 0:
+                local_count += 1
+            else:
+                self.sim.logger.warn(
+                    "{} connections {} for {}".format(
+                        local_count, event.state,
+                        humanizedelta(milliseconds=delay)
+                    )
+                )
+                local_count = 1
+                yield self.env.timeout(delay)
 
             # Update our internal clock
             self.clock = self.env.now
+            self.count += 1
 
             # Take the connection up or down depending on the event.
             conn = self.get_connnection(event.source, event.target)
@@ -577,6 +590,6 @@ class OutageScript(NamedProcess):
             if event.state == OUTAGE:
                 conn.down()
 
-            self.sim.logger.warn(
+            self.sim.logger.debug(
                 "{} is now {}".format(conn, event.state)
             )
