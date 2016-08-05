@@ -21,7 +21,8 @@ from .base import Workload
 from .multi import WorkloadCollection
 
 from cloudscope.config import settings
-from collections import namedtuple, defaultdict
+from collections import namedtuple, defaultdict, Counter
+from cloudscope.utils.statistics import mean
 from cloudscope.utils.decorators import memoized
 from cloudscope.utils.timez import humanizedelta
 from cloudscope.replica.access import READ, WRITE
@@ -240,10 +241,60 @@ class TracesWriter(object):
         Writes out a complete trace to the passed in file-like object.
         Returns the number of rows written the the file.
         """
+        # Counts for the trace being written.
+        counts = Counter()
+        replicas = defaultdict(Counter)
+        max_time_step = 0
+
         for idx, access in enumerate(self):
+            # Count the number of rows
+            counts['rows'] += 1
+
+            # Count the number of access types
+            if access.method == READ: counts['reads'] += 1
+            if access.method == WRITE: counts['writes'] += 1
+
+            # Count the number of objects and replicas
+            replicas[access.replica][access.object] += 1
+
+            # Determine the maximum timestep
+            if int(access.timestep) > max_time_step:
+                max_time_step = int(access.timestep)
+
+            # Write the objec to disk
             fobj.write("\t".join(access) + "\n")
 
-        return idx + 1
+        # Update the counts with globals
+        counts["objects"] = len(set([
+            key
+            for replica in replicas.keys()
+            for key in
+            replicas[replica].keys()
+        ]))
+        counts["devices"] = len(replicas.keys())
+        counts["timesteps"] = max_time_step
+        counts["realtime"] = humanizedelta(milliseconds=max_time_step)
+        counts["mean_objects_per_device"] = int(mean([
+            len(objects.keys()) for objects in replicas.values()
+        ]))
+        counts["mean_accesses_per_device"] = int(mean([
+            sum(objects.values()) for objects in replicas.values()
+        ]))
+        counts["mean_accesses_per_object"] = int(mean([
+            count
+            for objects in replicas.values()
+            for count in objects.values()
+        ]))
+        counts["mean_devices_per_object"] = int(mean([
+            sum(1 if name in objects.keys() else 0 for objects in replicas.values())
+            for name in set([
+                key
+                for values in replicas.values()
+                for key in values.keys()
+            ])
+        ]))
+
+        return counts
 
     def __iter__(self):
         """

@@ -177,7 +177,7 @@ class ExperimentGenerator(object):
         Generates experiments based on n and the dimensions associated.
         """
         raise NotImplementedError(
-            "Generate is specific to othe type of experiment generator!"
+            "Generate is specific to the type of experiment generator!"
         )
 
     def jitter(self, n=1, **options):

@@ -63,6 +63,12 @@ class TracesCommand(Command):
             'metavar': 'N',
             'help': 'specify the number of objects accessed'
         },
+        ('-c', '--conflict'): {
+            'type': float,
+            'default': settings.simulation.conflict_prob,
+            'metavar': 'P',
+            'help': 'the probability of conflict between objects',
+        },
         ('-t', '--timesteps'): {
             'type': int,
             'default': settings.simulation.max_sim_time,
@@ -92,6 +98,9 @@ class TracesCommand(Command):
         # Disable logging during trace generation
         logger = logging.getLogger('cloudscope.simulation')
         logger.disabled = True
+
+        # Update settings arguments
+        settings.simulation.conflict_prob = args.conflict
 
         # Simulation arguments
         kwargs = {
@@ -124,11 +133,14 @@ class TracesCommand(Command):
 
         # Create the traces writer and write the traces to disk
         writer = TracesWriter(workload, args.timesteps)
-        rows   = writer.write(args.output)
+        counts = writer.write(args.output)
 
         return (
-            "traced {} accesses on {} objects by {} users over {} timesteps\n"
-            "wrote the trace file to {}"
-        ).format(
-            rows, args.objects, args.users, args.timesteps, args.output.name
-        )
+            "traced {rows:,} accesses on {devices:,} devices over {timesteps:,} timesteps ({realtime})\n"
+            "object space contains {objects:,} object names:\n"
+            "  {mean_objects_per_device:,} average objects per device | "
+            "{mean_devices_per_object:,} average devices per object\n"
+            "  {mean_accesses_per_device:,} average accesses per device | "
+            "{mean_accesses_per_object:,} average accesses per object\n"
+            "wrote the trace file to {0}"
+        ).format(args.output.name, **counts)

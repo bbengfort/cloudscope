@@ -210,8 +210,8 @@ class OutageGenerator(NamedProcess):
             # Get the duration of the current state
             duration = self.duration()
 
-            # Log (debug) the outage/online state and duration
-            self.sim.logger.warn(
+            # Log (info) the outage/online state and duration
+            self.sim.logger.info(
                 "{} connections {} for {}".format(
                     len(self.connections), self.state,
                     humanizedelta(milliseconds=duration)
@@ -569,7 +569,7 @@ class OutageScript(NamedProcess):
             if delay == 0:
                 local_count += 1
             else:
-                self.sim.logger.warn(
+                self.sim.logger.info(
                     "{} connections {} for {}".format(
                         local_count, event.state,
                         humanizedelta(milliseconds=delay)
