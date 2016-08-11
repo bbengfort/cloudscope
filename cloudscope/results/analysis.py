@@ -468,6 +468,15 @@ def create_per_experiment_dataframe(results):
         data['election timeout (ms, ms)'] = conf['election_timeout']
         data['T parameter model'] = conf['tick_param_model']
 
+        # This is normally what you'd do.
+        # data['conflict probability'] = conf['conflict_prob']
+
+        # This is the HACK
+        import os, re
+        regex = re.compile(r'realism\-federated\-([\d\.]+)\-pconflict\.tsv')
+        name = os.path.basename(conf['trace'])
+        data['conflict probability'] = float(regex.match(name).group(1))
+
         # Aggregate the timeseries resuts data
         for key, values in result_value(result, 'results').iteritems():
             data.update(aggregator(key, values))
