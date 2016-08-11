@@ -130,6 +130,29 @@ class MultipleSimulationsCommand(Command):
         }
     }
 
+    def on_result(self, result):
+        """
+        Writes the results of a simulation runner to disk and appends details
+        about the overall progress of the simulation to the command.
+        """
+        # Parse the JSON from the result string returned.
+        result = json.loads(result)
+
+        # If there is an error, add it to the errors and go on
+        if 'error' in result:
+            self.errors.append(result)
+            return
+
+        # Otherwise append the timing duration
+        self.deltas.append(
+            result['timer']['finished'] - result['timer']['started']
+        )
+
+        # And write the results to disk, one result per-line.
+        # NOTE: This is the new style multi-result output for memory saving
+        self.output.write(json.dumps(result) + "\n")
+        self.output.flush()
+
     def handle(self, args):
         """
         Handles the multiprocess execution of the simulations.
@@ -143,49 +166,37 @@ class MultipleSimulationsCommand(Command):
 
         # Open an output file for results if one isn't specified
         if args.output is None:
-            path = "multisim-results-{}.json".format("%Y%m%d%H%M%S", time.localtime())
+            path = "multisim-results-{}.json".format(
+                time.strftime("%Y%m%d%H%M%S", time.localtime())
+            )
             args.output = open(path, 'w+')
+
+        # Save the output as a class property so it can be accessed by on_result
+        self.output = args.output
+
+        # Data structures for holding results
+        self.deltas = []
+        self.errors = []
 
         # Create a pool of processes and begin to execute experiments
         with Timer() as timer:
             pool   = mp.Pool(processes=args.tasks)
             tasks  = [
-                pool.apply_async(runner, (i+1,x), k)
+                pool.apply_async(runner, (i+1,x), k, callback=self.on_result)
                 for i, (x, k) in enumerate(experiments)
             ]
 
-            # Data structures for holding results
-            deltas = []
-            errors = []
-
-            # Compute timing and errors and write results to disk
-            # This causes the multisim to join!
-            for task in tasks:
-
-                # Pop the results off of the task queue
-                result = json.loads(task.get())
-
-                # If there is an error, add it to the errors and go on
-                if 'error' in result:
-                    errors.append(result)
-                    continue
-
-                # Otherwise append the timing duration
-                deltas.append(
-                    result['timer']['finished'] - result['timer']['started']
-                )
-
-                # And write the results to disk, one result per-line.
-                # NOTE: This is the new style multi-result output for memory saving
-                args.output.write(json.dumps(result) + "\n")
+            # Close the pool and join
+            pool.close()
+            pool.join()
 
             # Compute duration
-            duration = sum(deltas)
+            duration = sum(self.deltas)
 
         # TIMER COMPLETE!
         # If traceback, dump the errors out.
         if args.traceback:
-            for idx, error in enumerate(errors):
+            for idx, error in enumerate(self.errors):
                 banner = "="*36
                 print ("{}\nError #{}:\n{}\n\n{}\n").format(
                     banner, idx+1, banner, error['traceback']
@@ -197,10 +208,10 @@ class MultipleSimulationsCommand(Command):
             "Results written to {}"
         ).format(
             len(tasks), humanizedelta(seconds=duration) or "0 seconds",
-            len(errors), args.tasks, timer, args.output.name
+            len(self.errors), args.tasks, timer, args.output.name
         )
 
-        self.notify(args.notify, notice, errors)
+        self.notify(args.notify, notice, self.errors)
         return notice
 
     def get_experiments(self, args):
