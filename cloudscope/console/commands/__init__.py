@@ -26,3 +26,4 @@ from .traces import TracesCommand
 from .config import SettingsCommand
 from .inspect import InspectCommand
 from .outages import OutagesCommand
+from .modify import ModifyTopologyCommand

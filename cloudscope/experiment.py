@@ -81,6 +81,18 @@ def nested_randomize(d):
     return r
 
 
+def compute_tick(mu, sd, model='bailis'):
+    """
+    Compute the tick parameter from the model.
+    """
+    model = {
+        'bailis': lambda mu, sd: 10*mu,
+        'howard': lambda mu, sd: 2*(mu+(2*sd)),
+    }[model]
+
+    return model(mu, sd)
+
+
 ##########################################################################
 ## Experiment Generator
 ##########################################################################
