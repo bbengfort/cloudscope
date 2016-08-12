@@ -22,7 +22,9 @@ import re
 import json
 import glob
 import time
+import socket
 import logging
+import getpass
 import argparse
 import multiprocessing as mp
 
@@ -250,6 +252,11 @@ class MultipleSimulationsCommand(Command):
             "This is the CloudScope multi-simulation command. "
             "I wanted to let you know the following:\n\n{}\n\n"
         ).format(notice)
+
+        # Add the location and the user.
+        message += "Occurred on {} executed by {}.\n\n".format(
+            socket.gethostname(), getpass.getuser()
+        )
 
         # Add the errors
         if errors:

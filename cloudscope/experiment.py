@@ -259,9 +259,6 @@ class LatencyVariation(ExperimentGenerator):
         high  = self.options['latency']['maximum']
         mrng  = self.options['latency']['max_range']
 
-        # Width specifies how to spread mean latencies and also the stddev
-        #width  = min(mrng, ((high - low)/ n))
-
         for latency in spread(n, low, high, mrng):
             mean = int(sum(map(float, latency)) / len(latency))
             stddev = (float(latency[1] - mean) / 2.5)

@@ -283,7 +283,7 @@ class LatencyVariationTests(unittest.TestCase, NestedAssertionMixin):
         generator    = LatencyVariation(self.template, users=users_opts, latency=latency_opts)
         expected     = {
             'users': {'minimum': 1, 'maximum': 5, 'step': 1},
-            'latency': {'minimum': 5, 'maximum': 3000, 'max_range': 800},
+            'latency': {'minimum': 30, 'maximum': 1000, 'max_range': 800},
             'traces': [],
         }
 
@@ -293,7 +293,7 @@ class LatencyVariationTests(unittest.TestCase, NestedAssertionMixin):
         """
         Test the latencies generator function
         """
-        latency   = {'minimum': 0, 'maximum': 1000, 'max_range': 1000}
+        latency   = {'minimum': 0, 'maximum': 1000, 'max_range': 100}
         generator = LatencyVariation(self.template, latency=latency, count=10)
         expected  = [
             {'latency_range': [0, 100], 'latency_mean': 50, 'latency_stddev': 20.0},
@@ -314,7 +314,7 @@ class LatencyVariationTests(unittest.TestCase, NestedAssertionMixin):
         """
         Test the latency variation generation with a single user.
         """
-        latency   = {'minimum': 0, 'maximum': 1000, 'max_range': 1000}
+        latency   = {'minimum': 0, 'maximum': 1000, 'max_range': 100}
         generator = LatencyVariation(self.template, latency=latency, count=10)
         expected  = [
             # (variable, constant, election, heartbeat, nusers)
@@ -350,7 +350,7 @@ class LatencyVariationTests(unittest.TestCase, NestedAssertionMixin):
         Test the number of experiments with both user and latency dimensions
         """
         users     = {'maximum': 5, 'step': 2}
-        latency   = {'minimum': 0, 'maximum': 1000, 'max_range': 1000}
+        latency   = {'minimum': 0, 'maximum': 1000, 'max_range': 100}
         generator = LatencyVariation(self.template, users=users, latency=latency, count=10)
         self.assertEqual(30, len(generator))
 
@@ -421,7 +421,7 @@ class AntiEntropyVariationTests(unittest.TestCase, NestedAssertionMixin):
         )
         expected     = {
             'users': {'minimum': 1, 'maximum': 5, 'step': 1},
-            'latency': {'minimum': 5, 'maximum': 3000, 'max_range': 800},
+            'latency': {'minimum': 30, 'maximum': 1000, 'max_range': 800},
             'anti_entropy': {'minimum': 100, 'maximum': settings.simulation.anti_entropy_delay},
             'traces': [],
         }
