@@ -1,368 +1,2076 @@
 {
-    "meta": {
-        "constant": "N/A",
-        "variable": "15-1000ms",
-        "seed": null,
-        "title": "Federated Consistency",
-        "description": "A large group of eventually consistent nodes in 5 locations with a central core consensus group.",
-        "type": "federated"
-    },
-    "nodes": [
-        {
-            "id": "a0",
-            "label": "Alpha 0",
-            "type": "desktop",
-            "consistency": "strong",
-            "location": "alpha-site"
-        },
-        {
-            "id": "a1",
-            "label": "Alpha 1",
-            "type": "laptop",
-            "consistency": "eventual",
-            "location": "alpha-site"
-        },
-        {
-            "id": "a2",
-            "label": "Alpha 2",
-            "type": "laptop",
-            "consistency": "eventual",
-            "location": "alpha-site"
-        },
-        {
-            "id": "a3",
-            "label": "Alpha 3",
-            "type": "laptop",
-            "consistency": "eventual",
-            "location": "alpha-site"
-        },
-        {
-            "id": "b0",
-            "label": "Bravo 0",
-            "type": "desktop",
-            "consistency": "strong",
-            "location": "bravo-site"
-        },
-        {
-            "id": "b1",
-            "label": "Bravo 1",
-            "type": "laptop",
-            "consistency": "eventual",
-            "location": "bravo-site"
-        },
-        {
-            "id": "b2",
-            "label": "Bravo 2",
-            "type": "laptop",
-            "consistency": "eventual",
-            "location": "bravo-site"
-        },
-        {
-            "id": "b3",
-            "label": "Bravo 3",
-            "type": "laptop",
-            "consistency": "eventual",
-            "location": "bravo-site"
-        },
-        {
-            "id": "c0",
-            "label": "Charlie 0",
-            "type": "desktop",
-            "consistency": "strong",
-            "location": "charlie-site"
-        },
-        {
-            "id": "c1",
-            "label": "Charlie 1",
-            "type": "laptop",
-            "consistency": "eventual",
-            "location": "charlie-site"
-        },
-        {
-            "id": "c2",
-            "label": "Charlie 2",
-            "type": "laptop",
-            "consistency": "eventual",
-            "location": "charlie-site"
-        },
-        {
-            "id": "c3",
-            "label": "Charlie 3",
-            "type": "laptop",
-            "consistency": "eventual",
-            "location": "charlie-site"
-        },
-        {
-            "id": "d0",
-            "label": "Delta 0",
-            "type": "desktop",
-            "consistency": "strong",
-            "location": "delta-site"
-        },
-        {
-            "id": "d1",
-            "label": "Delta 1",
-            "type": "laptop",
-            "consistency": "eventual",
-            "location": "delta-site"
-        },
-        {
-            "id": "d2",
-            "label": "Delta 2",
-            "type": "laptop",
-            "consistency": "eventual",
-            "location": "delta-site"
-        },
-        {
-            "id": "d3",
-            "label": "Delta 3",
-            "type": "laptop",
-            "consistency": "eventual",
-            "location": "delta-site"
-        },
-        {
-            "id": "e0",
-            "label": "Echo 0",
-            "type": "desktop",
-            "consistency": "strong",
-            "location": "echo-site"
-        },
-        {
-            "id": "e1",
-            "label": "Echo 1",
-            "type": "laptop",
-            "consistency": "eventual",
-            "location": "echo-site"
-        },
-        {
-            "id": "e2",
-            "label": "Echo 2",
-            "type": "laptop",
-            "consistency": "eventual",
-            "location": "echo-site"
-        },
-        {
-            "id": "e3",
-            "label": "Echo 3",
-            "type": "laptop",
-            "consistency": "eventual",
-            "location": "echo-site"
-        }
-    ],
-    "links": [
-        {"source": 0, "target": 1, "connection": "normal", "latency": [5, 1], "area": "local"},
-        {"source": 0, "target": 2, "connection": "normal", "latency": [5, 1], "area": "local"},
-        {"source": 0, "target": 3, "connection": "normal", "latency": [5, 1], "area": "local"},
-        {"source": 1, "target": 2, "connection": "normal", "latency": [5, 1], "area": "local"},
-        {"source": 1, "target": 3, "connection": "normal", "latency": [5, 1], "area": "local"},
-        {"source": 2, "target": 3, "connection": "normal", "latency": [5, 1], "area": "local"},
-
-        {"source": 4, "target": 5, "connection": "normal", "latency": [5, 1], "area": "local"},
-        {"source": 4, "target": 6, "connection": "normal", "latency": [5, 1], "area": "local"},
-        {"source": 4, "target": 7, "connection": "normal", "latency": [5, 1], "area": "local"},
-        {"source": 5, "target": 6, "connection": "normal", "latency": [5, 1], "area": "local"},
-        {"source": 5, "target": 7, "connection": "normal", "latency": [5, 1], "area": "local"},
-        {"source": 6, "target": 7, "connection": "normal", "latency": [5, 1], "area": "local"},
-
-        {"source": 8, "target": 9, "connection": "normal", "latency": [5, 1], "area": "local"},
-        {"source": 8, "target": 10, "connection": "normal", "latency": [5, 1], "area": "local"},
-        {"source": 8, "target": 11, "connection": "normal", "latency": [5, 1], "area": "local"},
-        {"source": 9, "target": 10, "connection": "normal", "latency": [5, 1], "area": "local"},
-        {"source": 9, "target": 11, "connection": "normal", "latency": [5, 1], "area": "local"},
-        {"source": 10, "target": 11, "connection": "normal", "latency": [5, 1], "area": "local"},
-
-        {"source": 12, "target": 13, "connection": "normal", "latency": [5, 1], "area": "local"},
-        {"source": 12, "target": 14, "connection": "normal", "latency": [5, 1], "area": "local"},
-        {"source": 12, "target": 15, "connection": "normal", "latency": [5, 1], "area": "local"},
-        {"source": 13, "target": 14, "connection": "normal", "latency": [5, 1], "area": "local"},
-        {"source": 13, "target": 15, "connection": "normal", "latency": [5, 1], "area": "local"},
-        {"source": 14, "target": 15, "connection": "normal", "latency": [5, 1], "area": "local"},
-
-        {"source": 16, "target": 17, "connection": "normal", "latency": [5, 1], "area": "local"},
-        {"source": 16, "target": 18, "connection": "normal", "latency": [5, 1], "area": "local"},
-        {"source": 16, "target": 19, "connection": "normal", "latency": [5, 1], "area": "local"},
-        {"source": 17, "target": 18, "connection": "normal", "latency": [5, 1], "area": "local"},
-        {"source": 17, "target": 19, "connection": "normal", "latency": [5, 1], "area": "local"},
-        {"source": 18, "target": 19, "connection": "normal", "latency": [5, 1], "area": "local"},
-
-        {"source": 0, "target": 4, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 0, "target": 8, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 0, "target": 12, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 0, "target": 16, "connection": "normal", "latency": [30, 5], "area": "wide"},
-
-        {"source": 0, "target": 5, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 0, "target": 6, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 0, "target": 7, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 0, "target": 9, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 0, "target": 10, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 0, "target": 11, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 0, "target": 13, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 0, "target": 14, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 0, "target": 15, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 0, "target": 17, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 0, "target": 18, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 0, "target": 19, "connection": "normal", "latency": [30, 5], "area": "wide"},
-
-        {"source": 1, "target": 4, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 1, "target": 5, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 1, "target": 6, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 1, "target": 7, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 1, "target": 8, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 1, "target": 9, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 1, "target": 10, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 1, "target": 11, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 1, "target": 12, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 1, "target": 13, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 1, "target": 14, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 1, "target": 15, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 1, "target": 16, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 1, "target": 17, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 1, "target": 18, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 1, "target": 19, "connection": "normal", "latency": [30, 5], "area": "wide"},
-
-        {"source": 2, "target": 4, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 2, "target": 5, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 2, "target": 6, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 2, "target": 7, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 2, "target": 8, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 2, "target": 9, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 2, "target": 10, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 2, "target": 11, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 2, "target": 12, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 2, "target": 13, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 2, "target": 14, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 2, "target": 15, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 2, "target": 16, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 2, "target": 17, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 2, "target": 18, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 2, "target": 19, "connection": "normal", "latency": [30, 5], "area": "wide"},
-
-        {"source": 3, "target": 4, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 3, "target": 5, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 3, "target": 6, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 3, "target": 7, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 3, "target": 8, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 3, "target": 9, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 3, "target": 10, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 3, "target": 11, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 3, "target": 12, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 3, "target": 13, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 3, "target": 14, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 3, "target": 15, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 3, "target": 16, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 3, "target": 17, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 3, "target": 18, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 3, "target": 19, "connection": "normal", "latency": [30, 5], "area": "wide"},
-
-        {"source": 4, "target": 8, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 4, "target": 12, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 4, "target": 16, "connection": "normal", "latency": [30, 5], "area": "wide"},
-
-        {"source": 4, "target": 9, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 4, "target": 10, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 4, "target": 11, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 4, "target": 13, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 4, "target": 14, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 4, "target": 15, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 4, "target": 17, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 4, "target": 18, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 4, "target": 19, "connection": "normal", "latency": [30, 5], "area": "wide"},
-
-        {"source": 5, "target": 8, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 5, "target": 9, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 5, "target": 10, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 5, "target": 11, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 5, "target": 12, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 5, "target": 13, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 5, "target": 14, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 5, "target": 15, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 5, "target": 16, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 5, "target": 17, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 5, "target": 18, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 5, "target": 19, "connection": "normal", "latency": [30, 5], "area": "wide"},
-
-        {"source": 6, "target": 8, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 6, "target": 9, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 6, "target": 10, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 6, "target": 11, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 6, "target": 12, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 6, "target": 13, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 6, "target": 14, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 6, "target": 15, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 6, "target": 16, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 6, "target": 17, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 6, "target": 18, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 6, "target": 19, "connection": "normal", "latency": [30, 5], "area": "wide"},
-
-        {"source": 7, "target": 8, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 7, "target": 9, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 7, "target": 10, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 7, "target": 11, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 7, "target": 12, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 7, "target": 13, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 7, "target": 14, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 7, "target": 15, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 7, "target": 16, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 7, "target": 17, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 7, "target": 18, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 7, "target": 19, "connection": "normal", "latency": [30, 5], "area": "wide"},
-
-        {"source": 8, "target": 12, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 8, "target": 16, "connection": "normal", "latency": [30, 5], "area": "wide"},
-
-        {"source": 8, "target": 13, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 8, "target": 14, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 8, "target": 15, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 8, "target": 17, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 8, "target": 18, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 8, "target": 19, "connection": "normal", "latency": [30, 5], "area": "wide"},
-
-        {"source": 9, "target": 12, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 9, "target": 13, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 9, "target": 14, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 9, "target": 15, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 9, "target": 16, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 9, "target": 17, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 9, "target": 18, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 9, "target": 19, "connection": "normal", "latency": [30, 5], "area": "wide"},
-
-        {"source": 10, "target": 12, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 10, "target": 13, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 10, "target": 14, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 10, "target": 15, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 10, "target": 16, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 10, "target": 17, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 10, "target": 18, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 10, "target": 19, "connection": "normal", "latency": [30, 5], "area": "wide"},
-
-        {"source": 11, "target": 12, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 11, "target": 13, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 11, "target": 14, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 11, "target": 15, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 11, "target": 16, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 11, "target": 17, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 11, "target": 18, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 11, "target": 19, "connection": "normal", "latency": [30, 5], "area": "wide"},
-
-        {"source": 12, "target": 16, "connection": "normal", "latency": [30, 5], "area": "wide"},
-
-        {"source": 12, "target": 17, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 12, "target": 18, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 12, "target": 19, "connection": "normal", "latency": [30, 5], "area": "wide"},
-
-        {"source": 13, "target": 16, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 13, "target": 17, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 13, "target": 18, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 13, "target": 19, "connection": "normal", "latency": [30, 5], "area": "wide"},
-
-        {"source": 14, "target": 16, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 14, "target": 17, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 14, "target": 18, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 14, "target": 19, "connection": "normal", "latency": [30, 5], "area": "wide"},
-
-        {"source": 15, "target": 16, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 15, "target": 17, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 15, "target": 18, "connection": "normal", "latency": [30, 5], "area": "wide"},
-        {"source": 15, "target": 19, "connection": "normal", "latency": [30, 5], "area": "wide"}
+  "nodes": [
+    {
+      "location": "alpha-site", 
+      "consistency": "strong", 
+      "type": "desktop", 
+      "id": "a0", 
+      "label": "Alpha 0"
+    }, 
+    {
+      "location": "alpha-site", 
+      "consistency": "eventual", 
+      "type": "laptop", 
+      "id": "a1", 
+      "label": "Alpha 1"
+    }, 
+    {
+      "location": "alpha-site", 
+      "consistency": "eventual", 
+      "type": "laptop", 
+      "id": "a2", 
+      "label": "Alpha 2"
+    }, 
+    {
+      "location": "alpha-site", 
+      "consistency": "eventual", 
+      "type": "laptop", 
+      "id": "a3", 
+      "label": "Alpha 3"
+    }, 
+    {
+      "location": "bravo-site", 
+      "consistency": "strong", 
+      "type": "desktop", 
+      "id": "b0", 
+      "label": "Bravo 0"
+    }, 
+    {
+      "location": "bravo-site", 
+      "consistency": "eventual", 
+      "type": "laptop", 
+      "id": "b1", 
+      "label": "Bravo 1"
+    }, 
+    {
+      "location": "bravo-site", 
+      "consistency": "eventual", 
+      "type": "laptop", 
+      "id": "b2", 
+      "label": "Bravo 2"
+    }, 
+    {
+      "location": "bravo-site", 
+      "consistency": "eventual", 
+      "type": "laptop", 
+      "id": "b3", 
+      "label": "Bravo 3"
+    }, 
+    {
+      "location": "charlie-site", 
+      "consistency": "strong", 
+      "type": "desktop", 
+      "id": "c0", 
+      "label": "Charlie 0"
+    }, 
+    {
+      "location": "charlie-site", 
+      "consistency": "eventual", 
+      "type": "laptop", 
+      "id": "c1", 
+      "label": "Charlie 1"
+    }, 
+    {
+      "location": "charlie-site", 
+      "consistency": "eventual", 
+      "type": "laptop", 
+      "id": "c2", 
+      "label": "Charlie 2"
+    }, 
+    {
+      "location": "charlie-site", 
+      "consistency": "eventual", 
+      "type": "laptop", 
+      "id": "c3", 
+      "label": "Charlie 3"
+    }, 
+    {
+      "location": "delta-site", 
+      "consistency": "strong", 
+      "type": "desktop", 
+      "id": "d0", 
+      "label": "Delta 0"
+    }, 
+    {
+      "location": "delta-site", 
+      "consistency": "eventual", 
+      "type": "laptop", 
+      "id": "d1", 
+      "label": "Delta 1"
+    }, 
+    {
+      "location": "delta-site", 
+      "consistency": "eventual", 
+      "type": "laptop", 
+      "id": "d2", 
+      "label": "Delta 2"
+    }, 
+    {
+      "location": "delta-site", 
+      "consistency": "eventual", 
+      "type": "laptop", 
+      "id": "d3", 
+      "label": "Delta 3"
+    }, 
+    {
+      "location": "echo-site", 
+      "consistency": "strong", 
+      "type": "desktop", 
+      "id": "e0", 
+      "label": "Echo 0"
+    }, 
+    {
+      "location": "echo-site", 
+      "consistency": "eventual", 
+      "type": "laptop", 
+      "id": "e1", 
+      "label": "Echo 1"
+    }, 
+    {
+      "location": "echo-site", 
+      "consistency": "eventual", 
+      "type": "laptop", 
+      "id": "e2", 
+      "label": "Echo 2"
+    }, 
+    {
+      "location": "echo-site", 
+      "consistency": "eventual", 
+      "type": "laptop", 
+      "id": "e3", 
+      "label": "Echo 3"
+    }
+  ], 
+  "meta": {
+    "constant": "N/A", 
+    "description": "A large group of eventually consistent nodes in 5 locations with a central core consensus group.", 
+    "title": "Federated Consistency", 
+    "anti_entropy_delay": 150, 
+    "election_timeout": [
+      600, 
+      1200
+    ], 
+    "latency_stddev": 15, 
+    "hearbeat_interval": 300, 
+    "latency_mean": 60, 
+    "seed": null, 
+    "tick_param_model": "bailis", 
+    "variable": "30-90ms", 
+    "latency_range": [
+      15, 
+      60
+    ], 
+    "wide_latency": [
+      60, 
+      15
+    ], 
+    "type": "federated", 
+    "tick_metric": 600, 
+    "local_latency": [
+      15, 
+      2
     ]
+  }, 
+  "links": [
+    {
+      "source": 0, 
+      "connection": "normal", 
+      "area": "local", 
+      "target": 1, 
+      "latency": [
+        15, 
+        2
+      ]
+    }, 
+    {
+      "source": 0, 
+      "connection": "normal", 
+      "area": "local", 
+      "target": 2, 
+      "latency": [
+        15, 
+        2
+      ]
+    }, 
+    {
+      "source": 0, 
+      "connection": "normal", 
+      "area": "local", 
+      "target": 3, 
+      "latency": [
+        15, 
+        2
+      ]
+    }, 
+    {
+      "source": 1, 
+      "connection": "normal", 
+      "area": "local", 
+      "target": 2, 
+      "latency": [
+        15, 
+        2
+      ]
+    }, 
+    {
+      "source": 1, 
+      "connection": "normal", 
+      "area": "local", 
+      "target": 3, 
+      "latency": [
+        15, 
+        2
+      ]
+    }, 
+    {
+      "source": 2, 
+      "connection": "normal", 
+      "area": "local", 
+      "target": 3, 
+      "latency": [
+        15, 
+        2
+      ]
+    }, 
+    {
+      "source": 4, 
+      "connection": "normal", 
+      "area": "local", 
+      "target": 5, 
+      "latency": [
+        15, 
+        2
+      ]
+    }, 
+    {
+      "source": 4, 
+      "connection": "normal", 
+      "area": "local", 
+      "target": 6, 
+      "latency": [
+        15, 
+        2
+      ]
+    }, 
+    {
+      "source": 4, 
+      "connection": "normal", 
+      "area": "local", 
+      "target": 7, 
+      "latency": [
+        15, 
+        2
+      ]
+    }, 
+    {
+      "source": 5, 
+      "connection": "normal", 
+      "area": "local", 
+      "target": 6, 
+      "latency": [
+        15, 
+        2
+      ]
+    }, 
+    {
+      "source": 5, 
+      "connection": "normal", 
+      "area": "local", 
+      "target": 7, 
+      "latency": [
+        15, 
+        2
+      ]
+    }, 
+    {
+      "source": 6, 
+      "connection": "normal", 
+      "area": "local", 
+      "target": 7, 
+      "latency": [
+        15, 
+        2
+      ]
+    }, 
+    {
+      "source": 8, 
+      "connection": "normal", 
+      "area": "local", 
+      "target": 9, 
+      "latency": [
+        15, 
+        2
+      ]
+    }, 
+    {
+      "source": 8, 
+      "connection": "normal", 
+      "area": "local", 
+      "target": 10, 
+      "latency": [
+        15, 
+        2
+      ]
+    }, 
+    {
+      "source": 8, 
+      "connection": "normal", 
+      "area": "local", 
+      "target": 11, 
+      "latency": [
+        15, 
+        2
+      ]
+    }, 
+    {
+      "source": 9, 
+      "connection": "normal", 
+      "area": "local", 
+      "target": 10, 
+      "latency": [
+        15, 
+        2
+      ]
+    }, 
+    {
+      "source": 9, 
+      "connection": "normal", 
+      "area": "local", 
+      "target": 11, 
+      "latency": [
+        15, 
+        2
+      ]
+    }, 
+    {
+      "source": 10, 
+      "connection": "normal", 
+      "area": "local", 
+      "target": 11, 
+      "latency": [
+        15, 
+        2
+      ]
+    }, 
+    {
+      "source": 12, 
+      "connection": "normal", 
+      "area": "local", 
+      "target": 13, 
+      "latency": [
+        15, 
+        2
+      ]
+    }, 
+    {
+      "source": 12, 
+      "connection": "normal", 
+      "area": "local", 
+      "target": 14, 
+      "latency": [
+        15, 
+        2
+      ]
+    }, 
+    {
+      "source": 12, 
+      "connection": "normal", 
+      "area": "local", 
+      "target": 15, 
+      "latency": [
+        15, 
+        2
+      ]
+    }, 
+    {
+      "source": 13, 
+      "connection": "normal", 
+      "area": "local", 
+      "target": 14, 
+      "latency": [
+        15, 
+        2
+      ]
+    }, 
+    {
+      "source": 13, 
+      "connection": "normal", 
+      "area": "local", 
+      "target": 15, 
+      "latency": [
+        15, 
+        2
+      ]
+    }, 
+    {
+      "source": 14, 
+      "connection": "normal", 
+      "area": "local", 
+      "target": 15, 
+      "latency": [
+        15, 
+        2
+      ]
+    }, 
+    {
+      "source": 16, 
+      "connection": "normal", 
+      "area": "local", 
+      "target": 17, 
+      "latency": [
+        15, 
+        2
+      ]
+    }, 
+    {
+      "source": 16, 
+      "connection": "normal", 
+      "area": "local", 
+      "target": 18, 
+      "latency": [
+        15, 
+        2
+      ]
+    }, 
+    {
+      "source": 16, 
+      "connection": "normal", 
+      "area": "local", 
+      "target": 19, 
+      "latency": [
+        15, 
+        2
+      ]
+    }, 
+    {
+      "source": 17, 
+      "connection": "normal", 
+      "area": "local", 
+      "target": 18, 
+      "latency": [
+        15, 
+        2
+      ]
+    }, 
+    {
+      "source": 17, 
+      "connection": "normal", 
+      "area": "local", 
+      "target": 19, 
+      "latency": [
+        15, 
+        2
+      ]
+    }, 
+    {
+      "source": 18, 
+      "connection": "normal", 
+      "area": "local", 
+      "target": 19, 
+      "latency": [
+        15, 
+        2
+      ]
+    }, 
+    {
+      "source": 0, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 4, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 0, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 8, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 0, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 12, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 0, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 16, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 0, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 5, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 0, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 6, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 0, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 7, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 0, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 9, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 0, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 10, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 0, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 11, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 0, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 13, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 0, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 14, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 0, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 15, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 0, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 17, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 0, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 18, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 0, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 19, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 1, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 4, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 1, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 5, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 1, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 6, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 1, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 7, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 1, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 8, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 1, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 9, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 1, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 10, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 1, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 11, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 1, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 12, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 1, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 13, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 1, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 14, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 1, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 15, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 1, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 16, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 1, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 17, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 1, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 18, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 1, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 19, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 2, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 4, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 2, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 5, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 2, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 6, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 2, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 7, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 2, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 8, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 2, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 9, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 2, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 10, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 2, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 11, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 2, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 12, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 2, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 13, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 2, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 14, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 2, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 15, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 2, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 16, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 2, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 17, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 2, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 18, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 2, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 19, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 3, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 4, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 3, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 5, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 3, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 6, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 3, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 7, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 3, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 8, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 3, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 9, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 3, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 10, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 3, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 11, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 3, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 12, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 3, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 13, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 3, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 14, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 3, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 15, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 3, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 16, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 3, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 17, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 3, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 18, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 3, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 19, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 4, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 8, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 4, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 12, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 4, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 16, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 4, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 9, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 4, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 10, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 4, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 11, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 4, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 13, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 4, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 14, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 4, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 15, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 4, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 17, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 4, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 18, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 4, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 19, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 5, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 8, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 5, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 9, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 5, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 10, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 5, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 11, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 5, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 12, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 5, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 13, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 5, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 14, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 5, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 15, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 5, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 16, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 5, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 17, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 5, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 18, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 5, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 19, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 6, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 8, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 6, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 9, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 6, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 10, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 6, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 11, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 6, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 12, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 6, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 13, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 6, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 14, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 6, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 15, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 6, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 16, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 6, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 17, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 6, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 18, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 6, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 19, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 7, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 8, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 7, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 9, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 7, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 10, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 7, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 11, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 7, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 12, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 7, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 13, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 7, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 14, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 7, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 15, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 7, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 16, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 7, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 17, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 7, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 18, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 7, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 19, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 8, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 12, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 8, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 16, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 8, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 13, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 8, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 14, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 8, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 15, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 8, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 17, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 8, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 18, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 8, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 19, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 9, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 12, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 9, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 13, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 9, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 14, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 9, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 15, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 9, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 16, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 9, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 17, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 9, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 18, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 9, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 19, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 10, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 12, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 10, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 13, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 10, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 14, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 10, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 15, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 10, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 16, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 10, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 17, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 10, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 18, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 10, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 19, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 11, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 12, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 11, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 13, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 11, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 14, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 11, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 15, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 11, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 16, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 11, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 17, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 11, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 18, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 11, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 19, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 12, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 16, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 12, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 17, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 12, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 18, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 12, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 19, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 13, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 16, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 13, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 17, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 13, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 18, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 13, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 19, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 14, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 16, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 14, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 17, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 14, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 18, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 14, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 19, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 15, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 16, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 15, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 17, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 15, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 18, 
+      "latency": [
+        60, 
+        15
+      ]
+    }, 
+    {
+      "source": 15, 
+      "connection": "normal", 
+      "area": "wide", 
+      "target": 19, 
+      "latency": [
+        60, 
+        15
+      ]
+    }
+  ]
 }

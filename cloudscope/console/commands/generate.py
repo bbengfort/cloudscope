@@ -106,7 +106,7 @@ class GenerateCommand(Command):
         },
         '--latency': {
             'type': csv(int),
-            'default': (5,3000,1200),
+            'default': (30,3000,None),
             'metavar': 'min,max,width',
             'help': 'specify the latency range in experiments',
         },

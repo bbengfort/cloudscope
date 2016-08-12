@@ -46,7 +46,7 @@ def spread(n, start, stop, width=None):
     if width is None:
         width = stop / n
 
-    gap = (stop / n) - width
+    gap = ((stop - start)/ n) - width
 
     for idx in xrange(n):
         yield [start, start + width]
@@ -242,9 +242,9 @@ class LatencyVariation(ExperimentGenerator):
         """
         defaults = nested_update({
             'latency': {
-                'minimum': 5,
-                'maximum': 3000,
-                'max_range': 1200,
+                'minimum': 30,
+                'maximum': 1000,
+                'max_range': None,
             }
         }, options)
 
@@ -260,9 +260,9 @@ class LatencyVariation(ExperimentGenerator):
         mrng  = self.options['latency']['max_range']
 
         # Width specifies how to spread mean latencies and also the stddev
-        width  = min(mrng, (high / n))
+        #width  = min(mrng, ((high - low)/ n))
 
-        for latency in spread(n, low, high, width):
+        for latency in spread(n, low, high, mrng):
             mean = int(sum(map(float, latency)) / len(latency))
             stddev = (float(latency[1] - mean) / 2.5)
             yield {
