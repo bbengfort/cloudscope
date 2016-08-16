@@ -42,7 +42,6 @@ class Consistency(Enum):
     TAG      = "tag"       # Specifically a tag consensus group
 
 
-
 class Location(Enum):
     """
     Defines the location types in a personal cloud.
@@ -79,6 +78,7 @@ class Device(Enum):
     PHONE   = "smartphone"
     BACKUP  = "backup"
 
+
 class State(Enum):
     """
     Defines the various states that replicas can be in.
@@ -96,6 +96,15 @@ class State(Enum):
     TAGGING   = 6 # Tag consensus
     LEADER    = 7 # Raft leadership
     OWNER     = 8 # Tag ownership
+
+
+class ReadPolicy(Enum):
+    """
+    Defines the types of read policies allowed by replicas.
+    """
+
+    LATEST = "latest"
+    COMMIT = "commit"
 
 
 ##########################################################################

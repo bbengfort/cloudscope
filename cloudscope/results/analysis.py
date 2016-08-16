@@ -83,8 +83,13 @@ class TimeSeriesAggregator(object):
 
         Returns the total number of sent messages
         """
+        mtypes = Counter()
+        for val in values:
+            mtypes[val[3]] += 1
+
         return {
             label: len(values),
+            "message types": dict(mtypes),
         }
 
     def handle_recv(self, label, values):
@@ -93,16 +98,11 @@ class TimeSeriesAggregator(object):
 
             (target, source, recv at, message type, delay)
 
-        Returns the number of sent messages and the average dleay
+        Returns the number of received messages and the average dleay
         """
-        mtypes = Counter()
-        for val in values:
-            mtypes[val[3]] += 1
-
         return {
             label: len(values),
             "mean message latency (ms)": mean(v[4] for v in values),
-            "message types": dict(mtypes),
         }
 
     def handle_read(self, label, values):
@@ -320,6 +320,10 @@ def create_per_replica_dataframe(results):
             row.update(aggregator(key, values))
 
         # Add in topology information
+        for node in topology['nodes']:
+            if node['id'] == replica:
+                row.update(node)
+                break
 
         # Help with missing keys
 

@@ -20,7 +20,7 @@ Implements strong consistency using Raft consensus.
 from cloudscope.config import settings
 from cloudscope.simulation.timer import Timer
 from cloudscope.replica.store import Version
-from cloudscope.replica import Consistency, State
+from cloudscope.replica import Consistency, State, ReadPolicy
 from cloudscope.exceptions import RaftRPCException, SimulationException
 from cloudscope.replica.store import MultiObjectWriteLog
 
@@ -37,6 +37,10 @@ from collections import namedtuple
 ## Timers and timing
 HEARTBEAT_INTERVAL = settings.simulation.heartbeat_interval
 ELECTION_TIMEOUT   = settings.simulation.election_timeout
+
+# Other Settings/Policies
+READ_POLICY        = settings.simulation.read_policy
+AGGREGATE_WRITES   = settings.simulation.aggregate_writes
 
 ## RPC Messages
 AppendEntries = namedtuple('AppendEntries', 'term, leaderId, prevLogIndex, prevLogTerm, entries, leaderCommit')
@@ -61,6 +65,11 @@ class RaftReplica(ConsensusReplica):
         self.currentTerm = 0
         self.votedFor    = None
         self.log         = MultiObjectWriteLog()
+        self.cache       = {}
+
+        ## Policies
+        self.read_policy = ReadPolicy.get(kwargs.get('read_policy', READ_POLICY))
+        self.aggregate_writes = kwargs.get('aggregate_writes', AGGREGATE_WRITES)
 
         ## Timers for work
         eto = kwargs.get('election_timeout', ELECTION_TIMEOUT)
@@ -108,9 +117,10 @@ class RaftReplica(ConsensusReplica):
         # Record the number of attempts for the access
         if access.is_local_to(self): access.attempts += 1
 
-        # Fetch the most recent commit from the log.
-        # This is the key difference between eventual if you're looking for it.
-        version = self.log.get_latest_commit(access.name)
+        # NOTE: Formerly, this was ALWAYS read commit not read latest, now
+        # it is set by the read policy on the replica. We previously noted that
+        # read committed was one of the key differences from eventual.
+        version = self.read_via_policy(access.name)
 
         # If the version is None, that we haven't read anything!
         if version is None: return access.drop(empty=True)
@@ -132,11 +142,13 @@ class RaftReplica(ConsensusReplica):
         If the write is local:
         - create a new version from the latest write.
         - if follower: send a RemoteWrite with new version to the leader (write latency)
+                store a cache copy so that followers can read their own writes.
+                cached copy of the write goes away on AppendEntries.
         - if leader: append to log and complete (no leader latency)
 
         If the write is remote:
         - if follower: log warning and forward to leader
-        - if remote: append to log but do not complete (complete at local)
+        - if leader: append to log but do not complete (complete at local)
 
         Check the committed vs. latest new versions.
 
@@ -152,8 +164,9 @@ class RaftReplica(ConsensusReplica):
             # Record the number of attempts for the access
             access.attempts += 1
 
-            # Fetch the latest version from the log
-            latest = self.log.get_latest_version(access.name)
+            # Fetch the version from the log or the cache according to the
+            # read policy. This implements READ COMMITTED/READ LATEST
+            latest = self.read_via_policy(access.name)
 
             # Perform the write
             if latest is None:
@@ -173,6 +186,8 @@ class RaftReplica(ConsensusReplica):
                 access.complete()
 
             else:
+                # Store the version in the cache and send remote write.
+                self.cache[access.name] = version
                 return self.send_remote_write(access)
 
         else:
@@ -208,7 +223,7 @@ class RaftReplica(ConsensusReplica):
 
         # Now do AppendEntries
         # Also interrupt the heartbeat since we just sent AppendEntries
-        if not settings.simulation.aggregate_writes:
+        if not self.aggregate_writes:
             self.send_append_entries()
             self.heartbeat.stop()
 
@@ -304,6 +319,37 @@ class RaftReplica(ConsensusReplica):
             return None
         else:
             return leaders[0]
+
+    def read_via_policy(self, name):
+        """
+        This method returns a version from either the log or the cache
+        according to the read policy set on the replica server as follows:
+
+            - COMMIT: return the latest commited version (ignoring cache)
+            - LATEST: return latest version in log or in cache
+
+        This method raises an exception on bad read policies.
+        """
+
+        # If the policy is read committed, return the latest committed version
+        if self.read_policy == ReadPolicy.COMMIT:
+            return self.log.get_latest_commit(name)
+
+        # If the policy is latest, read the latest and compare to cache.
+        if self.read_policy == ReadPolicy.LATEST:
+            # Get the latest version from the log (committed or not)
+            version = self.log.get_latest_version(name)
+
+            # If name in the cache and the cache version is greater, return it.
+            if name in self.cache:
+                if self.cache[name] > version:
+                    return self.cache[name]
+
+            # Return the latest version
+            return version
+
+        # If we've reached this point, we don't know what to do!
+        raise SimulationException("Unknown read policy!")
 
     ######################################################################
     ## Event Handlers
@@ -523,7 +569,9 @@ class RaftReplica(ConsensusReplica):
 
             else:
                 # Decrement next index and retry append entries
-                self.nextIndex[msg.source] -= 1
+                # Ensure to floor the nextIndex to 1 (the start of the log).
+                nidx = self.nextIndex[msg.source] - 1
+                self.nextIndex[msg.source] = max(nidx, 1)
                 self.send_append_entries(msg.source)
 
             # Decide if we can commit the entry

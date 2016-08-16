@@ -117,12 +117,12 @@ class SimulationConfiguration(Configuration):
     ]
 
     conflict_prob   = 0.0     # probability of object overlap and potential access conflict
-    move_prob       = 0.2     # probability of moving locations
-    switch_prob     = 0.3     # probability of switching devices
     object_prob     = 0.3     # probability of switching the currently accessed object
     access_mean     = 1800    # mean delay between accesses (milliseconds)
     access_stddev   = 512     # stddev of delay between accesses (milliseconds)
     read_prob       = 0.6     # probability of read access (write is 1-read_prob)
+    move_prob       = 0.2     # probability of moving locations (mobile workload)
+    switch_prob     = 0.3     # probability of switching devices (mobile workload)
 
     # Outage Parameters
     outage_prob      = 0.0    # per-link probability of an outage
@@ -136,14 +136,15 @@ class SimulationConfiguration(Configuration):
     integration     = "default"
 
     # Eventual Parameters
-    anti_entropy_delay = 600  # delay in milliseconds (20x per minute)
+    anti_entropy_delay = 600  # delay in milliseconds (100x per minute)
     do_gossip   = True        # perform gossip protocol
     do_rumoring = False       # perform rumor mongering
 
     # Raft Parameters
-    election_timeout   = [150, 300]
-    heartbeat_interval = 75     # Usually half the minimum election timeout
-    aggregate_writes   = False  # Don't send writes until heartbeat.
+    election_timeout   = [150, 300] # Usually related to a tick parameter T
+    heartbeat_interval = 75         # Usually half the minimum election timeout.
+    aggregate_writes   = False      # Don't send writes until heartbeat.
+    read_policy        = "latest"   # Policy for followers reading from logs (latest or commit)
 
     # Tag Parameters
     session_timeout    = 4096 # Related to the mean delay between accesses
