@@ -21,6 +21,7 @@ import random
 
 from cloudscope.config import settings
 from cloudscope.replica import Consistency
+from cloudscope.replica.eventual import Gossip
 from cloudscope.replica.eventual import EventualReplica
 
 
@@ -89,3 +90,57 @@ class FederatedEventualReplica(EventualReplica):
         # If we have wide area nodes, choose one of them
         if neighbors: return random.choice(neighbors)
         return random.choice(self.neighbors())
+
+
+##########################################################################
+## Stentor Eventual Replica
+##########################################################################
+
+class StentorEventualReplica(EventualReplica):
+    """
+    Stentor replicas perform anti-entropy twice - one in the local area and
+    one in the wide area for each anti-entropy round.
+    """
+
+    def gossip(self):
+        """
+        Pairwise gossip protocol by randomly selecting neighbors and
+        exchanging information about the state of the latest objects in the
+        cache since the last anti-entropy delay.
+
+        This method allows for multiple anti-entropy neighbors.
+        """
+        # If gossiping is not allowed, forget about it.
+        if not self.do_gossip:
+            return
+
+        # Select neighbors to perform anti-entropy with
+        for target in self.get_anti_entropy_neighbor():
+            # Perform pairwise gossiping for every object in the cache.
+            self.send(target, Gossip(tuple(self.cache.values()), len(self.cache)))
+
+        # Empty the cache on gossip.
+        self.cache = {}
+
+    def get_anti_entropy_neighbor(self):
+        """
+        Selects a neighbor to perform anti-entropy with.
+        """
+
+        # Choose a neighbor in the local area to gossip with.
+        neighbors = [
+            node for node in self.neighbors()
+            if node.location == self.location
+        ]
+
+        # If we have local nodes, choose one of them
+        if neighbors: yield random.choice(neighbors)
+
+        # Choose a neighbor in the wide area to gossip with.
+        neighbors = [
+            node for node in self.neighbors()
+            if node.location != self.location
+        ]
+
+        # If we have wide nodes, choose one of them
+        if neighbors: yield random.choice(neighbors)
