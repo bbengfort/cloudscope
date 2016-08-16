@@ -37,6 +37,7 @@ class Consistency(Enum):
     STRONG   = "strong"    # In this case refers to Raft
     CAUSAL   = "causal"    # No implementation yet
     EVENTUAL = "eventual"  # By default, anti-entropy with last update wins
+    STENTOR  = "stentor"   # Eventual with double the anti-entropy voice
     RAFT     = "raft"      # Specifically a Raft consensus group
     TAG      = "tag"       # Specifically a tag consensus group
 

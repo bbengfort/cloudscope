@@ -17,5 +17,6 @@ Replicas that implement federated consistency rather than homogenous.
 ## Imports
 ##########################################################################
 
+from .eventual import StentorEventualReplica
 from .eventual import FederatedEventualReplica
 from .sequential import FederatedRaftReplica

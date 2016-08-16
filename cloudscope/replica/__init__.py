@@ -27,6 +27,7 @@ from .consensus import TieredRaftReplica
 from .eventual import EventualReplica
 from .federated import FederatedRaftReplica
 from .federated import FederatedEventualReplica
+from .federated import StentorEventualReplica
 
 from cloudscope.config import settings
 from cloudscope.exceptions import ImproperlyConfigured
@@ -40,6 +41,7 @@ ReplicaTypes = {
     'default': {
         Consistency.STRONG: RaftReplica,
         Consistency.EVENTUAL: EventualReplica,
+        Consistency.STENTOR: StentorEventualReplica,
         Consistency.TAG: TagReplica,
         Consistency.RAFT: RaftReplica,
     },
@@ -55,6 +57,7 @@ ReplicaTypes = {
     'federated': {
         Consistency.STRONG: FederatedRaftReplica,
         Consistency.EVENTUAL: FederatedEventualReplica,
+        Consistency.STENTOR: StentorEventualReplica,
     },
 }
 
