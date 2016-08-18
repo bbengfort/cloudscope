@@ -151,7 +151,7 @@
       1200
     ],
     "latency_stddev": 15,
-    "hearbeat_interval": 300,
+    "heartbeat_interval": 300,
     "latency_mean": 60,
     "seed": null,
     "tick_param_model": "bailis",
