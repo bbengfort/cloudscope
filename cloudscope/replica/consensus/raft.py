@@ -341,7 +341,7 @@ class RaftReplica(ConsensusReplica):
             version = self.log.get_latest_version(name)
 
             # If name in the cache and the cache version is greater, return it.
-            if name in self.cache:
+            if name in self.cache and version is not None:
                 if self.cache[name] > version:
                     return self.cache[name]
 

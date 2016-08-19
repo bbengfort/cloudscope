@@ -157,6 +157,9 @@ class EventualReplica(Replica):
 
         # Determine if the write is local or remote
         if access.is_local_to(self):
+            # Ignore any accesses that we have already completed
+            if access.is_completed(): return access
+
             # Record the number of attempts for the access
             access.attempts += 1
 

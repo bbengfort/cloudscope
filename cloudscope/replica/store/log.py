@@ -186,7 +186,7 @@ class MultiObjectWriteLog(WriteLog):
         searched for from the reverse of the list.
         """
         for idx in xrange(self.lastApplied, -1, -1):
-            # Note that we have to use is for identity checking. 
+            # Note that we have to use is for identity checking.
             if self[idx].version is ancestor:
                 self.insert(idx, version, term)
                 break
@@ -204,6 +204,22 @@ class MultiObjectWriteLog(WriteLog):
 
         # Return the null object if search comes up empty
         return self[0]
+
+    def since(self, version, start=None):
+        """
+        Returns all versions for that name since the specified version.
+        """
+        start = start or self.lastApplied
+        for idx in xrange(start, -1, -1):
+            entry = self[idx]
+            if entry.version is version:
+                return [
+                    entry.version for entry in self.log[idx+1:]
+                    if entry.version.name == version.name
+                ]
+
+        # Didn't find anything so return empty list
+        return []
 
     def get_latest_version(self, name):
         """
