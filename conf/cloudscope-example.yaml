@@ -86,15 +86,17 @@ simulation:
     integration: default
 
     # Eventual Parameters
-    anti_entropy_delay: 600         # delay in milliseconds (100x per minute)
-    do_gossip: true                 # perform gossip protocol
-    do_rumoring: true               # perform rumor mongering
+    anti_entropy_delay: 600       # delay in milliseconds (100x per minute)
+    ttl_cache_expires: 10         # number of anti-entropy sessions until an item is removed from the cache
+    num_neighbors: 2              # the number of neighbors to push to during anti-entropy session.
+    do_gossip: true               # perform gossip protocol (deprecated)
+    do_rumoring: false            # perform rumor mongering (deprecated)
 
     # Raft Parameters
-    election_timeout: [150, 300]    # Range to randomly select the election timeout
-    heartbeat_interval: 75          # Usually half the minimum election timeout
-    aggregate_writes: False         # Don't send writes until heartbeat.
-    read_policy: latest             # Policy for followers reading from logs (latest or commit).
+    election_timeout: [150, 300]  # Range to randomly select the election timeout
+    heartbeat_interval: 75        # Usually half the minimum election timeout
+    aggregate_writes: False       # Don't send writes until heartbeat.
+    read_policy: latest           # Policy for followers reading from logs (latest or commit).
 
     # Tag Parameters
     session_timeout: 4096           # Related to the mean delay between accesses

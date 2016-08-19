@@ -68,6 +68,14 @@ class WriteLog(object):
         """
         return self.log[self.commitIndex].version
 
+    def insert(self,index, version, term):
+        """
+        Inserts a version at the specified index and increments last Applied.
+        Technically, we really shouldn't be inserting anything into logs!
+        """
+        self.log.insert(index, LogEntry(version, term))
+        self.lastApplied += 1
+
     def append(self, version, term):
         """
         Appends a version and a term to the log.
@@ -171,6 +179,17 @@ class MultiObjectWriteLog(WriteLog):
         """
         self.namespace.add(version.name)
         super(MultiObjectWriteLog, self).append(version, term)
+
+    def insert_before(self, ancestor, version, term):
+        """
+        Inserts the version and term to the log before the ancestor, which is
+        searched for from the reverse of the list.
+        """
+        for idx in xrange(self.lastApplied, -1, -1):
+            # Note that we have to use is for identity checking. 
+            if self[idx].version is ancestor:
+                self.insert(idx, version, term)
+                break
 
     def search(self, name, start=None):
         """

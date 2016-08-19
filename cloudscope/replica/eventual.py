@@ -64,6 +64,10 @@ from collections import namedtuple
 
 ## Fetch simulation settings from defaults
 AE_DELAY    = settings.simulation.anti_entropy_delay
+CACHE_TTL   = settings.simulation.ttl_cache_expires
+NEIGHBORS   = settings.simulation.num_neighbors
+
+# Deprecated
 DO_GOSSIP   = settings.simulation.do_gossip
 DO_RUMORING = settings.simulation.do_rumoring
 
@@ -83,12 +87,17 @@ class EventualReplica(Replica):
 
         # Eventually consistent settings
         self.ae_delay    = kwargs.get('anti_entropy_delay', AE_DELAY)
+        self.cache_ttl   = kwargs.get('ttl_cache_expires', CACHE_TTL)
+        self.n_neighbors = kwargs.get('num_neighbors', NEIGHBORS)
+
+        # Deprecated
         self.do_gossip   = kwargs.get('do_gossip', DO_GOSSIP)
         self.do_rumoring = kwargs.get('do_rumoring', DO_RUMORING)
 
         self.log         = MultiObjectWriteLog() # the write log of the replica
         self.timeout     = None                  # anti entropy timer
-        self.cache       = {}                    # cache to gossip on ae
+        self.cache       = defaultdict(int)      # cache to gossip on ae push
+        self.latest      = dict()                # latest objects cache
 
     ######################################################################
     ## Properties
@@ -111,7 +120,7 @@ class EventualReplica(Replica):
         if access.is_local_to(self): access.attempts += 1
 
         # Fetch the latest version from the log
-        version = self.log.get_latest_version(access.name)
+        version = self.latest.get(access.name, None)
 
         # If version is None then we haven't read anything; bail!
         if version is None: return access.drop(empty=True)
@@ -152,7 +161,7 @@ class EventualReplica(Replica):
             access.attempts += 1
 
             # Fetch the latest version from the log
-            latest  = self.log.get_latest_version(access.name)
+            latest  = self.latest.get(access.name, None)
 
             # Perform the write
             if latest is None:
@@ -173,23 +182,23 @@ class EventualReplica(Replica):
 
             # Save the version variable for use below
             version = access.version
-            current = self.log.get_latest_version(access.name)
 
-            # Ensure that the version is the latest.
-            if current is not None and version <= current:
-                raise AccessError(
-                    "Attempting unordered write of {} after write of {}".format(version, current)
-                )
 
         # At this point we've dealt with local vs. remote
         # Append the latest version to the local data store
+        # NOTE: this could append out of order writes as well as duplicates.
         self.log.append(version, version.version)
 
         # Update the version to track visibility latency
         version.update(self)
 
+        # Keep our latest objects cache up to date.
+        current = self.latest.get(access.name, None)
+        if current is None or version > current:
+            self.latest[access.name] = version
+
         # Cache the latest access to this object for anti-entropy
-        self.cache[access.name] = access
+        if access not in self.cache: self.cache[access] = 1
         self.rumor() # Rumor the access on demand
 
         # Log the access from this particular replica.
@@ -220,14 +229,19 @@ class EventualReplica(Replica):
         if not self.do_gossip:
             return
 
-        # Randomly select a neighbor that also has eventual consistency.
-        target = self.get_anti_entropy_neighbor()
+        # Perform pairwise anti-entropy sessions with n_neighbors
+        for target in self.get_anti_entropy_neighbors():
+            # Send the entries sorted in version order.
+            entries = sorted(self.cache.keys(), key=lambda a: a.version)
+            gossip  = Gossip(tuple(entries), len(entries))
+            self.send(target, gossip)
 
-        # Perform pairwise gossiping for every object in the cache.
-        self.send(target, Gossip(tuple(self.cache.values()), len(self.cache)))
-
-        # Empty the cache on gossip.
-        self.cache = {}
+        # Increment the TTL for every item in the cache and
+        # empty the cache of any access whose TTL has expired.
+        for key in self.cache.keys():
+            self.cache[key] += 1
+            if self.cache[key] > self.cache_ttl:
+                del self.cache[key]
 
     def rumor(self):
         """
@@ -249,11 +263,19 @@ class EventualReplica(Replica):
         self.timeout = Timer(self.env, self.ae_delay, self.gossip)
         return self.timeout.start()
 
-    def get_anti_entropy_neighbor(self):
+    def select_anti_entropy_neighbor(self):
         """
-        Selects a neighbor to perform anti-entropy with.
+        Implements the anti-entropy neighbor selection policy. By default this
+        is simply uniform random selection of all the eventual neighbors.
         """
         return random.choice(self.neighbors(self.consistency))
+
+    def get_anti_entropy_neighbors(self):
+        """
+        Selects the neighbors to perform anti-entropy with.
+        """
+        for _ in xrange(self.n_neighbors):
+            yield self.select_anti_entropy_neighbor()
 
     ######################################################################
     ## Event Handlers
@@ -266,25 +288,38 @@ class EventualReplica(Replica):
         versions, replying False only if there is an error or a conflict.
         """
         entries = message.value.entries
-        updates = []
-        objects = set(entry.name for entry in entries)
 
         # Go through the entries from the RPC and update log
         for access in entries:
-            current = self.log.get_latest_version(access.name)
+            current = self.latest.get(access.name, None)
+
+            # If the access is greater than our current version, write it!
+            # Note this will add the access to our cache for propagation!
             if current is None or access.version > current:
                 self.write(access)
+                continue
 
-            elif access.version < current:
-                updates.append(current.access)
+            # Have we seen this version recently, or at least within the TTL?
+            if access.version < current and access not in self.cache:
+                # So this version is not in our cache, and is less than our
+                # current version, so potentially it was a historical write
+                # that we missed (or a duplication), but still append to log.
+                # NOTE: write now maintains the latest object cache.
+                # NOTE: we used to update latest value, but it could be history.
+                self.write(access)
+                continue
 
             else:
+                # If the access is in our cache and and less than or equal to
+                # our current version, then we know it's already in the log
+                # and that we don't have to do anything.
                 continue
 
         # Send back anything in local cache that wasn't received
-        for key, access in self.cache.items():
-            if key not in objects:
-                updates.append(access)
+        updates = sorted([
+            access for access in self.cache.keys()
+            if access not in entries
+        ], key=lambda a: a.version)
 
         # Success here just means whether or not we're responding with updates
         success = True if updates else False
@@ -295,10 +330,22 @@ class EventualReplica(Replica):
     def on_gossip_response_rpc(self, message):
         """
         Handles the response to pairwise gossiping, updating entries from the
-        responder to your gossip with the latest news.
+        responder's cache to the local log and latest version cache.
         """
+        entries = message.value.entries
 
-        for access in message.value.entries:
-            current = self.log.get_latest_version(access.name)
+        for access in entries:
+            current = self.latest.get(access.name, None)
+
+            # This is a new version or a later version than our current.
             if current is None or access.version > current:
                 self.write(access)
+
+            # This is a historical version but not in our cache.
+            # NOTE: This could add duplication and misordering
+            elif access.version < current and access not in self.cache:
+                self.write(access)
+
+            # Otherwise version numbers are equal or the access is in the cache.
+            else:
+                continue

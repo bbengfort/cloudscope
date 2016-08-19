@@ -47,7 +47,7 @@ class FederatedEventualReplica(EventualReplica):
         self.sync_prob    = kwargs.get('anti_entropy_delay', SYNC_PROB)
         self.local_prob   = kwargs.get('do_gossip', LOCAL_PROB)
 
-    def get_anti_entropy_neighbor(self):
+    def select_anti_entropy_neighbor(self):
         """
         Selects a neighbor to perform anti-entropy with, prioritizes local
         neighbors over remote ones and also actively selects the sequential
@@ -122,7 +122,7 @@ class StentorEventualReplica(EventualReplica):
         # Empty the cache on gossip.
         self.cache = {}
 
-    def get_anti_entropy_neighbor(self):
+    def get_anti_entropy_neighbors(self):
         """
         Selects a neighbor to perform anti-entropy with.
         """
