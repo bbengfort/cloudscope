@@ -235,9 +235,13 @@ class MultiObjectWriteLog(WriteLog):
         entry = self.search(name, self.commitIndex)
         return entry.version
 
-    def items(self):
+    def items(self, committed=True):
         """
-        Returns an iterable of object names and their latest commit versions.
+        Returns an iterable of object names and their latest commit versions
+        unless committed is False, then returns their latest versions.
         """
         for name in self.namespace:
-            yield name, self.get_latest_commit(name)
+            if committed:
+                yield name, self.get_latest_commit(name)
+            else:
+                yield name, self.get_latest_version(name)

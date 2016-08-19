@@ -87,8 +87,7 @@ simulation:
 
     # Eventual Parameters
     anti_entropy_delay: 600       # delay in milliseconds (100x per minute)
-    ttl_cache_expires: 10         # number of anti-entropy sessions until an item is removed from the cache
-    num_neighbors: 2              # the number of neighbors to push to during anti-entropy session.
+    num_neighbors: 1              # the number of neighbors to push to during anti-entropy session.
     do_gossip: true               # perform gossip protocol (deprecated)
     do_rumoring: false            # perform rumor mongering (deprecated)
 

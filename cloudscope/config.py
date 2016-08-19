@@ -137,10 +137,9 @@ class SimulationConfiguration(Configuration):
 
     # Eventual Parameters
     anti_entropy_delay = 600  # delay in milliseconds (100x per minute)
-    ttl_cache_expires  = 10   # number of anti-entropy sessions until an item is removed from the cache
-    num_neighbors      = 2    # the number of neighbors to push to during anti-entropy session.
-    do_gossip   = True        # perform gossip protocol (deprecated)
-    do_rumoring = False       # perform rumor mongering (deprecated)
+    num_neighbors = 1         # the number of neighbors to push to during anti-entropy session.
+    do_gossip     = True      # perform gossip protocol (deprecated)
+    do_rumoring   = False     # perform rumor mongering (deprecated)
 
     # Raft Parameters
     election_timeout   = [150, 300] # Usually related to a tick parameter T
