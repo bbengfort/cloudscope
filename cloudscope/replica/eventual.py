@@ -64,7 +64,6 @@ from collections import namedtuple
 
 ## Fetch simulation settings from defaults
 AE_DELAY    = settings.simulation.anti_entropy_delay
-CACHE_TTL   = settings.simulation.ttl_cache_expires
 NEIGHBORS   = settings.simulation.num_neighbors
 
 # Deprecated
@@ -74,7 +73,8 @@ DO_RUMORING = settings.simulation.do_rumoring
 ## RPC Message Definition
 Gossip   = namedtuple('Gossip', 'entries, length')
 GossipResponse = namedtuple('GossipResponse', 'entries, length, success')
-
+Rumor    = namedtuple('Rumor', 'access')
+RumorResponse  = namedtuple('RumorResponse', 'access, success')
 
 ##########################################################################
 ## Eventual Replica
@@ -87,7 +87,6 @@ class EventualReplica(Replica):
 
         # Eventually consistent settings
         self.ae_delay    = kwargs.get('anti_entropy_delay', AE_DELAY)
-        self.cache_ttl   = kwargs.get('ttl_cache_expires', CACHE_TTL)
         self.n_neighbors = kwargs.get('num_neighbors', NEIGHBORS)
 
         # Deprecated
@@ -96,8 +95,6 @@ class EventualReplica(Replica):
 
         self.log         = MultiObjectWriteLog() # the write log of the replica
         self.timeout     = None                  # anti entropy timer
-        self.cache       = defaultdict(int)      # cache to gossip on ae push
-        self.latest      = dict()                # latest objects cache
 
     ######################################################################
     ## Properties
@@ -120,7 +117,7 @@ class EventualReplica(Replica):
         if access.is_local_to(self): access.attempts += 1
 
         # Fetch the latest version from the log
-        version = self.latest.get(access.name, None)
+        version = self.log.get_latest_version(access.name)
 
         # If version is None then we haven't read anything; bail!
         if version is None: return access.drop(empty=True)
@@ -157,14 +154,11 @@ class EventualReplica(Replica):
 
         # Determine if the write is local or remote
         if access.is_local_to(self):
-            # Ignore any accesses that we have already completed
-            if access.is_completed(): return access
-
             # Record the number of attempts for the access
             access.attempts += 1
 
             # Fetch the latest version from the log
-            latest  = self.latest.get(access.name, None)
+            latest  = self.log.get_latest_version(access.name)
 
             # Perform the write
             if latest is None:
@@ -185,28 +179,24 @@ class EventualReplica(Replica):
 
             # Save the version variable for use below
             version = access.version
+            current = self.log.get_latest_version(access.name)
 
+            # Ensure that the version is the latest.
+            if current is not None and version <= current:
+                raise AccessError(
+                    "Attempting unordered write of {} after write of {}".format(version, current)
+                )
 
         # At this point we've dealt with local vs. remote
         # Append the latest version to the local data store
-        # NOTE: this could append out of order writes as well as duplicates.
         self.log.append(version, version.version)
 
-        # Update the version to track visibility latency
-        version.update(self)
+        # Handle the access according to eventual rules
+        version.update(self) # Update the version to track visibility latency
+        access.log(self)     # Log the access from this particular replica.
+        self.rumor(access)   # Rumor the access on demand
 
-        # Keep our latest objects cache up to date.
-        current = self.latest.get(access.name, None)
-        if current is None or version > current:
-            self.latest[access.name] = version
-
-        # Cache the latest access to this object for anti-entropy
-        if access not in self.cache: self.cache[access] = 1
-        self.rumor() # Rumor the access on demand
-
-        # Log the access from this particular replica.
-        access.log(self)
-
+        # Return the access for subclass access.
         return access
 
     def run(self):
@@ -234,19 +224,15 @@ class EventualReplica(Replica):
 
         # Perform pairwise anti-entropy sessions with n_neighbors
         for target in self.get_anti_entropy_neighbors():
-            # Send the entries sorted in version order.
-            entries = sorted(self.cache.keys(), key=lambda a: a.version)
+            # Send the latest version of ALL objects.
+            entries = [
+                self.log.get_latest_version(name).access
+                for name in self.log.namespace
+            ]
             gossip  = Gossip(tuple(entries), len(entries))
             self.send(target, gossip)
 
-        # Increment the TTL for every item in the cache and
-        # empty the cache of any access whose TTL has expired.
-        for key in self.cache.keys():
-            self.cache[key] += 1
-            if self.cache[key] > self.cache_ttl:
-                del self.cache[key]
-
-    def rumor(self):
+    def rumor(self, access):
         """
         Performs on access rumor mongering
         """
@@ -254,9 +240,10 @@ class EventualReplica(Replica):
         if not self.do_rumoring:
             return
 
-        raise NotImplementedError(
-            "Rumor mongering is not currently implemented."
-        )
+        # Send the access to n other neighbors (excluding the origin)
+        for target in self.get_anti_entropy_neighbors():
+            rumor = Rumor(access)
+            self.send(target, rumor)
 
     def get_anti_entropy_timeout(self):
         """
@@ -291,43 +278,28 @@ class EventualReplica(Replica):
         versions, replying False only if there is an error or a conflict.
         """
         entries = message.value.entries
+        updates = []
 
         # Go through the entries from the RPC and update log
         for access in entries:
-            current = self.latest.get(access.name, None)
+            current = self.log.get_latest_version(access.name)
 
             # If the access is greater than our current version, write it!
-            # Note this will add the access to our cache for propagation!
             if current is None or access.version > current:
                 self.write(access)
-                continue
 
-            # Have we seen this version recently, or at least within the TTL?
-            if access.version < current and access not in self.cache:
-                # So this version is not in our cache, and is less than our
-                # current version, so potentially it was a historical write
-                # that we missed (or a duplication), but still append to log.
-                # NOTE: write now maintains the latest object cache.
-                # NOTE: we used to update latest value, but it could be history.
-                self.write(access)
-                continue
+            # Is the the remote behind us? If so, send the latest version!
+            elif access.version < current:
+                updates.append(current.access)
 
             else:
-                # If the access is in our cache and and less than or equal to
-                # our current version, then we know it's already in the log
-                # and that we don't have to do anything.
+                # Presumably the version are equal, so do nothing.
                 continue
-
-        # Send back anything in local cache that wasn't received
-        updates = sorted([
-            access for access in self.cache.keys()
-            if access not in entries
-        ], key=lambda a: a.version)
 
         # Success here just means whether or not we're responding with updates
         success = True if updates else False
 
-        # Respond to the sender
+        # Respond to the sender with the latest versions from our log
         self.send(message.source, GossipResponse(updates, len(updates), success))
 
     def on_gossip_response_rpc(self, message):
@@ -338,17 +310,47 @@ class EventualReplica(Replica):
         entries = message.value.entries
 
         for access in entries:
-            current = self.latest.get(access.name, None)
+            current = self.log.get_latest_version(access.name)
 
             # This is a new version or a later version than our current.
             if current is None or access.version > current:
                 self.write(access)
 
-            # This is a historical version but not in our cache.
-            # NOTE: This could add duplication and misordering
-            elif access.version < current and access not in self.cache:
-                self.write(access)
+    def on_rumor_rpc(self, message):
+        """
+        Handles the rumor message from the originator of the rumor.
+        """
+        access  = message.value.access
+        current = self.log.get_latest_version(access.name)
 
-            # Otherwise version numbers are equal or the access is in the cache.
-            else:
-                continue
+        # Is the rumored version later than our current?
+        if current is None or access.version > current:
+            # Write the access which will rumor it out again
+            self.write(access)
+
+            # Respond True to the origin of the rumor
+            response = RumorResponse(None, True)
+
+        elif access.version < current:
+            # Respond False to the origin with the later version
+            response = RumorResponse(current.access, False)
+
+        else:
+            # Simply acknowledge receipt
+            response = RumorResponse(None, True)
+
+        # Send the response back to the source
+        self.send(message.source, response)
+
+    def on_rumor_response_rpc(self, message):
+        """
+        Handles the rumor acknowledgment
+        """
+        response = message.value
+        if not response.success:
+            # This means that a later value has come in!
+            current = self.log.get_latest_version(response.access.name)
+
+            # If their response is later than our version, write it.
+            if current is None or response.access.version > current:
+                self.write(response.access)

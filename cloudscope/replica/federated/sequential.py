@@ -53,35 +53,27 @@ class FederatedRaftReplica(RaftReplica):
         """
         entries = message.value.entries
         updates = []
-        objects = set(entry.name for entry in entries)
 
         # Go through the entries from the RPC and update log
         for access in entries:
             current = self.log.get_latest_version(access.name)
 
-            # Only write iff the incoming write is later than the current.
+            # If the access is greater than our current version, write it!
             if current is None or access.version > current:
                 self.write(access)
 
-            # If the replica is behind, give it all updates up to that point.
-            # For that particular name space.
+            # Is the the remote behind us? If so, send the latest version!
             elif access.version < current:
-                for version in self.log.since(access.version):
-                    updates.append(version.access)
+                updates.append(current.access)
 
             else:
+                # Presumably the version are equal, so do nothing.
                 continue
-
-        # Send back anything in local cache that wasn't received,
-        # In this case, the latest version of every item in the log.
-        for key, version in self.log.items():
-            if key not in objects and version is not None:
-                updates.append(version.access)
 
         # Success here just means whether or not we're responding with updates
         success = True if updates else False
 
-        # Respond to the sender
+        # Respond to the sender with the latest versions from our log
         self.send(message.source, GossipResponse(updates, len(updates), success))
 
     def on_remote_write_rpc(self, message):
@@ -101,7 +93,6 @@ class FederatedRaftReplica(RaftReplica):
             self.sim.results.update(
                 'unforked writes', (access.version.parent.writer.id, self.env.now)
             )
-
 
         else:
             self.write(access)
