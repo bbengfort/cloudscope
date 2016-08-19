@@ -58,11 +58,16 @@ class FederatedRaftReplica(RaftReplica):
         # Go through the entries from the RPC and update log
         for access in entries:
             current = self.log.get_latest_version(access.name)
+
+            # Only write iff the incoming write is later than the current.
             if current is None or access.version > current:
                 self.write(access)
 
+            # If the replica is behind, give it all updates up to that point.
+            # For that particular name space.
             elif access.version < current:
-                updates.append(current.access)
+                for version in self.log.since(access.version):
+                    updates.append(version.access)
 
             else:
                 continue

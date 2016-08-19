@@ -348,25 +348,55 @@ class Replica(Node):
         handler = getattr(self, handler)
         return handler(message)
 
-    def neighbors(self, consistency=None):
+    def neighbors(self, consistency=None, location=None, exclude=False):
         """
-        Returns all nodes in the network with the specified consistency
-        level(s). By default, if None is passed in, this method returns the
-        neighbors who have the same consistency as the local.
+        Returns all nodes that are connected to the local node, filtering on
+        either consistency of location. If neither consistency nor location
+        are supplied, then this simply returns all of the neighboring nodes.
+
+        If exclude is False, this returns any node that has the specified
+        consistency or location. If exclude is True it returns any node that
+        doesn't have the specified consistency or location.
         """
-        # Get the default consistency level as shared with self
-        if consistency is None: consistency = self.consistency
+        neighbors = self.connections.keys()
 
-        # Convert a single consistenty level or a string into a collection
-        if isinstance(consistency, (Consistency, basestring)):
-            consistency = [Consistency.get(consistency)]
+        # Filter based on consistency level
+        if consistency is not None:
+            # Convert a single consistenty level or a string into a collection
+            if isinstance(consistency, (Consistency, basestring)):
+                consistency = [Consistency.get(consistency)]
+            else:
+                consistency = map(Consistency.get, consistency)
 
-        # Convert the consistencies into a set for lookup
-        consistency = set(consistency)
+            # Convert the consistencies into a set for lookup
+            consistency = frozenset(consistency)
 
-        # Filter connections in that consistency level
-        is_neighbor = lambda r: r.consistency in consistency
-        return filter(is_neighbor, self.connections)
+            # Filter connections in that consistency level
+            if exclude:
+                is_neighbor = lambda r: r.consistency not in consistency
+            else:
+                is_neighbor = lambda r: r.consistency in consistency
+
+            neighbors = filter(is_neighbor, neighbors)
+
+        # Filter based on location
+        if location is not None:
+            # Convert a single location into a collection
+            if isinstance(location, (Location, basestring)):
+                location = [location]
+
+            # Convert the locations into a set for lookup.
+            location = frozenset(location)
+
+            # Filter connections in that consistency level
+            if exclude:
+                is_neighbor = lambda r: r.location not in location
+            else:
+                is_neighbor = lambda r: r.location in location
+
+            neighbors = filter(is_neighbor, neighbors)
+
+        return neighbors
 
     ######################################################################
     ## Event Handlers

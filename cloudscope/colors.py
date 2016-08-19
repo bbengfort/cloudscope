@@ -29,8 +29,8 @@ from cloudscope.exceptions import BadValue
 
 FLATUI = ["#9b59b6", "#3498db", "#95a5a6", "#e74c3c", "#34495e", "#2ecc71"]
 PAIRED = [
-    "#a6cee3", "#1f78b4", "#b2df8a", "#33a02c", "#fb9a99", "#e31a1c",
     "#fdbf6f", "#ff7f00", "#cab2d6", "#6a3d9a", "#ffff99", "#b15928",
+    "#b2df8a", "#33a02c", "#fb9a99", "#e31a1c", "#a6cee3", "#1f78b4", 
 ]
 SET1   = [
     "#e41a1c", "#377eb8", "#4daf4a",

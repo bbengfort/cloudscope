@@ -23,6 +23,7 @@ from cloudscope.config import settings
 from cloudscope.replica import Consistency
 from cloudscope.replica.eventual import Gossip
 from cloudscope.replica.eventual import EventualReplica
+from cloudscope.exceptions import SimulationException
 
 
 ##########################################################################
@@ -47,7 +48,7 @@ class FederatedEventualReplica(EventualReplica):
         self.sync_prob    = kwargs.get('anti_entropy_delay', SYNC_PROB)
         self.local_prob   = kwargs.get('do_gossip', LOCAL_PROB)
 
-    def get_anti_entropy_neighbor(self):
+    def select_anti_entropy_neighbor(self):
         """
         Selects a neighbor to perform anti-entropy with, prioritizes local
         neighbors over remote ones and also actively selects the sequential
@@ -57,10 +58,9 @@ class FederatedEventualReplica(EventualReplica):
         if random.random() <= self.sync_prob:
 
             # Find a strong consensus node that is local
-            neighbors = [
-                node for node in self.neighbors(consistency=Consistency.STRONG)
-                if node.location == self.location
-            ]
+            neighbors = self.neighbors(
+                consistency=Consistency.STRONG, location=self.location
+            )
 
             # If we have local nodes, choose one of them
             if neighbors: return random.choice(neighbors)
@@ -72,23 +72,24 @@ class FederatedEventualReplica(EventualReplica):
         # Decide if we should do anti-entropy locally or across the wide area.
         if random.random() <= self.local_prob:
             # Find all local nodes with the same consistency.
-            neighbors = [
-                node for node in self.neighbors(consistency=self.consistency)
-                if node.location == self.location
-            ]
+            neighbors = self.neighbors(
+                consistency=[Consistency.EVENTUAL, Consistency.STENTOR],
+                location=self.location
+            )
 
             # If we have local nodes, choose one of them
             if neighbors: return random.choice(neighbors)
             return random.choice(self.neighbors())
 
-        # At this point return a wide area node
-        neighbors = [
-            node for node in self.neighbors(consistency=self.consistency)
-            if node.location != self.location
-        ]
+        # At this point return a wide area node that doesn't have strong consistency
+        neighbors = self.neighbors(
+            consistency=Consistency.STRONG, location=self.location, exclude=True
+        )
 
         # If we have wide area nodes, choose one of them
         if neighbors: return random.choice(neighbors)
+
+        # Last resort, simply choose any neighbor we possibly can!
         return random.choice(self.neighbors())
 
 
@@ -102,45 +103,28 @@ class StentorEventualReplica(EventualReplica):
     one in the wide area for each anti-entropy round.
     """
 
-    def gossip(self):
+    def select_anti_entropy_neighbor(self):
         """
-        Pairwise gossip protocol by randomly selecting neighbors and
-        exchanging information about the state of the latest objects in the
-        cache since the last anti-entropy delay.
-
-        This method allows for multiple anti-entropy neighbors.
+        This is a No-Op for this type of replica.
         """
-        # If gossiping is not allowed, forget about it.
-        if not self.do_gossip:
-            return
+        raise SimulationException(
+            "Stentor replicas do not have a single neighbor selection policy."
+        )
 
-        # Select neighbors to perform anti-entropy with
-        for target in self.get_anti_entropy_neighbor():
-            # Perform pairwise gossiping for every object in the cache.
-            self.send(target, Gossip(tuple(self.cache.values()), len(self.cache)))
 
-        # Empty the cache on gossip.
-        self.cache = {}
-
-    def get_anti_entropy_neighbor(self):
+    def get_anti_entropy_neighbors(self):
         """
         Selects a neighbor to perform anti-entropy with.
         """
 
         # Choose a neighbor in the local area to gossip with.
-        neighbors = [
-            node for node in self.neighbors()
-            if node.location == self.location
-        ]
+        neighbors = list(self.neighbors(location=self.location))
 
         # If we have local nodes, choose one of them
         if neighbors: yield random.choice(neighbors)
 
         # Choose a neighbor in the wide area to gossip with.
-        neighbors = [
-            node for node in self.neighbors()
-            if node.location != self.location
-        ]
+        neighbors = list(self.neighbors(location=self.location, exclude=True))
 
         # If we have wide nodes, choose one of them
         if neighbors: yield random.choice(neighbors)

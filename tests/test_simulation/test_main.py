@@ -50,6 +50,7 @@ def load_simulation(path, **kwargs):
     defaults = {
         'max_sim_time': 100000,
         'objects': 10,
+        'users': 3,
     }
     defaults.update(kwargs)
 

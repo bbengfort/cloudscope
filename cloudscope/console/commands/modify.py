@@ -198,7 +198,7 @@ class ModifyTopologyCommand(Command):
         mods += self.update_meta_param(topo, 'wide_latency', (mean, stddev))
         mods += self.update_meta_param(topo, 'anti_entropy_delay', aed)
         mods += self.update_meta_param(topo, 'election_timeout', eto)
-        mods += self.update_meta_param(topo, 'hearbeat_interval', hbi)
+        mods += self.update_meta_param(topo, 'heartbeat_interval', hbi)
         mods += self.update_meta_param(topo, 'latency_mean', mean)
         mods += self.update_meta_param(topo, 'latency_stddev', stddev)
         mods += self.update_meta_param(topo, 'tick_metric', T)
