@@ -94,7 +94,7 @@ class SimulationTests(unittest.TestCase):
 
         # Required Metrics
         required = {
-            u'read', u'read latency',
+            u'read', u'read latency', 'visibility',
             u'write', u'write latency', u'visibility latency',
         } | metrics
 
@@ -131,7 +131,7 @@ class SimulationTests(unittest.TestCase):
         # Check the results
         self.assertReliableResults(results)
 
-    @unittest.skip("See issue #63")
+    # @unittest.skip("See issue #63")
     def test_raft_simulation(self):
         """
         Run the raft consensus simulation without errors

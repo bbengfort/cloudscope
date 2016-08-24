@@ -112,6 +112,7 @@ class TracesCommand(Command):
 
         # Create simulation
         simulation = ConsistencySimulation.load(args.data[0], **kwargs)
+        simulation.trace = None 
 
         # Create or select the correct simulation
         if args.best_case or args.tiered:

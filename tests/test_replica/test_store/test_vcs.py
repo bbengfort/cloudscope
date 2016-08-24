@@ -111,9 +111,41 @@ class VersionTests(unittest.TestCase):
             self.assertGreater(v1.updated, v1.created)
             self.assertEqual(v1.updated, self.sim.env.now)
 
-        self.sim.results.update.assert_called_once_with(
+        # Check that this is the last call
+        self.sim.results.update.assert_called_with(
             'visibility latency', (self.replica.id, str(v1), v1.created, v1.updated)
         )
+
+        self.assertTrue(v1.is_visible())
+
+    def test_visibility_metric(self):
+        """
+        Test that the visibility metric is tracked
+        """
+        v1 = Version(self.replica)
+
+        calls = []
+        replicas = [
+            r for r in self.sim.replicas if r!= self.replica
+        ]
+
+        for idx, replica in enumerate(replicas):
+
+            self.sim.env.now += (2*(idx+1))
+            v1.update(replica)
+
+            self.assertGreater(v1.updated, v1.created)
+            self.assertEqual(v1.updated, self.sim.env.now)
+
+            pcent = float(idx+2) / float(len(self.sim.replicas))
+            calls.append(
+                mock.call('visibility', (str(v1), pcent, v1.created, self.sim.env.now))
+            )
+
+        # Check that this is the last call
+        self.sim.results.update.assert_has_calls(calls + [
+            mock.call('visibility latency', (self.replica.id, str(v1), v1.created, v1.updated))
+        ], any_order=True)
 
         self.assertTrue(v1.is_visible())
 
@@ -128,7 +160,7 @@ class VersionTests(unittest.TestCase):
             self.sim.env.now += (2*(idx+1))
             v1.update(replica)
 
-        self.sim.results.update.assert_called_once_with(
+        self.sim.results.update.assert_called_with(
             'visibility latency', (self.replica.id, str(v1), v1.created, v1.updated)
         )
 
@@ -295,22 +327,30 @@ class MultiVersionTests(unittest.TestCase):
         B = Version.new('B')
         b = B(self.replica)
 
-        for idx, replica in enumerate(self.sim.replicas):
-            if replica == self.replica: continue
+        calls = []
+        replicas = [
+            r for r in self.sim.replicas if r != self.replica
+        ]
+
+        for idx, replica in enumerate(replicas):
 
             self.sim.env.now += (2*(idx+1))
             a.update(replica)
             b.update(replica)
+
+            pcent = float(idx+2) / float(len(self.sim.replicas))
+            calls.append(mock.call('visibility', (str(a), pcent, a.created, self.sim.env.now)))
+            calls.append(mock.call('visibility', (str(b), pcent, a.created, self.sim.env.now)))
 
             self.assertGreater(a.updated, a.created)
             self.assertEqual(a.updated, self.sim.env.now)
             self.assertGreater(b.updated, b.created)
             self.assertEqual(b.updated, self.sim.env.now)
 
-        self.sim.results.update.assert_has_calls([
+        self.sim.results.update.assert_has_calls(calls + [
             mock.call('visibility latency', (self.replica.id, str(a), a.created, a.updated)),
-            mock.call('visibility latency', (self.replica.id, str(b), b.created, b.updated))
-        ])
+            mock.call('visibility latency', (self.replica.id, str(b), b.created, b.updated)),
+        ], any_order=True)
 
         self.assertTrue(a.is_visible())
         self.assertTrue(b.is_visible())
