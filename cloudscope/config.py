@@ -94,8 +94,8 @@ class SimulationConfiguration(Configuration):
     max_sim_time    = 4320000
 
     # Network Parameters
-    count_messages       = True
-    aggregate_heartbeats = True
+    trace_messages       = True         # Create a time series of all messages (lots of disk space required)
+    aggregate_heartbeats = True         # Differentiate between append entries and heartbeat messages.
     default_latency      = 800
     default_replica      = "storage"
     default_consistency  = "strong"

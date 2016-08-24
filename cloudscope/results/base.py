@@ -22,6 +22,8 @@ import cloudscope
 
 from .report import details as report_details
 from .report import topology as report_topology
+from .metrics import MessageCounter
+from .metrics import LatencyDistribution
 
 from cloudscope.config import settings
 from cloudscope.utils.serialize import JSONEncoder
@@ -31,7 +33,6 @@ from cloudscope.utils.timez import epochptime
 from cloudscope.viz import plot_workload
 
 from collections import defaultdict
-from collections import Counter
 
 ##########################################################################
 ## Results Object
@@ -59,7 +60,8 @@ class Results(object):
         self.randseed   = settings.simulation.random_seed
         self.timesteps  = settings.simulation.max_sim_time
         self.settings   = dict(settings.simulation.options())
-        self.messages   = {"sent": Counter(), "recv": Counter(), "dropped": Counter()}
+        self.messages   = MessageCounter()
+        self.latencies  = LatencyDistribution()
 
         # Set any properties that need to be serialized (override above)
         for key, val in kwargs.iteritems():

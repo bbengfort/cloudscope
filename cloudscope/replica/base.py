@@ -19,10 +19,11 @@ Base functionality for a replica on a personal cloud storage system.
 
 from cloudscope.config import settings
 from cloudscope.dynamo import Sequence
-from cloudscope.simulation.network import Node
 from cloudscope.utils.enums import Enum
 from cloudscope.utils.strings import decamelize
 from cloudscope.replica.access import Read, Write
+from cloudscope.results.metrics import SENT, RECV, DROP
+from cloudscope.simulation.network import Node, Message
 from cloudscope.exceptions import AccessError, NetworkError
 
 ##########################################################################
@@ -179,8 +180,9 @@ class Replica(Node):
             # Drop the message if the network connection is down
             return self.on_dropped_message(target, value)
 
+        # Track total number of sent messages and get message type for logging.
         message = event.value
-        mtype = message.value.__class__.__name__ if message.value else "None"
+        mtype = self.sim.results.messages.update(message, SENT)
 
         # Debug logging of the message sent
         self.sim.logger.debug(
@@ -190,28 +192,11 @@ class Replica(Node):
         )
 
         # Track time series of sent messages
-        if settings.simulation.count_messages:
-            # Aggregate heartbeats
-            if settings.simulation.aggregate_heartbeats:
-
-                # Check if actually an eppend entries or a heartbeat
-                if mtype == 'AppendEntries':
-                    # Tag/Complex entries
-                    if isinstance(message.value.entries, dict):
-                        if not any(message.value.entries.values()):
-                            mtype = 'Heartbeat'
-
-                    # Raft/Standard entries
-                    if not message.value.entries:
-                        mtype = 'Heartbeat'
-
-
+        if settings.simulation.trace_messages:
             self.sim.results.update(
-                "sent", (message.source.id, message.target.id, self.env.now, mtype)
+                SENT, (message.source.id, message.target.id, self.env.now, mtype)
             )
 
-        # Track total number of sent messages
-        self.sim.results.messages['sent'][mtype] += 1
         return event
 
     def recv(self, event):
@@ -233,8 +218,11 @@ class Replica(Node):
             # Drop the message if the network connection is down
             return self.on_dropped_message(event.value.target, event.value.value)
 
-        # Get the message type for logging
-        mtype = message.value.__class__.__name__ if message.value else "None"
+        # Track total number of sent messages and get message type for logging.
+        mtype = self.sim.results.messages.update(message, RECV)
+
+        # Track the message delay statistics of all received messages
+        self.sim.results.latencies.update(message)
 
         # Debug logging of the message recv
         self.sim.logger.debug(
@@ -244,13 +232,10 @@ class Replica(Node):
         )
 
         # Track time series of recv messages
-        if settings.simulation.count_messages:
+        if settings.simulation.trace_messages:
             self.sim.results.update(
-                "recv", (message.target.id, message.source.id, self.env.now, mtype, message.delay)
+                RECV, (message.target.id, message.source.id, self.env.now, mtype, message.delay)
             )
-
-        # Track total number of recv messages
-        self.sim.results.messages['recv'][mtype] += 1
 
         # Dispatch the RPC to the correct handler
         return self.dispatch(message)
@@ -415,8 +400,9 @@ class Replica(Node):
         is dropped - subclasses can choose to retry the message or send to
         someone else. For now, we'll just record and log the drop.
         """
-        # Get the message type from the value.
-        mtype = value.__class__.__name__ if value else "None"
+        # Create a dummy message
+        dummy = Message(self, target, value, None)
+        mtype = self.sim.results.messages.update(message, DROP)
 
         # Debug logging of the message dropped
         self.sim.logger.debug(
@@ -426,28 +412,10 @@ class Replica(Node):
         )
 
         # Track time series of dropped messages
-        if settings.simulation.count_messages:
-            # Aggregate heartbeats
-            if settings.simulation.aggregate_heartbeats:
-
-                # Check if actually an eppend entries or a heartbeat
-                if mtype == 'AppendEntries':
-                    # Tag/Complex entries
-                    if isinstance(value.entries, dict):
-                        if not any(value.entries.values()):
-                            mtype = 'Heartbeat'
-
-                    # Raft/Standard entries
-                    if not value.entries:
-                        mtype = 'Heartbeat'
-
-
+        if settings.simulation.trace_messages:
             self.sim.results.update(
-                "dropped", (self.id, target.id, self.env.now, mtype)
+                DROP, (self.id, target.id, self.env.now, mtype)
             )
-
-        # Track total number of dropped messages
-        self.sim.results.messages['dropped'][mtype] += 1
 
     ######################################################################
     ## Object data model

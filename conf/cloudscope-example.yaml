@@ -49,8 +49,8 @@ simulation:
     max_sim_time: 4320000
 
     # Network Parameters
-    count_messages: false
-    aggregate_heartbeats: true
+    trace_messages: true         # Create a time series of all messages (lots of disk space required)
+    aggregate_heartbeats: true   # Differentiate between append entries and heartbeat messages.
     default_latency: 800
     default_replica: storage
     default_consistency: strong

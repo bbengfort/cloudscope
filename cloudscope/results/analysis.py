@@ -471,19 +471,28 @@ def create_per_experiment_dataframe(results):
         data['heartbeat interval (ms)'] = conf['heartbeat_interval']
         data['election timeout (ms, ms)'] = conf['election_timeout']
         data['T parameter model'] = conf['tick_param_model']
-
-        # This is normally what you'd do.
-        # data['conflict probability'] = conf['conflict_prob']
-
-        # This is the HACK
-        import os, re
-        regex = re.compile(r'realism\-federated\-([\d\.]+)\-pconflict\.tsv')
-        name = os.path.basename(conf['trace'])
-        data['conflict probability'] = float(regex.match(name).group(1))
+        data['conflict probability'] = conf['conflict_prob']
 
         # Aggregate the timeseries resuts data
         for key, values in result_value(result, 'results').iteritems():
             data.update(aggregator(key, values))
+
+        # If we didn't do an aggregation from the time series, get it
+        # directly from the results object.
+        if 'message types' not in data:
+            data['message types'] = result.messages['sent']
+
+        if 'sent' not in data:
+            data['sent'] = sum(result.messages['sent'].values())
+
+        if 'recv' not in data:
+            data['recv'] = sum(result.messages['recv'].values())
+
+        if 'dropped' not in data:
+            data['dropped'] = sum(result.messages['dropped'].values())
+
+        # Get the simulation time from the results
+        data['simulation time (secs)'] = result.timer['finished'] - result.timer['started']
 
         table.append(data)
 

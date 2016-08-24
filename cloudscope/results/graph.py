@@ -124,7 +124,7 @@ def extract_edges(results):
     connections.
 
     Extract edges grabs information about how nodes are connected by
-    inspecting the `recv` series. Note this means that `count_messages` in
+    inspecting the `recv` series. Note this means that `trace_messages` in
     the configuration must be set to True (default). Edges also have
     properties based on the communication (mean delay, number of messages).
     """

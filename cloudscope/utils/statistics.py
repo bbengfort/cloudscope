@@ -17,6 +17,7 @@ Objects for computing Statistics and probabilities (reused from Ben's old code)
 ## Imports
 ##########################################################################
 
+import math
 import json
 
 from itertools import islice
@@ -34,6 +35,9 @@ def mean(data):
     """
     TODO: if Numpy becomes a dependency, change this to a Numpy computation.
     """
+    # Don't do anything without data
+    if not data: return None
+
     data = list(map(float, data))
     if data:
         return sum(data) / len(data)
@@ -47,8 +51,8 @@ def median(data, sort=True):
     then lets convert this function to creating a Numpy array then issuing
     the median function call.
     """
-    if not data:
-        return None
+    # Don't do anything without data
+    if not data: return None
 
     num = len(data)
     if sort:
@@ -64,6 +68,104 @@ def median(data, sort=True):
     idx = jdx - 1
     return (data[idx] + data[jdx]) / 2.0
 
+
+##########################################################################
+## Online Variance
+##########################################################################
+
+class OnlineVariance(object):
+    """
+    A counting class to keep track of the number of samples, the sum of
+    samples, and the sum of squares of the samples in order to compute the
+    mean, standard deviation, and variance in real time.
+    """
+
+    def __init__(self, iterable=None):
+        self.samples = 0.0
+        self.total   = 0.0
+        self.squares = 0.0
+
+        if iterable is not None:
+            for sample in iterable:
+                self.update(sample)
+
+    def update(self, sample):
+        """
+        Updates the online variance with a new sample.
+        """
+        self.samples += 1.0
+        self.total   += sample
+        self.squares += sample * sample
+
+    @property
+    def mean(self):
+        """
+        Computes the mean so long as the number of samples > 0.
+        """
+        if self.samples > 0:
+            return self.total / self.samples
+        return 0.0
+
+    # Aliases for the mean property
+    mu = mean
+    average = mean
+
+    @property
+    def variance(self):
+        """
+        Computes the variance so long as the number of samples > 1.
+        """
+        if self.samples > 1:
+            s0 = self.samples
+            s1 = self.total
+            s2 = self.squares
+            return (s0 * s2 - s1 * s1)/(s0 * (s0 - 1))
+
+        return 0.0
+
+    # Aliases for variance property
+    var = variance
+    sigma2 = variance
+
+    @property
+    def standard_deviation(self):
+        """
+        Computes the standard deviation as long as number of samples > 1.
+        """
+        if self.samples > 1:
+            return math.sqrt(self.variance)
+        return 0.0
+
+    # Aliases for standard deviation property
+    sigma = standard_deviation
+    stddev = standard_deviation
+    std = standard_deviation
+
+    def serialize(self):
+        return {
+            "samples": self.samples,
+            "total": self.total,
+            "squares": self.squares,
+            "mean": self.mean,
+            "variance": self.variance,
+            "standard_deviation": self.standard_deviation,
+        }
+
+    def __len__(self):
+        return self.samples
+
+    def __add__(self, other):
+        instance = self.__class__()
+        instance.samples = self.samples + other.samples
+        instance.total   = self.total + other.total
+        instance.squares = self.squares + other.squares
+        return instance
+
+    def __iadd__(self, other):
+        self.samples += other.samples
+        self.total += other.total
+        self.squares += other.squares
+        return self
 
 ##########################################################################
 ## Frequency Distribution
