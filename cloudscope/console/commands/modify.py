@@ -30,6 +30,27 @@ from cloudscope.experiment import compute_tick
 
 
 ##########################################################################
+## Key/Value Type
+##########################################################################
+
+def keyval(string):
+    """
+    Parses a key/value pair from the command line.
+    """
+    pairs = [
+        map(lambda s: s.strip(), pair.split("="))
+        for pair in string.split("&")
+    ]
+
+    if not all([len(pair) == 2 for pair in pairs]):
+        raise argparse.ArgumentTypeError(
+            "Must pass key/value pairs as key1=value1&key2=value2"
+        )
+
+    return dict(pairs)
+
+
+##########################################################################
 ## Command
 ##########################################################################
 
@@ -66,6 +87,12 @@ class ModifyTopologyCommand(Command):
             "metavar": "PATH",
             "default": None,
             "help": "specify a directory or trace to replace traces information",
+        },
+        ('-M', '--meta'): {
+            "metavar": "KEY=VAL",
+            "default": None,
+            "type": keyval,
+            "help": "specify key/value pairs to modify in the meta data",
         },
         'topologies': {
             'nargs': '+',
@@ -252,8 +279,12 @@ class ModifyTopologyCommand(Command):
         # Modify the overall latency range
         local = topo['meta'].get('local_latency', [None, None])[0]
         wide  = topo['meta'].get('wide_latency', [None, None])[0]
-        lrng  = (min(local, wide), max(local, wide))
+        lrng  = [min(local, wide), max(local, wide)]
         mods += self.update_meta_param(topo, 'latency_range', lrng)
+
+        if args.meta:
+            for key, val in args.meta.items():
+                mods += self.update_meta_param(topo, key, val)
 
         return mods
 
