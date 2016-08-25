@@ -41,6 +41,15 @@ class MessageMetric(object):
     A base class that computes metrics on a per network message basis.
     """
 
+    @classmethod
+    def deserialize(klass, data):
+        """
+        Message metrics must be deserializable!
+        """
+        raise NotImplementedError(
+            "Subclasses must implement the deserialize class method."
+        )
+
     def get_message_type(self, message):
         """
         Determines the message type from the value of the message.
@@ -98,6 +107,27 @@ class MessageCounter(MessageMetric):
     counts (which is a bit of a duplication of the LatencyDistribution).
     """
 
+    @classmethod
+    def deserialize(klass, data):
+        """
+        Inverse of the serialization operation, instantiates the class from
+        the native Python types.
+        """
+        # Instantiate the empty class
+        instance = klass()
+
+        # For all the primary counter properties, fill in the value
+        for key in ('messages', 'replicas', 'received'):
+            # Get the blank attribute from the class
+            attr = getattr(instance, key)
+
+            # For every name  in the data for that item
+            for name, counts in data.get(key, {}).items():
+                for mtype, count in counts.items():
+                    attr[name][mtype] = count
+
+        return instance
+
     def __init__(self):
         self.messages = defaultdict(Counter) # Tracks the sent, recv, drop according to message type
         self.replicas = defaultdict(Counter) # Tracks the messages sent between replicas according to type
@@ -142,6 +172,22 @@ class LatencyDistribution(MessageMetric):
     by summing two online variance objects.
     """
 
+    @classmethod
+    def deserialize(klass, data):
+        """
+        Intantiates the complex messages data structure from data structured
+        as the the return from the serialize method.
+        """
+        instance = klass()
+
+        for source, targets in data.items():
+            for target, mtypes in targets.items():
+                for mtype, stats in mtypes.items():
+                    stats = OnlineVariance.deserialize(stats)
+                    instance.messages[source][target][mtype] = stats
+
+        return instance
+
     def __init__(self):
         # Nested default dictionaries, the highest level contains source ids
         # as the key, followed by dictionaries of target ids, followed by
@@ -156,13 +202,10 @@ class LatencyDistribution(MessageMetric):
         """
         Track the message delay by type for the source/target pair.
         """
-        if not message.delay:
-            return
+        delay = message.delay or 0.0
 
         mtype = self.get_message_type(message)
-        self.messages[message.source.id][message.target.id][mtype].update(
-            message.delay
-        )
+        self.messages[message.source.id][message.target.id][mtype].update(delay)
 
         return mtype
 

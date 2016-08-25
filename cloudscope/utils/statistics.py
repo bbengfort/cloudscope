@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # cloudscope.utils.statistics
 # Objects for computing Statistics and probabilities
 #
@@ -79,6 +80,26 @@ class OnlineVariance(object):
     samples, and the sum of squares of the samples in order to compute the
     mean, standard deviation, and variance in real time.
     """
+
+    @classmethod
+    def deserialize(klass, data):
+        """
+        Inverse of the serialization function
+        """
+        for key in ('samples', 'total', 'squares'):
+            if key not in data:
+                raise TypeError(
+                    "Cannot deserialize an {} without {}".format(
+                        klass.__name__, key
+                    )
+                )
+
+        instance = klass()
+        instance.samples = data['samples']
+        instance.total   = data['total']
+        instance.squares = data['squares']
+
+        return instance
 
     def __init__(self, iterable=None):
         self.samples = 0.0
@@ -166,6 +187,29 @@ class OnlineVariance(object):
         self.total += other.total
         self.squares += other.squares
         return self
+
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False
+
+        return (
+            self.samples == other.samples and
+            self.total == other.total and
+            self.squares == other.squares
+        )
+
+    def __str__(self):
+        return (
+            "Distribution of {} samples with "
+            "{} mean and {} standard deviation"
+        ).format(
+            self.samples, self.mean, self.stddev
+        )
+
+    def __repr__(self):
+        return "<{}: n={}, μ={}, σ={}>".format(
+            self.__class__.__name__, self.samples, self.mean, self.std
+        )
 
 ##########################################################################
 ## Frequency Distribution

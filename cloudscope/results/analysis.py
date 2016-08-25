@@ -478,18 +478,21 @@ def create_per_experiment_dataframe(results):
             data.update(aggregator(key, values))
 
         # If we didn't do an aggregation from the time series, get it
-        # directly from the results object.
+        # directly from the messages and latencies objects.
+        messages  = result.messages.messages
+        latencies = result.latencies
+
         if 'message types' not in data:
-            data['message types'] = result.messages['sent']
+            data['message types'] = messages.get('sent', {})
 
         if 'sent' not in data:
-            data['sent'] = sum(result.messages['sent'].values())
+            data['sent messages'] = sum(messages.get('sent', {}).values())
 
         if 'recv' not in data:
-            data['recv'] = sum(result.messages['recv'].values())
+            data['recv messages'] = sum(messages.get('recv', {}).values())
 
         if 'dropped' not in data:
-            data['dropped'] = sum(result.messages['dropped'].values())
+            data['dropped messages'] = sum(messages.get('drop', {}).values())
 
         # Get the simulation time from the results
         data['simulation time (secs)'] = result.timer['finished'] - result.timer['started']

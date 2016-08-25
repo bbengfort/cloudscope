@@ -58,6 +58,7 @@ ReplicaTypes = {
         Consistency.STRONG: FederatedRaftReplica,
         Consistency.EVENTUAL: FederatedEventualReplica,
         Consistency.STENTOR: StentorEventualReplica,
+        Consistency.RAFT: FederatedRaftReplica,
     },
 }
 

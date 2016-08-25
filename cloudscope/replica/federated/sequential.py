@@ -83,6 +83,7 @@ class FederatedRaftReplica(RaftReplica):
         access = message.value.version
 
         # Check to make sure the write isn't forked - if it is, then reject.
+        # TODO: Move to the write not just on remote write! 
         if access.version.parent and access.version.parent.is_forked():
             access.drop()
             success = False

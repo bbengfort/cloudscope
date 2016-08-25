@@ -48,8 +48,26 @@ class Results(object):
         """
         Load a results object from a JSON file on disk.
         """
-        data = json.load(fp)
-        return klass(**data)
+        if isinstance(fp, basestring):
+            data = json.loads(fp)
+        else:
+            data = json.load(fp)
+
+        # Get the objects to deserialize
+        messages = data.pop('messages', None)
+        latencies = data.pop('latencies', None)
+
+        results = klass(**data)
+
+        # Deserialize necessary objects
+        if messages:
+            results.messages = MessageCounter.deserialize(messages)
+
+        if latencies:
+            results.latencies = LatencyDistribution.deserialize(latencies)
+
+        # Return the results object
+        return results
 
     def __init__(self, **kwargs):
         # Set reasonable defaults for results

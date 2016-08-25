@@ -19,6 +19,7 @@ Utilities for visualizing the topology with communications results.
 
 from .analysis import aggregator
 
+from operator import add
 from collections import defaultdict
 from peak.util.imports import lazyModule
 from cloudscope.exceptions import BadValue
@@ -124,33 +125,31 @@ def extract_edges(results):
     connections.
 
     Extract edges grabs information about how nodes are connected by
-    inspecting the `recv` series. Note this means that `trace_messages` in
-    the configuration must be set to True (default). Edges also have
-    properties based on the communication (mean delay, number of messages).
+    inspecting the messages series.
     """
 
-    # Get edge information from the results object
-    series = defaultdict(list)
-    for value in results.results['recv']:
-        # value is (target, source, recv at, message type, delay)
-        series[(value[1], value[0])].append(value)
+    # Get edge information from the results.latencies object
+    # This is in the form source -> target -> message type -> statistics
+    latencies = results.latencies
+    messages = latencies if isinstance(latencies, dict) else latencies.messages
+    edges = {}
 
-    edges = {
-        key: aggregator('recv', values)
-        for key, values in series.iteritems()
-    }
+    for source, conns in messages.items():
+        for target, mtypes in conns.items():
 
-    # TODO: add link information from the topology
+            # Reduce all the message types into a single all messages edge.
+            stats = reduce(add, mtypes.values())
+            edges[(source, target)] = stats.serialize()
 
     # Add edge weights to the nodes
-    total = float(sum(results.messages['sent'].values()))
-    highest = float(max(e['recv'] for e in edges.values()))
+    count = sum(stats['samples'] for stats in edges.values())
+    most  = max(stats['samples'] for stats in edges.values())
 
     for key in edges.keys():
-        count = edges[key].pop('recv')
-        edges[key]['weight'] = float(count) / total
-        edges[key]['norm'] = float(count) / highest
-        edges[key]['count'] = count
+        count = edges[key]['samples']
+        edges[key]['weight'] = count / count
+        edges[key]['norm']   = count / most
+        edges[key]['count']  = count
 
     return edges
 
@@ -167,29 +166,27 @@ def extract_message_edges(results):
     total messages between nodes.
     """
 
-    # Get edge information from the results object
-    series = defaultdict(list)
-    for value in results.results['recv']:
-        # value is (target, source, recv at, message type, delay)
-        series[(value[1], value[0], value[3])].append(value)
+    # Get edge information from the results.latencies object
+    # This is in the form source -> target -> message type -> statistics
+    latencies = results.latencies
+    messages = latencies if isinstance(latencies, dict) else latencies.messages
+    edges = {}
 
-    edges = {
-        key: aggregator('recv', values)
-        for key, values in series.iteritems()
-    }
-
-    # TODO: add link information from the topology
+    for source, conns in messages.items():
+        for target, mtypes in conns.items():
+            for mtype, stats in mtypes.items():
+                edges[(source, target, mtype)] = stats.serialize()
 
     # Add edge weights to the nodes
-    total = float(sum(results.messages['sent'].values()))
-    highest = float(max(e['recv'] for e in edges.values()))
+    count = sum(stats['samples'] for stats in edges.values())
+    most  = max(stats['samples'] for stats in edges.values())
 
     for key in edges.keys():
-        count = edges[key].pop('recv')
-        edges[key]['weight'] = float(count) / total
-        edges[key]['norm'] = float(count) / highest
-        edges[key]['count'] = count
-        edges[key]['label'] = key[2]
+        count = edges[key]['samples']
+        edges[key]['weight'] = count / count
+        edges[key]['norm']   = count / most
+        edges[key]['count']  = count
+        edges[key]['label']  = key[2]
 
     return edges
 
