@@ -202,6 +202,25 @@ class TimeSeriesAggregator(object):
             label: len(values),
         }
 
+    def handle_visibility(self, label, values):
+        """
+        Expects a time series in the form of:
+
+            (writer, version, percent visible, created, updated)
+
+        Returns the average visibility of all the writes as well as the
+        number of partially visible writes.
+        """
+        accesses = defaultdict(float)
+        for val in values:
+            if val[2] > accesses[val[1]]:
+                accesses[val[1]] = val[2]
+
+        return {
+            'mean visibility': mean(accesses.values()),
+            'partially visible writes': sum(1 for pcent in accesses.values() if pcent < 1.0),
+        }
+
     def handle_visibility_latency(self, label, values):
         """
         Expects a time series in the form of:

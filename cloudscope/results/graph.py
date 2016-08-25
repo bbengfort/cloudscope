@@ -115,6 +115,16 @@ def extract_nodes(results):
         for key, val in meta.items():
             vertices[vid][key] = val
 
+    # Add the number of messages from the results
+    sent = results.messages.replicas
+    recv = results.messages.received
+
+    for vid, msgs in sent.items():
+        vertices[vid]['sent'] = sum(msgs.values())
+
+    for vid, msgs in recv.items():
+        vertices[vid]['recv'] = sum(msgs.values())
+
     return vertices
 
 
@@ -146,10 +156,10 @@ def extract_edges(results):
     most  = max(stats['samples'] for stats in edges.values())
 
     for key in edges.keys():
-        count = edges[key]['samples']
-        edges[key]['weight'] = count / count
-        edges[key]['norm']   = count / most
-        edges[key]['count']  = count
+        msgs = edges[key]['samples']
+        edges[key]['weight'] = msgs / count
+        edges[key]['norm']   = msgs / most
+        edges[key]['count']  = msgs
 
     return edges
 
@@ -182,10 +192,10 @@ def extract_message_edges(results):
     most  = max(stats['samples'] for stats in edges.values())
 
     for key in edges.keys():
-        count = edges[key]['samples']
-        edges[key]['weight'] = count / count
-        edges[key]['norm']   = count / most
-        edges[key]['count']  = count
+        msgs = edges[key]['samples']
+        edges[key]['weight'] = msgs / count
+        edges[key]['norm']   = msgs / most
+        edges[key]['count']  = msgs
         edges[key]['label']  = key[2]
 
     return edges

@@ -126,7 +126,7 @@ class Version(object):
             visibility = float(len(self.replicas)) / float(len(replica.sim.replicas))
             self.writer.sim.results.update(
                 'visibility',
-                (str(self), visibility, self.created, self.updated)
+                (self.writer.id, str(self), visibility, self.created, self.updated)
             )
 
             # Is this version completely replicated?
