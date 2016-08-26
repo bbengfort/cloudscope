@@ -1,17 +1,16 @@
-#!/usr/bin/env python
-# generate
-# Quick systems generator for increasing number of nodes.
+# cloudscope.console.commands.topology
+# Generates homogenous topologies on demand
 #
 # Author:   Benjamin Bengfort <bbengfort@districtdatalabs.com>
-# Created:  Wed Aug 24 12:21:09 2016 -0400
+# Created:  Fri Aug 26 14:04:27 2016 -0400
 #
 # Copyright (C) 2016 District Data Labs
 # For license information, see LICENSE.txt
 #
-# ID: generate.py [] benjamin@bengfort.com $
+# ID: topology.py [] benjamin@bengfort.com $
 
 """
-Quick systems generator for increasing number of nodes.
+Generates homogenous topologies on demand
 """
 
 ##########################################################################
@@ -20,12 +19,14 @@ Quick systems generator for increasing number of nodes.
 
 import os
 import json
-import argparse
 
+from commis import Command
 from itertools import cycle
 from operator import itemgetter
 from collections import Counter
 from cloudscope.config import settings
+from commis.exceptions import ConsoleError
+from cloudscope.replica import ReplicaTypes
 from cloudscope.experiment import compute_tick
 from cloudscope.utils.decorators import memoized, setter
 
@@ -41,82 +42,97 @@ SITE_NAMES = (
     "xray", "yankee", "zulu",
 )
 
-REPLICAS = {
-    "eventual": None,
-    "stentor": None,
-    "raft": None,
-}
-
-
 ##########################################################################
-## Command Line Arguments
+## Command
 ##########################################################################
 
-ARGUMENTS = {
-    ('-n', '--nodes'): {
-        "type": int,
-        "metavar": "N",
-        "required": True,
-        "help": "number of nodes in the system",
-    },
-    ('-o', '--output'): {
-        "default": None,
-        "metavar": "PATH",
-        "type": str,
-        "help": "the location to write the simulation topology and traces out",
-    },
-    ('-l', '--locations'): {
-        "type": int,
-        "metavar": "N",
-        "default": 5,
-        "help": "number of locations in the system",
-    },
-    ('-t', '--type'): {
-        "type": str,
-        "metavar": "TYPE",
-        "default": settings.simulation.default_replica,
-        "help": "specify the replica type",
-    },
-    '--Lm': {
-        "type": int,
-        "default": 100,
-        "dest": "local_mean",
-        "help": 'local area connection mean latency',
-    },
-    '--Ls': {
-        "type": int,
-        "default": 5,
-        "dest": "local_stddev",
-        "help": 'local area connection latency standard deviation',
-    },
-    '--Wm': {
-        "type": int,
-        "default": 1000,
-        "dest": "wide_mean",
-        "help": 'wide area connection mean latency',
-    },
-    '--Ws': {
-        "type": int,
-        "default": 56,
-        "dest": "wide_stddev",
-        "help": 'wide area connection latency standard deviation',
-    },
-    '--tick-model': {
-        'type': str,
-        'default': 'bailis',
-        'choices': ['howard', 'bailis'],
-        'metavar': 'method',
-        'help': 'specify tick computation method based on latency',
-    },
-    'consistency': {
-        "type": str,
-        "nargs": 1,
-        "choices": REPLICAS.keys(),
-        "help": "specify the replica types to generate systems for.",
+class TopologyGeneratorCommand(Command):
+
+    name = 'topology'
+    help = 'generate homogenous, fully connected systems of varying sizes'
+    args = {
+        ('-n', '--nodes'): {
+            "type": int,
+            "metavar": "N",
+            "required": True,
+            "help": "number of nodes in the system",
+        },
+        ('-o', '--output'): {
+            "default": None,
+            "metavar": "PATH",
+            "type": str,
+            "help": "the location to write the simulation topology and traces out",
+        },
+        ('-l', '--locations'): {
+            "type": int,
+            "metavar": "N",
+            "default": 5,
+            "help": "number of locations in the system",
+        },
+        ('-t', '--type'): {
+            "type": str,
+            "metavar": "TYPE",
+            "default": settings.simulation.default_replica,
+            "help": "specify the replica type",
+        },
+        '--Lm': {
+            "type": int,
+            "default": 100,
+            "dest": "local_mean",
+            "help": 'local area connection mean latency',
+        },
+        '--Ls': {
+            "type": int,
+            "default": 5,
+            "dest": "local_stddev",
+            "help": 'local area connection latency standard deviation',
+        },
+        '--Wm': {
+            "type": int,
+            "default": 1000,
+            "dest": "wide_mean",
+            "help": 'wide area connection mean latency',
+        },
+        '--Ws': {
+            "type": int,
+            "default": 56,
+            "dest": "wide_stddev",
+            "help": 'wide area connection latency standard deviation',
+        },
+        '--tick-model': {
+            'type': str,
+            'default': 'bailis',
+            'choices': ['howard', 'bailis'],
+            'metavar': 'method',
+            'help': 'specify tick computation method based on latency',
+        },
+        'consistency': {
+            "type": str,
+            "nargs": 1,
+            "choices": [rt.value for rt in ReplicaTypes['default'].keys()],
+            "help": "specify the replica types to generate systems for.",
+        }
     }
-}
 
-class Generator(object):
+    def handle(self, args):
+        """
+        Instantiates a topology generator and generates the topology.
+        """
+        generator = TopologyGenerator(args)
+        generator.generate_toplogy()
+        generator.generate_trace()
+        generator.generate_meta()
+        generator.write()
+
+        return "Created a {} topology with {} nodes in {} locations at {}".format(
+            generator.consistency, generator.nodes, generator.n_locs, generator.output
+        )
+
+##########################################################################
+## Topology Generator Object
+##########################################################################
+
+class TopologyGenerator(object):
 
     def __init__(self, args):
         self.nodes   = args.nodes
@@ -136,8 +152,6 @@ class Generator(object):
 
         self.locations = cycle(SITE_NAMES[:self.n_locs])
         self.indices   = Counter()
-
-        print self.output
 
     @setter
     def output(self, path):
@@ -189,7 +203,7 @@ class Generator(object):
             node["local_prob"] = settings.simulation.local_prob
             node["num_neighbors"] = settings.simulation.num_neighbors
 
-        if self.consistency == "raft":
+        if self.consistency in {"raft", "tag", "strong"}:
             node["heartbeat_interval"] = self.heartbeat_interval
             node["election_timeout"] = self.election_timeout
 
@@ -280,35 +294,10 @@ class Generator(object):
             self.topology['meta']["local_prob"] = settings.simulation.local_prob
             self.topology['meta']["num_neighbors"] = settings.simulation.num_neighbors
 
-        if self.consistency == "raft":
+        if self.consistency in {"raft", "tag", "strong"}:
             self.topology['meta']["heartbeat_interval"] = self.heartbeat_interval
             self.topology['meta']["election_timeout"] = self.election_timeout
 
     def write(self):
         with open(self.output, 'w') as f:
             json.dump(self.topology, f, indent=2)
-
-def main(args):
-    """
-    Knows how to generate topologies of various systems.
-    """
-    generator = Generator(args)
-    generator.generate_toplogy()
-    generator.generate_trace()
-    generator.generate_meta()
-    generator.write()
-
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-        description="Generate homogenous, fully connected systems of varying sizes",
-        epilog="This is a quick script that doesn't necessarily belong here",
-    )
-
-    for args, options in ARGUMENTS.items():
-        if not isinstance(args, (tuple, list)):
-            args = (args,)
-        parser.add_argument(*args, **options)
-
-    args = parser.parse_args()
-    main(args)

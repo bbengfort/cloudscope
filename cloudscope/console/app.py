@@ -42,6 +42,7 @@ COMMANDS    = [
     InspectCommand,
     OutagesCommand,
     ModifyTopologyCommand,
+    TopologyGeneratorCommand,
 ]
 
 ##########################################################################
