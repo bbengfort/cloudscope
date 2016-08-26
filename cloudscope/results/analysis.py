@@ -212,13 +212,20 @@ class TimeSeriesAggregator(object):
         number of partially visible writes.
         """
         accesses = defaultdict(float)
+        delays   = defaultdict(int)
         for val in values:
             if val[2] > accesses[val[1]]:
                 accesses[val[1]] = val[2]
 
+            if val[4] > delays[(val[1], val[3])]:
+                delays[(val[1], val[3])] = val[4]
+
         return {
             'mean visibility': mean(accesses.values()),
             'partially visible writes': sum(1 for pcent in accesses.values() if pcent < 1.0),
+            'mean partial visibility latency (ms)': mean(
+                val - key[1] for key, val in delays.items()
+            )
         }
 
     def handle_visibility_latency(self, label, values):

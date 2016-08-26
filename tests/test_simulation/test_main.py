@@ -102,7 +102,7 @@ class SimulationTests(unittest.TestCase):
         optional = {
             u'sent', u'recv', u'dropped', u'commit latency',
             u'stale reads', u'empty reads', u'missed reads',
-            u'dropped writes', 'forked writes'
+            u'dropped writes', 'forked writes', 'stale writes',
         }
 
         for metric in required:

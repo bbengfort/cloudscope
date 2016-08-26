@@ -202,6 +202,13 @@ class Version(object):
                 'forked writes', (self.writer.id, self.writer.env.now)
             )
 
+        # Detect if we're a stale write (e.g. the parent version is stale).
+        if self.is_stale():
+            # Count the number of stale writes
+            self.writer.sim.results.update(
+                'stale writes', (self.writer.id, self.writer.env.now)
+            )
+
         return nv
 
     def contiguous(self):

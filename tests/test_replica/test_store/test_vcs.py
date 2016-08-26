@@ -139,7 +139,7 @@ class VersionTests(unittest.TestCase):
 
             pcent = float(idx+2) / float(len(self.sim.replicas))
             calls.append(
-                mock.call('visibility', (str(v1), pcent, v1.created, self.sim.env.now))
+                mock.call('visibility', (self.replica.id, str(v1), pcent, v1.created, self.sim.env.now))
             )
 
         # Check that this is the last call
@@ -339,8 +339,8 @@ class MultiVersionTests(unittest.TestCase):
             b.update(replica)
 
             pcent = float(idx+2) / float(len(self.sim.replicas))
-            calls.append(mock.call('visibility', (str(a), pcent, a.created, self.sim.env.now)))
-            calls.append(mock.call('visibility', (str(b), pcent, a.created, self.sim.env.now)))
+            calls.append(mock.call('visibility', (self.replica.id, str(a), pcent, a.created, self.sim.env.now)))
+            calls.append(mock.call('visibility', (self.replica.id, str(b), pcent, a.created, self.sim.env.now)))
 
             self.assertGreater(a.updated, a.created)
             self.assertEqual(a.updated, self.sim.env.now)
