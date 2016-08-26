@@ -188,6 +188,16 @@ class Version(object):
         #     ).format(self.writer.__class__.__name__, self.writer, self)
         #     raise WorkloadException(msg)
 
+        # Detect if we're a stale write (e.g. the parent version is stale).
+        # NOTE: You have to do this before you create the next version
+        # otherwise by definition the parent is stale!
+        if self.is_stale():
+            # Count the number of stale writes
+            self.writer.sim.results.update(
+                'stale writes', (self.writer.id, self.writer.env.now)
+            )
+
+        # Create the next version at this point. 
         nv = self.__class__(
             replica, parent=self, level=self.level
         )
@@ -200,13 +210,6 @@ class Version(object):
             # Count the number of forked writes
             self.writer.sim.results.update(
                 'forked writes', (self.writer.id, self.writer.env.now)
-            )
-
-        # Detect if we're a stale write (e.g. the parent version is stale).
-        if self.is_stale():
-            # Count the number of stale writes
-            self.writer.sim.results.update(
-                'stale writes', (self.writer.id, self.writer.env.now)
             )
 
         return nv

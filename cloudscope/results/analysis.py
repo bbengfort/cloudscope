@@ -190,6 +190,18 @@ class TimeSeriesAggregator(object):
             label: len(values),
         }
 
+    def handle_stale_writes(self, label, values):
+        """
+        Expects a time series in the form of:
+
+            (owner, timestamp)
+
+        Returns the number of stale reads
+        """
+        return {
+            label: len(values),
+        }
+
     def handle_dropped_writes(self, label, values):
         """
         Expects a time series in the form of:
