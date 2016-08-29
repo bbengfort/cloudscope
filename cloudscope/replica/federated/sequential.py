@@ -27,11 +27,18 @@ from cloudscope.replica.eventual import GossipResponse
 ##########################################################################
 
 class FederatedRaftReplica(RaftReplica):
+    """
+    Implements Raft for sequential consistency while also allowing interaction
+    with eventual consistency replicas.
+    """
+
+    ######################################################################
+    ## Core Methods (Replica API)
+    ######################################################################
 
     def recv(self, event):
         """
         Pass Gossip messages through, all other methods to super.
-        TODO: Organize better.
         """
         message = event.value
         rpc = message.value
@@ -40,23 +47,28 @@ class FederatedRaftReplica(RaftReplica):
             # Pass directly to dispatcher
             return super(RaftReplica, self).recv(event)
 
-        # Do the normal Raft thing
+        # Do the normal Raft thing which checks the term.
         return super(FederatedRaftReplica, self).recv(event)
+
+    ######################################################################
+    ## Message Event Handlers
+    ######################################################################
 
     def on_gossip_rpc(self, message):
         """
         Handles the receipt of a gossip from another node. Expects multiple
         accesses (Write events) as entries. Goes through all and compares the
         versions, replying False only if there is an error or a conflict.
-
-        TODO: Organize better, this is just a copy and paste from eventual.
         """
         entries = message.value.entries
         updates = []
 
         # Go through the entries from the RPC and update log
         for access in entries:
-            current = self.log.get_latest_version(access.name)
+
+            # Read via policy will ensure we use a locally cached version or
+            # if we're enforcing commits, the latest committed version.
+            current = self.read_via_policy(access.name)
 
             # If the access is greater than our current version, write it!
             if current is None or access.version > current:
@@ -76,28 +88,49 @@ class FederatedRaftReplica(RaftReplica):
         # Respond to the sender with the latest versions from our log
         self.send(message.source, GossipResponse(updates, len(updates), success))
 
-    def on_remote_write_rpc(self, message):
+    def append_via_policy(self, access, complete=False):
         """
-        Reject forked writes if they come in.
-        """
-        access = message.value.version
+        This method is the gatekeeper for the log and can implement policies
+        like "don't admit forks". It must drop the access if it doesn't meet
+        the policy, and complete it if specified.
 
-        # Check to make sure the write isn't forked - if it is, then reject.
-        # TODO: Move to the write not just on remote write! 
+        The Federated version implements two policies:
+
+            - The version must be later than the leader's current version.
+            - The version's parent must not be forked.
+
+        If neither of these policies are met, the access is dropped.
+
+        NOTE: This is a leader-only method (followers have entries appended
+        to their logs via AppendEntries) and will raise an exception if the
+        node is not the leader.
+        """
+
+        # Check to make sure the write isn't forked - if it is, then drop.
         if access.version.parent and access.version.parent.is_forked():
             access.drop()
-            success = False
 
-            # Count the number of "unforked" writes
-            # TODO: THIS IS A COMPLETE HACK!
-            # TODO: GET RID OF THIS!
+            # Fork detection only counts undropped accesses, so by dropping
+            # this access we have "unforked" the write. Track this so we can
+            # analyze how Raft impacts the federated system.
             self.sim.results.update(
                 'unforked writes', (access.version.parent.writer.id, self.env.now)
             )
 
-        else:
-            self.write(access)
-            success = True
+            # Indicate no append to the log occurred
+            return False
 
-        # Send the write response
-        self.send(message.source, WriteResponse(self.currentTerm, success, access))
+        # Check to make sure that the access is later than our latest version.
+        current = self.read_via_policy(access.name)
+        if current is not None and access.version  <= current:
+            access.drop()
+
+            self.sim.results.update(
+                'unordered writes', (access.version.writer.id, self.env.now)
+            )
+
+            # Indicate no append to the log occurred
+            return False
+
+        # Calling super ensures that the access is appended to the log.
+        super(FederatedRaftReplica, self).append_via_policy(access, complete)

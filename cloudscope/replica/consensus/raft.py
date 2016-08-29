@@ -164,15 +164,8 @@ class RaftReplica(ConsensusReplica):
             # Record the number of attempts for the access
             access.attempts += 1
 
-            # Fetch the version from the log or the cache according to the
-            # read policy. This implements READ COMMITTED/READ LATEST
-            latest = self.read_via_policy(access.name)
-
-            # Perform the write
-            if latest is None:
-                version = Version.new(access.name)(self)
-            else:
-                version = latest.nextv(self)
+            # Write a new version to the latest read by policy
+            version = self.write_via_policy(access.name)
 
             # Update the access with the latest version
             access.update(version)
@@ -182,8 +175,7 @@ class RaftReplica(ConsensusReplica):
 
             if self.state == State.LEADER:
                 # Append to log and complete if leader and local
-                self.log.append(version, self.currentTerm)
-                access.complete()
+                self.append_via_policy(access, complete=True)
 
             else:
                 # Store the version in the cache and send remote write.
@@ -205,14 +197,16 @@ class RaftReplica(ConsensusReplica):
 
             if self.state == State.LEADER:
                 # Append to log but do not complete since its remote
-                self.log.append(version, self.currentTerm)
+                self.append_via_policy(access, complete=False)
 
             else:
-                # Why in the world did a remote write happen here?
+                # Remote write occurred from client to a follower
                 self.sim.logger.info(
                     "remote write on follower node: {}".format(self)
                 )
 
+                # Store the version in the cache and send remote write.
+                self.cache[access.name] = version
                 return self.send_remote_write(access)
 
         # At this point we've dealt with local vs. remote, we should be the leader
@@ -350,6 +344,48 @@ class RaftReplica(ConsensusReplica):
 
         # If we've reached this point, we don't know what to do!
         raise SimulationException("Unknown read policy!")
+
+    def write_via_policy(self, name):
+        """
+        This method returns a new version incremented from either from the
+        log or from the cache according to the read policy. It also handles
+        any "new" writes, e.g. to objects that haven't been written yet.
+        """
+        # Fetch the version from the log or the cache according to the
+        # read policy. This implements READ COMMITTED/READ LATEST
+        latest = self.read_via_policy(name)
+
+        # Perform the write
+        if latest is None:
+            return Version.new(name)(self)
+
+        return latest.nextv(self)
+
+    def append_via_policy(self, access, complete=False):
+        """
+        This method is the gatekeeper for the log and can implement policies
+        like "don't admit forks". It must drop the access if it doesn't meet
+        the policy, and complete it if specified.
+
+        NOTE: This is a leader-only method (followers have entries appended
+        to their logs via AppendEntries) and will raise an exception if the
+        node is not the leader.
+        """
+        if self.state != State.LEADER:
+            raise RaftRPCException(
+                "Append via policies called on a follower replica!"
+            )
+
+        # The default policy is just append anything
+        # NOTE: subclasses (as in Federated) can modify this
+        self.log.append(access.version, self.currentTerm)
+
+        # Complete the access if specified by the caller.
+        if complete:
+            access.complete()
+
+        # Indicate that we've successfully appended to the log 
+        return True
 
     ######################################################################
     ## Event Handlers
@@ -617,14 +653,16 @@ class RaftReplica(ConsensusReplica):
         """
         Unpacks the version from the remote write and initiates a local write.
         """
-        access = message.value.version
 
-        # Should we check to see if the write failed, e.g. if it wasn't
-        # sequential or there was some other confict? Or just write away?
+        # Write the access from the remote replica
+        access = message.value.version
         self.write(access)
 
+        # Check if the access was dropped (e.g. the write failed)
+        success = not access.is_dropped()
+
         # Send the write response
-        self.send(message.source, WriteResponse(self.currentTerm, True, access))
+        self.send(message.source, WriteResponse(self.currentTerm, success, access))
 
     def on_write_response_rpc(self, message):
         """

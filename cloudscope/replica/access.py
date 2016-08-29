@@ -336,7 +336,7 @@ class Write(Access):
 
         # Log the dropped write
         self.sim.logger.info(
-            "dropped write of object {} on {}".format(self.name, self)
+            "dropped {} on {}".format(self, self.owner)
         )
 
         return self

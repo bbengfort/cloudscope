@@ -40,6 +40,10 @@ LOCAL_PROB = settings.simulation.local_prob
 ##########################################################################
 
 class FederatedEventualReplica(EventualReplica):
+    """
+    Implements eventual consistency while allowing for integration with
+    strongly consistent replicas. 
+    """
 
     def __init__(self, simulation, **kwargs):
         super(FederatedEventualReplica, self).__init__(simulation, **kwargs)
