@@ -1,10 +1,10 @@
 # cloudscope.results.metrics
 # Specialized metrics objects for recording results accurately
 #
-# Author:   Benjamin Bengfort <bbengfort@districtdatalabs.com>
+# Author:   Benjamin Bengfort <bengfort@cs.umd.edu>
 # Created:  Mon Aug 22 16:10:44 2016 -0400
 #
-# Copyright (C) 2016 District Data Labs
+# Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
 # ID: metrics.py [] benjamin@bengfort.com $

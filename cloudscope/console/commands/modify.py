@@ -1,10 +1,10 @@
 # cloudscope.console.commands.modify
 # Modifies topologies in place for deploying to alternative sites.
 #
-# Author:   Benjamin Bengfort <bbengfort@districtdatalabs.com>
+# Author:   Benjamin Bengfort <bengfort@cs.umd.edu>
 # Created:  Fri Aug 12 11:36:41 2016 -0400
 #
-# Copyright (C) 2016 District Data Labs
+# Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
 # ID: modify.py [] benjamin@bengfort.com $

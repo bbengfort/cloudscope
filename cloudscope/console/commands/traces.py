@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # cloudscope.console.commands.traces
 # Generates random traces to pass directly to the simulations (as input).
 #
@@ -69,6 +70,18 @@ class TracesCommand(Command):
             'metavar': 'P',
             'help': 'the probability of conflict between objects',
         },
+        ('-M', '--access-mean'): {
+            'type': int,
+            'default': settings.simulation.access_mean,
+            'metavar': 'μ',
+            'help': 'specify the mean delay between accesses',
+        },
+        ('-S', '--access-stddev'): {
+            'type': int,
+            'default': settings.simulation.access_stddev,
+            'metavar': 'σ',
+            'help': 'specify the standard deviation of delay between accesses',
+        },
         ('-t', '--timesteps'): {
             'type': int,
             'default': settings.simulation.max_sim_time,
@@ -101,6 +114,8 @@ class TracesCommand(Command):
 
         # Update settings arguments
         settings.simulation.conflict_prob = args.conflict
+        settings.simulation.access_mean   = args.access_mean
+        settings.simulation.access_stddev = args.access_stddev
 
         # Simulation arguments
         kwargs = {
@@ -112,7 +127,7 @@ class TracesCommand(Command):
 
         # Create simulation
         simulation = ConsistencySimulation.load(args.data[0], **kwargs)
-        simulation.trace = None 
+        simulation.trace = None
 
         # Create or select the correct simulation
         if args.best_case or args.tiered:

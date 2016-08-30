@@ -43,6 +43,7 @@ COMMANDS    = [
     OutagesCommand,
     ModifyTopologyCommand,
     TopologyGeneratorCommand,
+    StatusCommand,
 ]
 
 ##########################################################################

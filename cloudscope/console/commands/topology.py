@@ -1,10 +1,10 @@
 # cloudscope.console.commands.topology
 # Generates homogenous topologies on demand
 #
-# Author:   Benjamin Bengfort <bbengfort@districtdatalabs.com>
+# Author:   Benjamin Bengfort <bengfort@cs.umd.edu>
 # Created:  Fri Aug 26 14:04:27 2016 -0400
 #
-# Copyright (C) 2016 District Data Labs
+# Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
 # ID: topology.py [] benjamin@bengfort.com $

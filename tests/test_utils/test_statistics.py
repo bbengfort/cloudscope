@@ -1,10 +1,10 @@
 # tests.test_utils.test_statistics
 # Testing for the statistics utility module.
 #
-# Author:   Benjamin Bengfort <bbengfort@districtdatalabs.com>
+# Author:   Benjamin Bengfort <bengfort@cs.umd.edu>
 # Created:  Tue Aug 23 13:40:49 2016 -0400
 #
-# Copyright (C) 2016 District Data Labs
+# Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
 # ID: test_statistics.py [] benjamin@bengfort.com $

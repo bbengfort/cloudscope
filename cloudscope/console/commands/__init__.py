@@ -28,3 +28,4 @@ from .inspect import InspectCommand
 from .outages import OutagesCommand
 from .modify import ModifyTopologyCommand
 from .topology import TopologyGeneratorCommand
+from .status import StatusCommand

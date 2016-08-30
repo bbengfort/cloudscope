@@ -1,10 +1,10 @@
 # tests.test_results.test_metrics
 # Testing for the results metrics utilities.
 #
-# Author:   Benjamin Bengfort <bbengfort@districtdatalabs.com>
+# Author:   Benjamin Bengfort <bengfort@cs.umd.edu>
 # Created:  Thu Aug 25 12:13:43 2016 -0400
 #
-# Copyright (C) 2016 District Data Labs
+# Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
 # ID: test_metrics.py [] benjamin@bengfort.com $

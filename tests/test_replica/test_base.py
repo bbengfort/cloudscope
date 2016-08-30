@@ -1,10 +1,10 @@
 # tests.test_replica.test_base
 # Testing for the base mechanics and methods of replicas.
 #
-# Author:   Benjamin Bengfort <bbengfort@districtdatalabs.com>
+# Author:   Benjamin Bengfort <bengfort@cs.umd.edu>
 # Created:  Fri Aug 19 07:21:58 2016 -0400
 #
-# Copyright (C) 2016 District Data Labs
+# Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
 # ID: test_base.py [] benjamin@bengfort.com $
