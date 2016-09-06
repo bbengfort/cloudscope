@@ -369,7 +369,7 @@ class BernoulliDistribution(Distribution):
         self.q = 1 - p
 
     def next(self):
-        return random.random() < self.p
+        return random.random() <= self.p
 
 ## Alias for Bernoulli Distribution
 Bernoulli = BernoulliDistribution

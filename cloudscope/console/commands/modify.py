@@ -83,6 +83,18 @@ class ModifyTopologyCommand(Command):
             "dest": "wide_stddev",
             "help": 'modify the wide area connection latency standard deviation',
         },
+        '--sync-prob': {
+            "metavar": "P",
+            "type": float,
+            "default": None,
+            "help": "modify the sync probability of eventual nodes",
+        },
+        '--local-prob': {
+            "metavar": "P",
+            "type": float,
+            "default": None,
+            "help": "modify the select local probability of eventual nodes",
+        },
         ('-T', '--traces'): {
             "metavar": "PATH",
             "default": None,
@@ -143,6 +155,12 @@ class ModifyTopologyCommand(Command):
             mods += self.modify_traces(
                 topo, args.traces
             )
+
+        # Modify Raft nodes
+        mods += self.modify_sequential(topo, args)
+
+        # Modify Eventual nodes
+        mods += self.modify_eventual(topo, args)
 
         # Modify the meta data with the new information.
         mods += self.modify_meta_info(topo, args)
@@ -285,6 +303,47 @@ class ModifyTopologyCommand(Command):
         if args.meta:
             for key, val in args.meta.items():
                 mods += self.update_meta_param(topo, key, val)
+
+        return mods
+
+    def modify_sequential(self, topo, args):
+        """
+        Modify sequential nodes with specific policies.
+
+        For now, this method is a noop.
+        """
+        return 0
+
+    def modify_eventual(self, topo, args):
+        """
+        Modify eventual nodes with specific policies. This method currently:
+
+            - sets the sync probability if given (and modifies the meta)
+            - sets the local probability if given (and modifies the meta)
+
+        Returns the number of modifications made.
+        """
+        mods = 0 # count the number of modifications
+
+        # Modify each node's local and sync probabilities
+        for node in topo['nodes']:
+
+            # Only modify eventual or stentor nodes
+            if node['consistency'] not in {'eventual', 'stentor'}:
+                continue
+
+            if args.sync_prob is not None:
+                mods += self.update_dict_value(node, 'sync_prob', args.sync_prob)
+
+            if args.local_prob is not None:
+                mods += self.update_dict_value(node, 'local_prob', args.local_prob)
+
+        # Modify the meta information
+        if args.sync_prob is not None:
+            mods += self.update_meta_param(topo, 'sync_prob', args.sync_prob)
+
+        if args.local_prob is not None:
+            mods += self.update_meta_param(topo, 'local_prob', args.local_prob)
 
         return mods
 

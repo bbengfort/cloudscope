@@ -20,6 +20,7 @@ Implements eventual (low) consistency and high availability.
 import random
 
 from cloudscope.config import settings
+from cloudscope.dynamo import Bernoulli
 from cloudscope.replica import Consistency
 from cloudscope.replica.eventual import Gossip
 from cloudscope.replica.eventual import EventualReplica
@@ -42,15 +43,15 @@ LOCAL_PROB = settings.simulation.local_prob
 class FederatedEventualReplica(EventualReplica):
     """
     Implements eventual consistency while allowing for integration with
-    strongly consistent replicas. 
+    strongly consistent replicas.
     """
 
     def __init__(self, simulation, **kwargs):
         super(FederatedEventualReplica, self).__init__(simulation, **kwargs)
 
         # Federated settings
-        self.sync_prob    = kwargs.get('anti_entropy_delay', SYNC_PROB)
-        self.local_prob   = kwargs.get('do_gossip', LOCAL_PROB)
+        self.do_sync  = Bernoulli(kwargs.get('sync_prob', SYNC_PROB))
+        self.do_local = Bernoulli(kwargs.get('local_prob', LOCAL_PROB))
 
     def select_anti_entropy_neighbor(self):
         """
@@ -59,7 +60,7 @@ class FederatedEventualReplica(EventualReplica):
         consistency nodes to perform anti-entropy with.
         """
         # Decide if we should sync with the core consensus group
-        if random.random() <= self.sync_prob:
+        if self.do_sync.get():
 
             # Find a strong consensus node that is local
             neighbors = self.neighbors(
@@ -74,7 +75,7 @@ class FederatedEventualReplica(EventualReplica):
             if neighbors: return random.choice(neighbors)
 
         # Decide if we should do anti-entropy locally or across the wide area.
-        if random.random() <= self.local_prob:
+        if self.do_local.get():
             # Find all local nodes with the same consistency.
             neighbors = self.neighbors(
                 consistency=[Consistency.EVENTUAL, Consistency.STENTOR],
