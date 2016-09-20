@@ -384,7 +384,7 @@ class RaftReplica(ConsensusReplica):
         if complete:
             access.complete()
 
-        # Indicate that we've successfully appended to the log 
+        # Indicate that we've successfully appended to the log
         return True
 
     ######################################################################
