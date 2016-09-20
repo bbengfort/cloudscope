@@ -102,7 +102,7 @@ class TopologyGeneratorCommand(Command):
         '--tick-model': {
             'type': str,
             'default': 'bailis',
-            'choices': ['howard', 'bailis'],
+            'choices': ['howard', 'bailis', 'conservative', 'optimistic'],
             'metavar': 'method',
             'help': 'specify tick computation method based on latency',
         },

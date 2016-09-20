@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # cloudscope.experiment
 # Takes a topology as a template and generates experiments from it.
 #
@@ -17,6 +18,7 @@ Takes a topology as a template and generates experiments from it.
 ## Imports
 ##########################################################################
 
+import math
 import json
 import collections
 
@@ -81,13 +83,15 @@ def nested_randomize(d):
     return r
 
 
-def compute_tick(mu, sd, model='bailis'):
+def compute_tick(mu, sd, model='conservative'):
     """
     Compute the tick parameter from the model.
     """
     model = {
         'bailis': lambda mu, sd: 10*mu,
         'howard': lambda mu, sd: 2*(mu+(2*sd)),
+        'conservative': lambda mu, sd: 6*(mu + (4*sd)),
+        'optimistic': lambda mu, sd: 2*(mu + (4*sd)),
     }[model]
 
     return model(mu, sd)
@@ -412,7 +416,7 @@ class FederatedLatencyVariation(LatencyVariation):
         """
         defaults = nested_update({
             'tick_metric': {
-                'method': 'howard', # Can be either Howard or Bailis for now.
+                'method': 'conservative',
             }
         }, options)
 
@@ -424,31 +428,16 @@ class FederatedLatencyVariation(LatencyVariation):
         computed by the super class (LatencyVariation).
 
         T is a parameter that is measured from the mean and stddev of latency.
-
-        The howard model proposes T = 2(mu + 2sd)
-        The bailis model proposes T = 10mu
+        See compute_tick for more information.
         """
-
-        # Model mapping
-        models = {
-            'bailis': lambda mu, sd: 10*mu,
-            'howard': lambda mu, sd: 2*(mu + (2*sd)),
-        }
-
         # Select the model
         model = self.options['tick_metric']['method']
-        if model not in models:
-            raise BadValue(
-                "Unknown model '{}', choose from {}".format(
-                    model, ", ".join(models.keys())
-                )
-            )
 
         for latency in super(FederatedLatencyVariation, self).latencies(n):
             # Add the tick metrick to the latency parameters
-            latency['tick_metric'] = int(round(models[model](
-                latency['latency_mean'], latency['latency_stddev']
-            )))
+            latency['tick_metric'] = compute_tick(
+                latency['latency_mean'], latency['latency_stddev'], model
+            )
             yield latency
 
     def get_raft_params(self, tick):
@@ -464,6 +453,29 @@ class FederatedLatencyVariation(LatencyVariation):
         Returns the anti_entropy_delay according to the tick.
         """
         return int(round(float(tick) / 4.0))
+
+    def get_network_distribution(self, experiment):
+        """
+        Returns the local and wide distribution as well as the range.
+        """
+        dists = {
+            WIDE_AREA: {
+                'mu': 0, 'var': 0, 'n': 0,
+            },
+            LOCAL_AREA: {
+                'mu': 0, 'var': 0, 'n': 0,
+            }
+        }
+
+        for link in experiment['links']:
+            dists[link['area']]['mu'] += link['latency'][0]
+            dists[link['area']]['var'] += (link['latency'][1] ** 2)
+            dists[link['area']]['n'] += 1
+
+        return {
+            key: (val['mu'] / val['n'], math.sqrt(val['var'] / val['n']))
+            for key, val in dists.items()
+        }
 
     def update_node_params(self, node, **kwargs):
         """
@@ -520,3 +532,16 @@ class FederatedLatencyVariation(LatencyVariation):
 
         # Add the eventual parameters to the meta information
         experiment['meta']['anti_entropy_delay'] = self.get_eventual_params(tick)
+
+        # Add the network distribution parameters
+        dists = self.get_network_distribution(experiment)
+        experiment['meta']['local_latency'] = dists[LOCAL_AREA]
+        experiment['meta']['wide_latency'] = dists[WIDE_AREA]
+
+        # TODO: This is only here because we default to normal networks now.
+        netmu = float(dists[LOCAL_AREA][0] + dists[WIDE_AREA][0]) / 2.0
+        netsd = math.sqrt(float(dists[LOCAL_AREA][1] ** 2 + dists[WIDE_AREA][1] ** 2) / 2.0)
+
+        experiment['meta']['variable'] = "{:0.0f}-{:0.0f}ms".format(
+            netmu - 3*netsd, netmu + 3*netsd
+        )

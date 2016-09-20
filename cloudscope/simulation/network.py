@@ -349,13 +349,15 @@ class Network(object):
             for conn, late in latencies.iteritems()
         ])
 
-    def compute_tick(self, model='howard', estimator='mean'):
+    def compute_tick(self, model='conservative', estimator='mean'):
         """
         Computes the tick, T of the network: a parameter that is measured
         from the mean and standard deviation of latencies in the network.
 
         The howard model proposes T = 2(mu + 2sd)
         The bailis model proposes T = 10mu
+        The conservative model proposes T = 6(mu + 4sd)
+        The optimistic model proposes   T = 2(mu + 4sd)
 
         For Raft parameters are usually set as follows:
             - heartbeat interval = T/2
@@ -391,6 +393,8 @@ class Network(object):
         models = {
             'bailis': lambda mu, sd: 10*mu,
             'howard': lambda mu, sd: 2*(mu + (2*sd)),
+            'conservative': lambda mu, sd: 6*(mu + (4*sd)),
+            'optimistic': lambda mu, sd: 2*(mu + (4*sd)),
         }
 
         # Select the model

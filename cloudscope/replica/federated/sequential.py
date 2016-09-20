@@ -123,7 +123,8 @@ class FederatedRaftReplica(RaftReplica):
         Selects the neighbors to perform anti-entropy with.
         """
         for _ in xrange(self.n_neighbors):
-            yield self.select_anti_entropy_neighbor()
+            neighbor = self.select_anti_entropy_neighbor()
+            if neighbor: yield neighbor
 
     def append_via_policy(self, access, complete=False):
         """
@@ -205,7 +206,7 @@ class FederatedRaftReplica(RaftReplica):
                     'unforked writes', (access.version.parent.writer.id, self.env.now)
                 )
 
-                # Send back the current, unforked version if we have one. 
+                # Send back the current, unforked version if we have one.
                 if current: updates.append(current.access)
 
             # If the access is greater than our current version, write it!

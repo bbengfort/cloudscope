@@ -118,8 +118,8 @@ class GenerateCommand(Command):
         },
         '--tick-metric': {
             'type': str,
-            'default': 'howard',
-            'choices': ['howard', 'bailis'],
+            'default': 'conservative',
+            'choices': ['howard', 'bailis', 'conservative', 'optimistic'],
             'metavar': 'method',
             'help': 'specify tick computation method based on latency',
         },
@@ -144,6 +144,7 @@ class GenerateCommand(Command):
         topology  = args.topology[0]
         name, ext = os.path.splitext(os.path.basename(topology.name))
 
+        idx =0
         # Generate the experiments and write them to disk
         for idx, experiment in enumerate(self.get_experiments(topology, args)):
             newname = "{}-{:0>2}{}".format(name, idx+1, ext)

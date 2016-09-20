@@ -213,7 +213,7 @@ class ModifyTopologyCommand(Command):
             )
 
         # Compute the tick parameter and timing params
-        tick_model = model=topo['meta'].get('tick_param_model', 'bailis')
+        tick_model = model=topo['meta'].get('tick_param_model', 'conservative')
         T = compute_tick(mean, stddev, tick_model)
 
         # Timing parameters for individual nodes
