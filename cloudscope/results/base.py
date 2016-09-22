@@ -24,6 +24,7 @@ from .report import details as report_details
 from .report import topology as report_topology
 from .metrics import MessageCounter
 from .metrics import LatencyDistribution
+from .consistency import ConsistencyValidator
 
 from cloudscope.config import settings
 from cloudscope.utils.serialize import JSONEncoder
@@ -56,6 +57,7 @@ class Results(object):
         # Get the objects to deserialize
         messages = data.pop('messages', None)
         latencies = data.pop('latencies', None)
+        consistency = data.pop('consistency', None)
 
         results = klass(**data)
 
@@ -66,20 +68,24 @@ class Results(object):
         if latencies:
             results.latencies = LatencyDistribution.deserialize(latencies)
 
+        if consistency:
+            results.consistency = ConsistencyValidator.deserialize(consistency)
+
         # Return the results object
         return results
 
     def __init__(self, **kwargs):
         # Set reasonable defaults for results
-        self.results    = defaultdict(list)
-        self.timer      = Timer()
-        self.simulation = None
-        self.version    = cloudscope.get_version()
-        self.randseed   = settings.simulation.random_seed
-        self.timesteps  = settings.simulation.max_sim_time
-        self.settings   = dict(settings.simulation.options())
-        self.messages   = MessageCounter()
-        self.latencies  = LatencyDistribution()
+        self.results     = defaultdict(list)
+        self.timer       = Timer()
+        self.simulation  = None
+        self.version     = cloudscope.get_version()
+        self.randseed    = settings.simulation.random_seed
+        self.timesteps   = settings.simulation.max_sim_time
+        self.settings    = dict(settings.simulation.options())
+        self.messages    = MessageCounter()
+        self.latencies   = LatencyDistribution()
+        self.consistency = ConsistencyValidator()
 
         # Set any properties that need to be serialized (override above)
         for key, val in kwargs.iteritems():
