@@ -57,7 +57,7 @@ class Results(object):
         # Get the objects to deserialize
         messages = data.pop('messages', None)
         latencies = data.pop('latencies', None)
-        consistency = data.pop('consistency', None)
+        # consistency = data.pop('consistency', None)
 
         results = klass(**data)
 
@@ -68,8 +68,8 @@ class Results(object):
         if latencies:
             results.latencies = LatencyDistribution.deserialize(latencies)
 
-        if consistency:
-            results.consistency = ConsistencyValidator.deserialize(consistency)
+        # if consistency:
+        #     results.consistency = ConsistencyValidator.deserialize(consistency)
 
         # Return the results object
         return results

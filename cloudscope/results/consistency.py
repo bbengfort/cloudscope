@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # cloudscope.results.consistency
 # Support for consistency verification and checking after a simulation.
 #
@@ -18,8 +19,11 @@ Support for consistency verification and checking after a simulation.
 ##########################################################################
 
 from cloudscope.config import settings
+from cloudscope.utils.statistics import mean
 from cloudscope.utils.decorators import memoized, Timer
 
+from tabulate import tabulate
+from operator import itemgetter
 from distance import nlevenshtein, jaccard
 from collections import Counter, defaultdict
 
@@ -49,12 +53,27 @@ class ConsistencyValidator(object):
         """
         self.validated  = False      # state of the validator
         self.n_objects  = None       # number of observed objects in logs
+        self.n_entries  = None       # the number of unique entries in all logs
         self.namespace  = None       # the set of unique object names in logs
         self.logs       = None       # per-log replica analysis
         self.duplicates = None       # total number of duplicates
         self.mono_errs  = None       # total number of monotonically increasing errors
         self.forks      = None       # total number of forks in the log
+        self.missing    = None       # total number of missing entries in all logs
         self.distance   = None       # pairwise distances between all the logs
+
+    @memoized
+    def name_classes(self):
+        """
+        Returns the set of all version classes (e.g. object names) in the
+        system, particularly in order to compute the latest versions.
+        """
+        return frozenset(
+            vers.__class__
+            for log in self.logs.values()
+            for vers in log.iter_versions()
+        )
+
 
     def validate(self, simulation):
         """
@@ -76,10 +95,17 @@ class ConsistencyValidator(object):
                 for replica in simulation.replicas
             }
 
+            # Global metrics
+            self.namespace = Counter()
+            for log in self.logs.values(): self.namespace += log.namespace
+            self.n_objects = len(self.namespace)
+            self.n_entries = sum(name.counter.value for name in self.name_classes)
+
             # Count single log errors
             self.forks = sum(log.num_forks() for log in self.logs.values())
             self.duplicates = sum(log.num_duplicates() for log in self.logs.values())
             self.mono_errs = sum(log.num_monoincr_errors() for log in self.logs.values())
+            self.missing = sum(log.num_missing() for log in self.logs.values())
 
             # Compute log similarities
             self.distance = defaultdict(lambda: defaultdict(dict))
@@ -95,6 +121,56 @@ class ConsistencyValidator(object):
         simulation.logger.info(
             "Consistency validation complete, took {}.".format(t)
         )
+
+    def log_inconsistency_table(self):
+        """
+        Returns a pretty table of log inconsistencies.
+        """
+        # The names of the fields in each row.
+        keys = ["name", "entries", "forks", "monoincr errors", "duplicates", "missing"]
+
+        # Append the per log entries
+        table = [(
+            name, log.n_entries, log.num_forks(), log.num_monoincr_errors(),
+            log.num_duplicates(), log.num_missing(),
+        ) for name, log in sorted(self.logs.items(), key=itemgetter(0))]
+
+        # Append the totals from the log.
+        table.append((
+            'total', self.n_entries, self.forks, self.mono_errs, self.duplicates, self.missing
+        ))
+
+        return tabulate(table, headers=keys, tablefmt='simple')
+
+    def split_log_distance_table(self):
+        """
+        Returns a matrix of levenshtein and jaccard distances.
+        """
+
+        keys  = [u'J↓ L→'] + sorted(self.logs.keys())
+        table = []
+
+        for idx, ri in enumerate(keys):
+            if idx == 0: continue
+
+            row = []
+            distance = 'jaccard'
+
+            for jdx, rj in enumerate(keys):
+                # This is the name column in this case.
+                if jdx == 0:
+                    row.append(ri)
+                    continue
+
+                # We've reached the middle of the row.
+                if ri == rj:
+                    distance = 'levenshtein'
+
+                row.append("{:0.2f}".format(self.distance[distance][ri][rj]))
+
+            table.append(row)
+
+        return tabulate(table, headers=keys, tablefmt='simple')
 
     def serialize(self):
         """

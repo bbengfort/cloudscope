@@ -95,7 +95,7 @@ class SimulationConfiguration(Configuration):
 
     # Network Parameters
     trace_messages       = True         # Create a time series of all messages (lots of disk space required)
-    validate_consistency = True         # Create a consistency report for all replicas post simulation.
+    validate_consistency = False        # Create a consistency report for all replicas post simulation.
     trace_logs           = False        # Write out the logs of all replicas in the results (more disk usage)
     aggregate_heartbeats = True         # Differentiate between append entries and heartbeat messages.
     default_latency      = 800
