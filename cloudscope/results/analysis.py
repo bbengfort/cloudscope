@@ -182,24 +182,36 @@ class TimeSeriesAggregator(object):
         """
         Expects a time series in the form of:
 
-            (owner, timestamp)
+            (owner, timestamp, created, latest version, read version)
 
-        Returns the number of stale reads
+        Returns the number of stale reads, mean time, and version staleness.
         """
+        time_stale = [v[1] - v[2] for v in values]
+        vers_stale = [v[3] - v[4] for v in values]
+
         return {
             label: len(values),
+            "cumulative read time staleness (ms)": sum(time_stale),
+            "mean read time staleness (ms)": mean(time_stale),
+            "mean read version staleness": mean(vers_stale),
         }
 
     def handle_stale_writes(self, label, values):
         """
         Expects a time series in the form of:
 
-            (owner, timestamp)
+            (owner, timestamp, created, latest version, read version)
 
-        Returns the number of stale reads
+        Returns the number of stale writes, mean time, and version staleness.
         """
+        time_stale = [v[1] - v[2] for v in values]
+        vers_stale = [v[3] - v[4] for v in values]
+
         return {
             label: len(values),
+            "cumulative write time staleness (ms)": sum(time_stale),
+            "mean write time staleness (ms)": mean(time_stale),
+            "mean write version staleness": mean(vers_stale),
         }
 
     def handle_dropped_writes(self, label, values):

@@ -44,12 +44,6 @@ class SimulateCommand(Command):
             'metavar': 'PATH',
             'help': 'specify location to write output to',
         },
-        ('-g', '--graph'): {
-            'type': argparse.FileType('w'),
-            'default': None,
-            'metavar': 'PATH',
-            'help': 'specify location to write the simulation graph',
-        },
         ('-T', '--trace'): {
             'type': str,
             'default': None,
@@ -61,6 +55,11 @@ class SimulateCommand(Command):
             'default': None,
             'metavar': 'PATH',
             'help': 'specify the path to the outages script',
+        },
+        ('-c', '--consistency-report'):{
+            'action': 'store_true',
+            'default': False,
+            'help': 'validate consistency and print report when complete',
         },
         'data': {
             'nargs': '+',
@@ -86,6 +85,11 @@ class SimulateCommand(Command):
         """
         Entry point for the simulation runner.
         """
+
+        # Make sure we perform consistency validation if arg set.
+        if args.consistency_report:
+            settings.simulation.validate_consistency = True
+
         if len(args.data) > 1:
             return self.handle_multiple(args)
         return self.handle_single(args)
@@ -105,9 +109,13 @@ class SimulateCommand(Command):
             args.output = self.get_output_path(sim.name, sim.results.finished)
         sim.results.dump(args.output)
 
-        # Dump the graph data to a file.
-        if args.graph:
-            sim.dump(args.graph, indent=2)
+        # Print out the consistency report.
+        if args.consistency_report:
+            print "\nPer Log Consistency Report"
+            print sim.results.consistency.log_inconsistency_table()
+            print "\nSplit Log Distance Report (Jaccard and Levenshtein)"
+            print sim.results.consistency.split_log_distance_table()
+            print 
 
         return "Results for {} written to {}".format(sim.name, args.output.name)
 

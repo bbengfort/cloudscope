@@ -192,12 +192,17 @@ class Version(object):
         # NOTE: You have to do this before you create the next version
         # otherwise by definition the parent is stale!
         if self.is_stale():
-            # Count the number of stale writes
+            # Count the number of stale writes as well as provide a mechanism
+            # for computing time and version staleness for the write.
             self.writer.sim.results.update(
-                'stale writes', (self.writer.id, self.writer.env.now)
+                'stale writes', (
+                    self.writer.id,
+                    self.writer.env.now, self.created,
+                    self.counter.value, self.version,
+                )
             )
 
-        # Create the next version at this point. 
+        # Create the next version at this point.
         nv = self.__class__(
             replica, parent=self, level=self.level
         )

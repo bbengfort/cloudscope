@@ -99,6 +99,12 @@ class WriteLog(object):
             return lastApplied >= self.lastApplied
         return lastTerm > self.lastTerm
 
+    def freeze(self):
+        """
+        Returns an immutable copy of the log.
+        """
+        return tuple(self.log)
+
     def __getitem__(self, idx):
         return self.log[idx]
 

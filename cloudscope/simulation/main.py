@@ -97,6 +97,7 @@ class ConsistencySimulation(Simulation):
                 )
             )
 
+        # Update the results with runtime settings and serialize the topo.
         self.results.settings['users'] = self.users
         self.results.topology = self.serialize()
 
@@ -109,6 +110,11 @@ class ConsistencySimulation(Simulation):
         if aedelays:
             self.results.settings['anti_entropy_delay'] = int(sum(aedelays) / len(aedelays))
 
+        # Call consistency checker on all the replica logs
+        if settings.simulation.validate_consistency:
+            self.results.consistency.validate(self)
+
+        # Finialize logging and wrap up the simulation
         super(ConsistencySimulation, self).complete()
 
     def script(self):

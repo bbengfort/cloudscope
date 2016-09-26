@@ -282,6 +282,8 @@ class Read(Access):
 
             - read latency
             - stale reads
+            - time (t) staleness
+            - version (k) staleness
 
         Logs the following information:
 
@@ -296,9 +298,14 @@ class Read(Access):
         )
 
         if self.version.is_stale():
-            # Count the number of stale reads
+            # Count the number of stale reads as well as provide a mechanism
+            # for computing time and version staleness.
             self.sim.results.update(
-                'stale reads', (self.owner.id, self.env.now)
+                'stale reads', (
+                    self.owner.id,
+                    self.env.now, self.version.created,
+                    self.version.counter.value, self.version.version,
+                )
             )
 
             # Log the stale read

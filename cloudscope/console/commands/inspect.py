@@ -34,6 +34,26 @@ EXCLUDE_SETTINGS = [
     'title', 'description', 'constant', 'variable', 'seed',
 ]
 
+ENVIRONMENT_KEYS = [
+    'type', 'users', 'nodes', 'links', 'wide_latency', 'local_latency',
+]
+
+EVENTUAL_KEYS = [
+    'anti_entropy_delay', 'local_prob', 'sync_prob', 'num_neighbors',
+]
+
+RAFT_KEYS = [
+    'election_timeout', 'heartbeat_interval',
+]
+
+TIMING_KEYS = [
+    'latency_mean', 'latency_stddev', 'latency_range', 'tick_param_model', 'tick_metric',
+]
+
+WORKLOAD_KEYS = [
+    'conflict_prob', 'trace', 'users',
+]
+
 TABLE_FORMATS = [
     "plain", "simple", "grid", "fancy_grid", "pipe", "orgtbl", "rst",
     "mediawiki", "html", "latex", "latex_booktabs",
@@ -65,6 +85,42 @@ class InspectCommand(Command):
             'default': EXCLUDE_SETTINGS,
             'help': 'specify a list of settings to exclude for easier printing',
         },
+        ('-i', '--include'): {
+            'type': csv(str),
+            'metavar': 'KEY,KEY,...',
+            'default': None,
+            'help': 'specify only the settings to be displayed',
+        },
+        ('-s', '--show-keys'): {
+            'action': 'store_true',
+            'default': False,
+            'help': 'list the keys in the topologies and exit',
+        },
+        ('-E', '--environment'): {
+            'action': 'store_true',
+            'default': False,
+            'help': 'quick helper to show environment related keys',
+        },
+        ('-B', '--eventual'): {
+            'action': 'store_true',
+            'default': False,
+            'help': 'quick helper to show eventual consistency related keys',
+        },
+        ('-R', '--raft'): {
+            'action': 'store_true',
+            'default': False,
+            'help': 'quick helper to show raft related keys',
+        },
+        ('-W', '--workload'): {
+            'action': 'store_true',
+            'default': False,
+            'help': 'quick helper to show workload related keys',
+        },
+        ('-T', '--timing'): {
+            'action': 'store_true',
+            'default': False,
+            'help': 'quick helper to show timing related keys',
+        },
         'topology': {
             'nargs': "+",
             'type': str,
@@ -78,6 +134,24 @@ class InspectCommand(Command):
         """
         Returns a string representation of a table of all the settings.
         """
+        # If we're only showing keys, don't exclude anything
+        if args.show_keys: args.exclude = []
+
+        # Quick helper for fixed key sets preloaded into the command
+        flags = [args.environment, args.eventual, args.raft, args.timing, args.workload]
+        fixed_keys = [ENVIRONMENT_KEYS, EVENTUAL_KEYS, RAFT_KEYS, TIMING_KEYS, WORKLOAD_KEYS]
+        for flag, keys in zip(flags, fixed_keys):
+            if flag:
+                if args.include:
+                    args.include += keys
+                else:
+                    args.include = keys
+
+        # If key in both include and exclude, remove from exclude
+        if args.include:
+            for key in args.include:
+                if key in args.exclude: args.exclude.remove(key)
+
         # If we have a key to aggregate on, aggregate by it.
         # Aggregation mechanism is currently just set for now.
         if args.aggregator:
@@ -85,8 +159,30 @@ class InspectCommand(Command):
         else:
             settings = self.inspect_topologies(args)
 
+        # Show only the keys column
+        if args.show_keys:
+            keys = [[key] for key in sorted(settings.keys())]
+            return tabulate(keys, headers=['available keys'], tablefmt=args.tablefmt)
+
+        # Sort the table by keys
+        headers = sorted(settings.keys())
+
+        # Either file, settings, or type should be the first column.
+        for fcoln in ('setting', 'file', 'type'):
+            if fcoln in headers:
+                headers.insert(0, headers.pop(headers.index(fcoln)))
+                break
+
+        # Right now the data format is a dictionary of lists; convert to
+        # ensure that the sorted header order is maintained in the table.
+        table = []
+        for col, header in enumerate(headers):
+            for row, value in enumerate(settings[header]):
+                if col == 0: table.append([])
+                table[row].append(value)
+
         # Return the tabulation
-        return tabulate(settings, headers="keys", tablefmt=args.tablefmt)
+        return tabulate(table, headers=headers, tablefmt=args.tablefmt)
 
     def inspect_topologies(self, args):
         """
@@ -101,6 +197,7 @@ class InspectCommand(Command):
         for path in self.all_topology_paths(args.topology):
             for key, val in self.read_meta_data(path).iteritems():
                 if args.exclude and key in args.exclude: continue
+                if args.include and key not in args.include: continue
                 settings[key].append(val)
 
         return settings
@@ -129,6 +226,7 @@ class InspectCommand(Command):
             for key, val in meta.iteritems():
                 if key == aggkey: continue
                 if args.exclude and key in args.exclude: continue
+                if args.include and key not in args.include: continue
 
                 # if val is a list, make it a tuple
                 if isinstance(val, list):
