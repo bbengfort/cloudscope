@@ -8,10 +8,11 @@ Each replica server maintains an ordered log of _writes_ that is appended to acc
 
 ## Metrics
 
-The consistency report validates the simulation in two ways:
+The consistency report validates the simulation in several ways:
 
 1. Per-log analysis for each replica server
 2. Pairwise log to log comparisons for each replica server combination.
+3. Analysis of version history trees
 
 Note that currently these metrics only take into account the entries that are in the logs and ignore any entry that is not in a replica server's log (e.g. dropped or unavailable writes).
 
@@ -36,6 +37,14 @@ We compare two logs via the following normalized distance metrics (where 0.0 is 
 
 Both distance metrics are normalized to the space between 0 and 1, where 0 is identical. Note that the pairwise metrics are presented as a square array of distances where the lower-left triangle is Jaccard distance and the upper right triangle is Levenshtein distance (the diagonal will always be zero).
 
+### Version History Metrics 
+
+Analysis of the version history tree is intended to go beyond a simple count of forks. Instead, we hope to measure "branchiness", that is the deviation from a sequential ordering for each version, taking into account branch length to study the impact of forks, not just their existence. 
+
+The current mechanism to compute "branchiness" is the average depth of each leaf node from the root, normalized by the number of nodes in the tree. The idea was taht a sequential version tree would have a "branchiness" of 1, while any forks of any length would result in a lower branchiness. E.g. a fork with 2 equal length branches would have a "branchiness" of 0.5 and the worst case scenario, all versions forked from the root would have a "branchiness" approaching zero. 
+
+Unfortunately due to the disconnectedness of the version trees, this approach does not appear to be working as intended; more discussion required.   
+
 ## Consistency Results
 
 In this section, we present the consistency validation reports for the following consistency/replication models:
@@ -56,6 +65,12 @@ Timing was as follows:
 - Consistency validation took 6 minutes 15 seconds
 
 The simulation consisted of 20 nodes in 5 areas (a-e), 4 nodes per area with a local area latency normally distributed as 30μ, 5σ ms and a wide area latency normally distributed as 300μ, 50σ ms. The simulation ran for 15 simulated minutes and traced 5,995 accesses (both reads and writes) across 114 objects with a conflict likelihood of 0.4.
+
+Note that we measured "branchiness" for the current version as follows: 
+
+```
+Average num nodes: 19.52, Average Branchiness: 1.018
+```
 
 #### Raft Per Log Consistency Report
 
@@ -126,6 +141,12 @@ Timing was as follows:
 - Consistency validation took 44 minutes 34 seconds
 
 The simulation consisted of 20 nodes in 5 areas (a-e), 4 nodes per area with a local area latency normally distributed as 30μ, 5σ ms and a wide area latency normally distributed as 300μ, 50σ ms. The simulation ran for 15 simulated minutes and traced 5,995 accesses (both reads and writes) across 114 objects with a conflict likelihood of 0.4.
+
+Note that we measured "branchiness" for the current version as follows: 
+
+```
+Average num nodes: 20.03, Average Branchiness: 0.937
+```
 
 #### Eventual Per Log Consistency Report
 
@@ -198,6 +219,8 @@ Timing was as follows:
 - Consistency validation took 4 hours 34 minutes 47 seconds
 
 The simulation consisted of 20 nodes in 5 areas (a-e), 4 nodes per area with a local area latency normally distributed as 30μ, 5σ ms and a wide area latency normally distributed as 300μ, 50σ ms. The simulation ran for 15 simulated minutes and traced 5,995 accesses (both reads and writes) across 114 objects with a conflict likelihood of 0.4.
+
+Note that we bottomed out on the maximum recursion depth for Federated. 
 
 #### Federated Per Log Consistency Report
 
