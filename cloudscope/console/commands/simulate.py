@@ -44,6 +44,12 @@ class SimulateCommand(Command):
             'metavar': 'PATH',
             'help': 'specify location to write output to',
         },
+        ('-t', '--timesteps'): {
+            'type': int,
+            'default': settings.simulation.max_sim_time,
+            'metavar': 'T',
+            'help': 'set the maximum simulation time',
+        },
         ('-T', '--trace'): {
             'type': str,
             'default': None,
@@ -90,6 +96,9 @@ class SimulateCommand(Command):
         if args.consistency_report:
             settings.simulation.validate_consistency = True
 
+        # Set the maximum simulation time
+        settings.simulation.max_sim_time = args.timesteps
+
         if len(args.data) > 1:
             return self.handle_multiple(args)
         return self.handle_single(args)
@@ -115,7 +124,7 @@ class SimulateCommand(Command):
             print sim.results.consistency.log_inconsistency_table()
             print "\nSplit Log Distance Report (Jaccard and Levenshtein)"
             print sim.results.consistency.split_log_distance_table()
-            print 
+            print
 
         return "Results for {} written to {}".format(sim.name, args.output.name)
 
