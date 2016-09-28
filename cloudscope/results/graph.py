@@ -328,3 +328,39 @@ def extract_graph_tool_graph(results, **kwargs):
 
 def extract_networkx_graph(results, **kwargs):
     raise NotImplementedError("Not implemented quite yet.")
+
+
+def gt_info(g):
+    """
+    Prints out an info statement similar to networkx.
+
+        Name: Baleen Keyphrase Graph
+        Type: Graph
+        Number of nodes: 139227
+        Number of edges: 257316
+        Average degree:   3.6964
+
+    Uses an simple format string to do this.
+    """
+
+    # Set up the output
+    output = []
+
+    # Append the graph string properties
+    for key in g.gp.keys():
+        output.append("{}: {}".format(key.title(), g.gp[key]))
+
+
+    # Detect the graph type
+    graph_type = "DiGraph" if g.is_directed() else "Graph"
+    output.append("Type: {}".format(graph_type))
+
+    # Add the number of nodes and edges
+    output.append("Number of nodes: {:,}".format(g.num_vertices()))
+    output.append("Number of edges: {:,}".format(g.num_edges()))
+
+    # Add the average degree and standard deviation
+    output.append("Average degree:  {:0.3f}𝜇 {:0.3f}𝜎".format(*gt.vertex_average(g, 'total')))
+
+    # Return the info string
+    return "\n".join(output)
