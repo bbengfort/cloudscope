@@ -48,7 +48,7 @@ mechanism rather than any remote reads/writes.
 import random
 
 from .base import Replica
-from .store import Version
+from .store import namespace
 from .store import MultiObjectWriteLog
 
 from cloudscope.config import settings
@@ -162,7 +162,7 @@ class EventualReplica(Replica):
 
             # Perform the write
             if latest is None:
-                version = Version.new(access.name)(self)
+                version = namespace(access.name)(self)
             else:
                 version = latest.nextv(self)
 
@@ -267,6 +267,56 @@ class EventualReplica(Replica):
         for _ in xrange(self.n_neighbors):
             yield self.select_anti_entropy_neighbor()
 
+    def update_forte_children(self, current, remote):
+        """
+        This unfortunately named method is a recursive function that updates
+        all the children of the remote version with the new forte number and
+        returns the newly correct current version.
+
+        The idea here is that if the current version has a lower forte number
+        then we should update the children of the remote (higher forte) in
+        order to make sure that the latest branch is current.
+
+        This method provides backpressure from Raft to Eventual.
+        """
+
+        def update_forte(forte, version, current):
+            """
+            Recursive update the forte number for a particular version.
+            """
+            # Update all the version's children with its forte number.
+            for child in version.children:
+                # Only update children that are in the current log.
+                if child in self.log:
+                    # Update child forte to parent and detect current
+                    child.forte = forte
+                    if child > current: current = child
+
+                # Recurse on grandchildren
+                current = update_forte(forte, child, current)
+
+            # Return the maximal version (using forte numbers) discovered.
+            return current
+
+        # This function only needs be called if we're in federated versioning.
+        if settings.simulation.versioning != "federated":
+            return current
+
+        # If the current is greater than the remote, return it.
+        if current is None or current >= remote: return current
+
+        # Check the forte number on the remote and update the children.
+        if remote.forte > current.forte:
+            strong = update_forte(remote.forte, remote, current)
+            if strong > current:
+                # Put the strong version at the end of the log and return it
+                # as the new current version (or latest for this object)
+                self.log.append(self.log.remove(strong), 0)
+                return strong
+
+        # Last resort, return the current version.
+        return current
+
     ######################################################################
     ## Event Handlers
     ######################################################################
@@ -282,7 +332,9 @@ class EventualReplica(Replica):
 
         # Go through the entries from the RPC and update log
         for access in entries:
+            # Get the latest version from the log then update with forte
             current = self.log.get_latest_version(access.name)
+            current = self.update_forte_children(current, access.version)
 
             # If the access is greater than our current version, write it!
             if current is None or access.version > current:
@@ -311,6 +363,7 @@ class EventualReplica(Replica):
 
         for access in entries:
             current = self.log.get_latest_version(access.name)
+            current = self.update_forte_children(current, access.version)
 
             # This is a new version or a later version than our current.
             if current is None or access.version > current:
@@ -322,6 +375,7 @@ class EventualReplica(Replica):
         """
         access  = message.value.access
         current = self.log.get_latest_version(access.name)
+        current = self.update_forte_children(current, access.version)
 
         # Is the rumored version later than our current?
         if current is None or access.version > current:
@@ -350,6 +404,7 @@ class EventualReplica(Replica):
         if not response.success:
             # This means that a later value has come in!
             current = self.log.get_latest_version(response.access.name)
+            current = self.update_forte_children(current, access.version)
 
             # If their response is later than our version, write it.
             if current is None or response.access.version > current:

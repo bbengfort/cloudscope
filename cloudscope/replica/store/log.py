@@ -68,7 +68,7 @@ class WriteLog(object):
         """
         return self.log[self.commitIndex].version
 
-    def insert(self,index, version, term):
+    def insert(self, index, version, term):
         """
         Inserts a version at the specified index and increments last Applied.
         Technically, we really shouldn't be inserting anything into logs!
@@ -83,7 +83,31 @@ class WriteLog(object):
         self.log.append(LogEntry(version, term))
         self.lastApplied += 1
 
-    def remove(self, after=1):
+    def index(self, version, term=None):
+        """
+        Returns the index of the first instance of the given version in the
+        log. If the term is supplied, then both the version and the term have
+        to match in order to return an index. Returns None if not found.
+        """
+        for idx in xrange(len(self)):
+            if self[idx].version == version:
+                if term is not None and self[idx].term != term:
+                    continue
+                return idx
+        return None
+
+    def remove(self, version, term=None):
+        """
+        Finds the given version (optionally with the associated term) and
+        removes and returns it from the log; note that it also returns the
+        removed version, or None if it cannot find that version.
+        """
+        idx = self.index(version, term)
+        ver = self.log[idx].version
+        del self.log[idx]
+        return ver
+
+    def truncate(self, after=1):
         """
         Removes all items from a log after the specified index.
         """
@@ -111,6 +135,12 @@ class WriteLog(object):
     def __iter__(self):
         for item in self.log:
             yield item
+
+    def __contains__(self, version):
+        for entry in self.log:
+            if entry.version == version:
+                return True
+        return False
 
     def __len__(self):
         return len(self.log)

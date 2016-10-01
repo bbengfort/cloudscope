@@ -135,7 +135,10 @@ class SimulationConfiguration(Configuration):
     partition_across = "wide" # types of links to cut, one of wide, local, both, node, or leader
 
     # Integration parameter: default, floated, or federated
-    integration     = "default"
+    integration      = "default"
+
+    # Versioning parameter: default, lamport, federated
+    versioning       = "default"
 
     # Eventual Parameters
     anti_entropy_delay = 600  # delay in milliseconds (100x per minute)

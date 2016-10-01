@@ -23,6 +23,8 @@ import unittest
 from cloudscope.replica.store import Version
 from cloudscope.replica.store import WriteLog
 from cloudscope.replica.store import MultiObjectWriteLog
+from cloudscope.replica.store.log import NullEntry
+from cloudscope.dynamo import CharacterSequence
 
 from tests.test_replica import get_mock_simulation
 
@@ -31,6 +33,29 @@ from tests.test_replica import get_mock_simulation
 ##########################################################################
 
 class WriteLogTests(unittest.TestCase):
+
+    def test_null_entry(self):
+        """
+        Assert that the first entry is always the null entry.
+        """
+        log = WriteLog()
+        self.assertEqual(log[0], NullEntry)
+
+        for v in xrange(1, 5):
+            log.append(v, 0)
+
+        self.assertEqual(log[0], NullEntry)
+
+    def test_commit_index(self):
+        """
+        Test the commit index without truncation
+        """
+        log = WriteLog()
+        self.assertEqual(log.lastCommit, None)
+        log.append('A', 1)
+        self.assertEqual(log.lastCommit, None)
+        log.commitIndex += 1
+        self.assertEqual(log.lastCommit, 'A')
 
     def test_log_append(self):
         """
@@ -46,14 +71,80 @@ class WriteLogTests(unittest.TestCase):
             for x in xrange(1, 10):
                 version += 1
                 log.append(version, term)
+                self.assertEqual(log.lastVersion, version)
+                self.assertEqual(log.lastTerm, term)
 
         self.assertEqual(log.lastApplied, len(log) - 1)
         self.assertEqual(log.lastVersion, version)
         self.assertEqual(log.lastTerm, 4)
 
+    def test_contains(self):
+        """
+        Test log contains version
+        """
+        log = WriteLog()
+        for v in ('A', 'B', 'C', 'D', 'E'):
+            log.append(v, 0)
+            self.assertIn(v, log)
+
+    def test_log_index(self):
+        """
+        Test finding the index of a version in a log
+        """
+        versions = CharacterSequence(upper=True)
+        log = WriteLog()
+
+        for term in xrange(5):
+            for _ in xrange(10):
+                log.append(versions.next(), term)
+
+        versions.reset()
+        for idx in xrange(1, len(log)):
+            version = versions.next()
+            self.assertEqual(log.index(version), idx)
+            self.assertEqual(log[log.index(version)].version, version)
+
+    def test_log_index_term(self):
+        """
+        Test finding the index of a version in a log with a term
+        """
+        log = WriteLog()
+        log.append('A', 0)
+        log.append('B', 1)
+        log.append('C', 1)
+        log.append('D', 2)
+
+        self.assertIsNone(log.index('A', 1))
+        self.assertIsNone(log.index('B', 2))
+        self.assertIsNone(log.index('C', 0))
+        self.assertIsNone(log.index('D', 1))
+        self.assertEqual(log.index('A', 0), 1)
+        self.assertEqual(log.index('B', 1), 2)
+        self.assertEqual(log.index('C', 1), 3)
+        self.assertEqual(log.index('D', 2), 4)
+
     def test_log_remove(self):
         """
-        Test remove from a log
+        Test the remove of an item from a log
+        """
+        log = WriteLog()
+        versions = CharacterSequence(upper=True)
+
+        for term in xrange(5):
+            for _ in xrange(10):
+                log.append(versions.next(), term)
+
+        loglen = len(log)
+        versions.reset()
+        for idx in xrange(1, loglen):
+            version = versions.next()
+            self.assertEqual(version, log.remove(version), "log must return the removed version")
+            self.assertEqual(len(log), loglen-idx, "log must decrease in size")
+            self.assertNotIn(version, log, "log must not contain version")
+
+    def test_log_truncate(self):
+        """
+        Test truncating a write log
         """
         log = WriteLog()
 
@@ -67,7 +158,7 @@ class WriteLogTests(unittest.TestCase):
         self.assertEqual(log.lastVersion, version)
         self.assertEqual(log.lastTerm, 4)
 
-        log.remove(30)
+        log.truncate(30)
 
         self.assertEqual(len(log), 30)
         self.assertEqual(log.lastApplied, len(log) - 1)
@@ -90,11 +181,12 @@ class WriteLogTests(unittest.TestCase):
         self.assertEqual(log.lastVersion, version)
         self.assertEqual(log.lastTerm, 4)
 
-        log.remove()
+        log.truncate()
 
         self.assertEqual(log.lastApplied, 0)
         self.assertEqual(log.lastVersion, None)
         self.assertEqual(log.lastTerm, 0)
+        self.assertEqual(log[0], NullEntry)
 
     def test_log_more_up_to_date(self):
         """
@@ -120,7 +212,7 @@ class WriteLogTests(unittest.TestCase):
         # Make out of date more and more out of date.
         # To ensure both different terms and different lengths.
         while outofdate.lastApplied > 0:
-            outofdate.remove(outofdate.lastApplied)
+            outofdate.truncate(outofdate.lastApplied)
             self.assertNotEqual(uptodate, outofdate)
             self.assertGreater(uptodate, outofdate)
             self.assertLess(outofdate, uptodate)

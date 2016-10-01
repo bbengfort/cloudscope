@@ -19,7 +19,7 @@ Implements strong consistency using Raft consensus.
 
 from cloudscope.config import settings
 from cloudscope.simulation.timer import Timer
-from cloudscope.replica.store import Version
+from cloudscope.replica.store import namespace
 from cloudscope.replica import Consistency, State, ReadPolicy
 from cloudscope.exceptions import RaftRPCException, SimulationException
 from cloudscope.replica.store import MultiObjectWriteLog
@@ -357,7 +357,7 @@ class RaftReplica(ConsensusReplica):
 
         # Perform the write
         if latest is None:
-            return Version.new(name)(self)
+            return namespace(name)(self)
 
         return latest.nextv(self)
 
@@ -554,7 +554,7 @@ class RaftReplica(ConsensusReplica):
                 # If existing entry conflicts with new one (same index, different terms)
                 # Delete the existing entry and all that follow it.
                 if self.log[rpc.prevLogIndex][1] != rpc.prevLogTerm:
-                    self.log.remove(rpc.prevLogIndex)
+                    self.log.truncate(rpc.prevLogIndex)
 
             if self.log.lastApplied > rpc.prevLogIndex:
                 # Otherwise this could be a message that is sent again
@@ -620,7 +620,7 @@ class RaftReplica(ConsensusReplica):
                     # Commit all versions from the last log entry to now.
                     for idx in xrange(self.log.commitIndex, n+1):
                         if self.log[idx][0] is None: continue
-                        self.log[idx][0].update(self, commit=True)
+                        self.log[idx][0].update(self, commit=True, forte=True)
 
                     # Set the commit index and break
                     self.log.commitIndex = n

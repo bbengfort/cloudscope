@@ -22,7 +22,7 @@ from cloudscope.simulation.timer import Timer
 from cloudscope.replica import Consistency, State
 from cloudscope.exceptions import TagRPCException
 from cloudscope.exceptions import SimulationException
-from cloudscope.replica.store import Version
+from cloudscope.replica.store import namespace
 from cloudscope.replica.store import WriteLog
 from cloudscope.utils.enums import Enum
 
@@ -187,7 +187,7 @@ class TagReplica(ConsensusReplica):
 
             # Perform the write
             if latest is None:
-                version = Version.new(access.name)(self)
+                version = namespace(access.name)(self)
             else:
                 version = latest.nextv(self)
 
@@ -644,7 +644,7 @@ class TagReplica(ConsensusReplica):
                     # If existing entry conflicts with a new one (same index, different epochs)
                     # Delete the existing entry and all that follow it.
                     if objlog[prev.index].term != prev.epoch:
-                        objlog.remove(prev.index)
+                        objlog.truncate(prev.index)
 
                 if objlog.lastApplied > prev.index:
                     # Better look into what's happening here!

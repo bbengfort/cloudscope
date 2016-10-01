@@ -99,7 +99,7 @@ class ConsistencyValidator(object):
             self.namespace = Counter()
             for log in self.logs.values(): self.namespace += log.namespace
             self.n_objects = len(self.namespace)
-            self.n_entries = sum(name.counter.value for name in self.name_classes)
+            self.n_entries = sum(name.latest_version() for name in self.name_classes)
 
             # Count single log errors
             self.forks = sum(log.num_forks() for log in self.logs.values())

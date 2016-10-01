@@ -304,7 +304,7 @@ class Read(Access):
                 'stale reads', (
                     self.owner.id,
                     self.env.now, self.version.created,
-                    self.version.counter.value, self.version.version,
+                    self.version.latest_version(), self.version.version,
                 )
             )
 

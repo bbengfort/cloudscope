@@ -87,6 +87,9 @@ simulation:
     # Integration parameter: default, floated, or federated
     integration: default
 
+    # Versioning parameter: default, lamport, federated
+    versioning: default
+
     # Eventual Parameters
     anti_entropy_delay: 600       # delay in milliseconds (100x per minute)
     num_neighbors: 1              # the number of neighbors to push to during anti-entropy session.
