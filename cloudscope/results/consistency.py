@@ -249,7 +249,7 @@ class LogMetric(object):
         This is a lightweight implementation for now.
         """
         missing = {
-            name.__name__: name.counter.value
+            name.__name__: name.latest_version()
             for name in set(
                 version.__class__ for version in self.iter_versions()
             )

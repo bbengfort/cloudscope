@@ -105,6 +105,7 @@ class WriteLog(object):
         idx = self.index(version, term)
         ver = self.log[idx].version
         del self.log[idx]
+        self.lastApplied -= 1
         return ver
 
     def truncate(self, after=1):

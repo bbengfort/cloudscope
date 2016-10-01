@@ -98,7 +98,7 @@ class FederatedRaftReplica(RaftReplica):
         for target in self.get_anti_entropy_neighbors():
             # Send the latest version of ALL objects.
             entries = [
-                self.log.get_latest_version(name).access
+                self.read_via_policy(name).access
                 for name in self.log.namespace
             ]
             gossip  = Gossip(tuple(entries), len(entries))
@@ -215,9 +215,8 @@ class FederatedRaftReplica(RaftReplica):
         if remote.forte > current.forte:
             strong = update_forte(remote.forte, remote, current)
             if strong > current:
-                # Put the strong version at the end of the log and return it
-                # as the new current version (or latest for this object)
-                self.log.append(self.log.remove(strong), 0)
+                # Put the strong version into the cache
+                self.cache[strong.name] = strong
                 return strong
 
         # Last resort, return the current version.
@@ -286,7 +285,7 @@ class FederatedRaftReplica(RaftReplica):
         entries = message.value.entries
 
         for access in entries:
-            current = self.log.get_latest_version(access.name)
+            current = self.read_via_policy(access.name)
             current = self.update_forte_children(current, access.version)
 
             # This is a new version or a later version than our current.

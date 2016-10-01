@@ -325,7 +325,7 @@ class BackpressureTests(unittest.TestCase):
 
         # Test the new ordering
         new_log = list(orig_log)
-        new_log.append(new_log[4])
+        new_log.append(new_log[4]._replace(term=1))
         del new_log[4]
 
         self.assertEqual(self.delta.log.freeze(), tuple(new_log))

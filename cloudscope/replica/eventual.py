@@ -189,7 +189,7 @@ class EventualReplica(Replica):
 
         # At this point we've dealt with local vs. remote
         # Append the latest version to the local data store
-        self.log.append(version, version.version)
+        self.log.append(version, 0)
 
         # Handle the access according to eventual rules
         version.update(self) # Update the version to track visibility latency
@@ -311,8 +311,15 @@ class EventualReplica(Replica):
             if strong > current:
                 # Put the strong version at the end of the log and return it
                 # as the new current version (or latest for this object)
-                self.log.append(self.log.remove(strong), 0)
-                return strong
+                if strong in self.log:
+                    self.log.remove(strong)
+                    self.log.append(strong, strong.forte)
+                    return strong
+                else:
+                    # This really shouldn't happen?!
+                    self.sim.logger.warning(
+                        "Attempting to move {} to end when not in log!"
+                    )
 
         # Last resort, return the current version.
         return current
