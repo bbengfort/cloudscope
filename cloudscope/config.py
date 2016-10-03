@@ -158,6 +158,8 @@ class SimulationConfiguration(Configuration):
     # Federated Parameters
     sync_prob  = 0.3  # probability of eventual syncing with core consensus
     local_prob = 0.6  # probability of local anti-entropy over wide area (wide area is 1-local_prob)
+    forte_on_commit = False # Increment the forte number on commit
+    forte_on_append = False # Increment the forte number on append
 
 class VisualizationConfiguration(Configuration):
 

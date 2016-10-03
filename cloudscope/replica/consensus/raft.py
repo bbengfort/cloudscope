@@ -213,7 +213,8 @@ class RaftReplica(ConsensusReplica):
         assert self.state == State.LEADER
 
         # Update the version to track visibility latency
-        version.update(self)
+        forte = True if settings.simulation.forte_on_append else False
+        version.update(self, forte=forte)
 
         # Now do AppendEntries
         # Also interrupt the heartbeat since we just sent AppendEntries
@@ -620,7 +621,8 @@ class RaftReplica(ConsensusReplica):
                     # Commit all versions from the last log entry to now.
                     for idx in xrange(self.log.commitIndex, n+1):
                         if self.log[idx][0] is None: continue
-                        self.log[idx][0].update(self, commit=True, forte=True)
+                        forte = True if settings.simulation.forte_on_commit else False
+                        self.log[idx][0].update(self, commit=True, forte=forte)
 
                     # Set the commit index and break
                     self.log.commitIndex = n

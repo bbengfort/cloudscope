@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # cloudscope.results.graph
 # Utilities for visualizing the topology with communications results.
 #
