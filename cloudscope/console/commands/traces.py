@@ -26,7 +26,6 @@ from commis import Command
 from cloudscope.config import settings
 from cloudscope.dynamo import CharacterSequence
 from cloudscope.simulation.main import ConsistencySimulation
-from cloudscope.simulation.workload import WorkloadAllocation
 from cloudscope.simulation.workload.traces import TracesWriter
 from cloudscope.simulation.workload.cases import BestCaseAllocation
 from cloudscope.simulation.workload.cases import PingPongWorkload
