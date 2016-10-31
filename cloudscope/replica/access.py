@@ -20,6 +20,7 @@ Wrappers for access events (reads and writes) passed to replicas.
 from cloudscope.config import settings
 from cloudscope.utils.decorators import Countable
 from cloudscope.exceptions import AccessError
+from collections import defaultdict
 
 
 ##########################################################################
@@ -29,6 +30,11 @@ from cloudscope.exceptions import AccessError
 # Access types
 READ  = "read"
 WRITE = "write"
+
+# Access event types
+COMPLETED = "on_complete"
+DROPPED   = "on_drop"
+UPDATED   = "on_update"
 
 ##########################################################################
 ## Base Access Event
@@ -89,7 +95,10 @@ class Access(object):
         self.finished = kwargs.get('finished', None)
 
         # Log retried accesses (if required)
-        self.attempts = 0
+        self.attempts = kwargs.get('attempts', 0)
+
+        # Add callbacks for event handling
+        self.callbacks = kwargs.get('callbacks', defaultdict(list))
 
         # We can create completed accesses for quick requests
         if kwargs.get('completed', False):
@@ -124,6 +133,12 @@ class Access(object):
         """
         return self.__class__.__name__.lower()
 
+    def register_callback(self, event, func):
+        """
+        Register a callback on the specified event.
+        """
+        self.callbacks[event].append(func)
+
     def is_dropped(self):
         """
         Checks if the access has been dropped
@@ -157,6 +172,12 @@ class Access(object):
         """
         self.dropped = True
         self.finished = self.env.now
+
+        # Call the on_drop callbacks
+        for cb in self.callbacks.get(DROPPED, []):
+            cb(self)
+
+
         return self
 
     def update(self, version, completed=False):
@@ -168,7 +189,15 @@ class Access(object):
         if completed: also call complete (e.g. for quick local updates)
         """
         self.version = version
-        if completed: self.complete()
+
+        # If completed don't call on_update callback so return
+        if completed:
+            return self.complete()
+
+        # Call the on_update callbacks
+        for cb in self.callbacks.get(UPDATED, []):
+            cb(self)
+
         return self
 
     def complete(self):
@@ -197,6 +226,11 @@ class Access(object):
             )
 
         self.finished = self.env.now
+
+        # Call the on_complete callbacks
+        for cb in self.callbacks.get(COMPLETED, []):
+            cb(self)
+
         return self
 
     def log(self, replica):
@@ -216,6 +250,19 @@ class Access(object):
         # Log the complete message
         message = "{}{} {} on {}".format(prefix, self.type, target, replica)
         self.sim.logger.info(message)
+
+    def clone(self, replica=None):
+        """
+        Returns a new access (usually from a dropped access) with the same
+        properties, but has not been dropped or completed.
+
+        Can also specify a new replica to make the access local to it instead.
+        """
+        replica = replica or self.owner
+        return self.__class__(
+            self.name, replica, self.version,
+            attempts=self.attempts, callbacks=self.callbacks,
+        )
 
     def __str__(self):
         return "{} {}".format(self.type, self.name)

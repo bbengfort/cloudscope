@@ -43,7 +43,7 @@ def create(sim, **kwargs):
         - Load the accesses from a trace file
         - Create a conflict/topology allocating workload for n users.
 
-    See the workload allocation objects for more information. 
+    See the workload allocation objects for more information.
     """
     # Create a manual trace if it's passed in
     trace = kwargs.pop('trace', None)
@@ -54,7 +54,6 @@ def create(sim, **kwargs):
             )
         else:
             return TracesWorkload(trace, sim)
-
 
     # Otherwise construct a conflict generation workload.
     users = kwargs.pop('users', settings.simulation.users)
