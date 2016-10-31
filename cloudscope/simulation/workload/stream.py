@@ -37,7 +37,9 @@ class StreamingWorkload(Workload):
 
         # Get the delay in milliseconds if specified
         self.delay  = kwargs.pop("delay", 10)
-        self.event  = None
+
+        # Internal parameters
+        self._event  = None
         self._access = None
 
         # Initialize the workload
@@ -46,18 +48,20 @@ class StreamingWorkload(Workload):
     def on_access_drop(self, access):
         # Retry the access after a delay
         self._access = access.clone(self.device)
-        self.event.succeed()
+        self._event.succeed()
 
     def on_access_complete(self, access):
+        # Set the access to None to generate a new write
         self._access = None
-        self.event.succeed()
+        self._event.succeed()
 
     def on_event_complete(self, event):
+        # Wait for a bit and execute the next access!
         self.env.process(self.wait())
 
     def wait(self):
         """
-        Returns a fixed delay between each access
+        Wait a fixed delay and then cause the access to occur!
         """
         yield self.env.timeout(self.delay)
         yield self.access()
@@ -65,6 +69,8 @@ class StreamingWorkload(Workload):
     def access(self):
         """
         Sets up a SimPy event to wait for the access to complete or drop.
+        Note that accesses are only writes - as though this were a sensor just
+        streaming write accesses to the file system!
         """
         # Make sure that there is a device to write to!
         if not self.device:
@@ -84,17 +90,20 @@ class StreamingWorkload(Workload):
         )
 
         # Create the event to wait for the access to complete
-        self.event  = self.env.event()
-        self.event.callbacks.append(self.on_event_complete)
+        self._event  = self.env.event()
+        self._event.callbacks.append(self.on_event_complete)
 
         # Create the access and register the event callbacks
         if self._access is None:
             self._access = Write(self.current, self.device)
             self._access.register_callback(COMPLETED, self.on_access_complete)
             self._access.register_callback(DROPPED, self.on_access_drop)
+
+        # Write the access to the local device
         self.device.write(self._access)
 
-        return self.event
+        # Return the event to register it with the simulation process
+        return self._event
 
     def run(self):
         """
