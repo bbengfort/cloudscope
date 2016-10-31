@@ -8,7 +8,7 @@
 # Copyright (C) 2014 Bengfort.com
 # For license information, see LICENSE.txt
 #
-# ID: statistics.py [] benjamin@bengfort.com $
+# ID: statistics.py [74c905a] benjamin@bengfort.com $
 
 """
 Objects for computing Statistics and probabilities (reused from Ben's old code)

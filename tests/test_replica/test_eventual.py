@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: test_eventual.py [] benjamin@bengfort.com $
+# ID: test_eventual.py [fd43944] benjamin@bengfort.com $
 
 """
 Testing for the methods and properties of eventual replicas.

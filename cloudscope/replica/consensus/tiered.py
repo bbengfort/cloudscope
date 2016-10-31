@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: tiered.py [] benjamin@bengfort.com $
+# ID: tiered.py [77717af] benjamin@bengfort.com $
 
 """
 Implements strong consistency across a wide area using tiered Raft consensus.

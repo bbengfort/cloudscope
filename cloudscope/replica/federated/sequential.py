@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: sequential.py [] benjamin@bengfort.com $
+# ID: sequential.py [4a2f715] benjamin@bengfort.com $
 
 """
 Implements sequential (strong) consistency in a federated environment.

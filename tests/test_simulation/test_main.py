@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: test_main.py [] benjamin@bengfort.com $
+# ID: test_main.py [47df350] benjamin@bengfort.com $
 
 """
 Test the primary consistency simulation mechanism.

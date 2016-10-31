@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: test_election.py [] benjamin@bengfort.com $
+# ID: test_election.py [d169a96] benjamin@bengfort.com $
 
 """
 Testing the data structures and helpers for an election.

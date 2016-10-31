@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: config.py [] benjamin@bengfort.com $
+# ID: config.py [7009664] benjamin@bengfort.com $
 
 """
 Displays information about the configuration being used.

@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: election.py [] benjamin@bengfort.com $
+# ID: election.py [c2eb7ed] benjamin@bengfort.com $
 
 """
 Data structures for handling elections and election timeouts.

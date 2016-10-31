@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: topology.py [] benjamin@bengfort.com $
+# ID: topology.py [7cd17ad] benjamin@bengfort.com $
 
 """
 Generates homogenous topologies on demand

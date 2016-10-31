@@ -8,7 +8,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: traces.py [] benjamin@bengfort.com $
+# ID: outages.py [c405612] benjamin@bengfort.com $
 
 """
 Generates random traces to pass directly to the simulations (as input).

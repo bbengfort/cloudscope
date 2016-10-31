@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: traces.py [] benjamin@bengfort.com $
+# ID: traces.py [1efa3ed] benjamin@bengfort.com $
 
 """
 Methodology for loading accesses from a file and replaying them.

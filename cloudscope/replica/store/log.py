@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: log.py [] benjamin@bengfort.com $
+# ID: log.py [2ab0a32] benjamin@bengfort.com $
 
 """
 Implements a "write-ahead" log for Raft storage.

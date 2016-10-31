@@ -8,7 +8,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: tree.py [] benjamin@bengfort.com $
+# ID: tree.py [d2419a0] benjamin@bengfort.com $
 
 """
 Utility module that implements a Tree data structure.

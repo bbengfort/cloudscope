@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: eventual.py [] benjamin@bengfort.com $
+# ID: eventual.py [4a2f715] benjamin@bengfort.com $
 
 """
 Implements eventual (low) consistency and high availability.

@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: conflict.py [] benjamin@bengfort.com $
+# ID: conflict.py [015df0f] benjamin@bengfort.com $
 
 """
 A workload allocation scheme that manages the amount of potential conflict,

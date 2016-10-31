@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: status.py [] benjamin@bengfort.com $
+# ID: status.py [a777f84] benjamin@bengfort.com $
 
 """
 Checks on the status of a multisim command by reviewing log messages.

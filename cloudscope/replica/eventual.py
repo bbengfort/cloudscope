@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: eventual.py [] benjamin@bengfort.com $
+# ID: eventual.py [c2eb7ed] benjamin@bengfort.com $
 
 """
 Implements the anti-entropy and eventual consistency policies on a replica.

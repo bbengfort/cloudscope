@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: cases.py [] benjamin@bengfort.com $
+# ID: cases.py [6c96ccc] benjamin@bengfort.com $
 
 """
 Module that handles specific workload cases for use in the simulation.

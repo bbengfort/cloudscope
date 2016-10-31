@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: test_enums.py [] benjamin@bengfort.com $
+# ID: test_enums.py [448d930] benjamin@bengfort.com $
 
 """
 Test the helper enumeration object that we're using in Cloudscope.

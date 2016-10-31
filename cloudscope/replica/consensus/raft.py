@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: raft.py [] benjamin@bengfort.com $
+# ID: raft.py [c2eb7ed] benjamin@bengfort.com $
 
 """
 Implements strong consistency using Raft consensus.

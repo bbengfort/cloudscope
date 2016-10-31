@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: generate.py [] benjamin@bengfort.com $
+# ID: generate.py [4a9fcbc] benjamin@bengfort.com $
 
 """
 Generates the scaling topology experiments.

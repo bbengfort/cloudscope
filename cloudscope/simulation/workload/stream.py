@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: cloudscope.simulation.workload.stream.py [] benjamin@bengfort.com $
+# ID: stream.py [f833e25] benjamin@bengfort.com $
 
 """
 Workloads that continuously stream the next access.

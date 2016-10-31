@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: __init__.py [] benjamin@bengfort.com $
+# ID: __init__.py [2ab0a32] benjamin@bengfort.com $
 
 """
 Tests the storage package (write log, versions, objects, etc.)

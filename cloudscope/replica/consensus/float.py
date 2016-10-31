@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: float.py [] benjamin@bengfort.com $
+# ID: float.py [77717af] benjamin@bengfort.com $
 
 """
 Implements strong consistency across a wide area using Raft + anti-entropy.

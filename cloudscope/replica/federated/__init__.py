@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: __init__.py [] benjamin@bengfort.com $
+# ID: __init__.py [4a2f715] benjamin@bengfort.com $
 
 """
 Replicas that implement federated consistency rather than homogenous.

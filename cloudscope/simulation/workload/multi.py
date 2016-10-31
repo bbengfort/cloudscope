@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: multi.py [] benjamin@bengfort.com $
+# ID: multi.py [6c96ccc] benjamin@bengfort.com $
 
 """
 Wrapper for multiple workloads (e.g. multiple users) as a collection.

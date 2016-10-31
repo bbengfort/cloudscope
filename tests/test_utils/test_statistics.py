@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: test_statistics.py [] benjamin@bengfort.com $
+# ID: test_statistics.py [736a559] benjamin@bengfort.com $
 
 """
 Testing for the statistics utility module.

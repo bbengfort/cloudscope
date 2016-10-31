@@ -8,7 +8,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: consistency.py [] benjamin@bengfort.com $
+# ID: consistency.py [e65972a] benjamin@bengfort.com $
 
 """
 Support for consistency verification and checking after a simulation.

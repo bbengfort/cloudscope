@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: test_base.py [] benjamin@bengfort.com $
+# ID: test_base.py [9d50557] benjamin@bengfort.com $
 
 """
 Tests for the base workload interface in CloudScope

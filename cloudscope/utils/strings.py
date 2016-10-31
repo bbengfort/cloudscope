@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: strings.py [] benjamin@bengfort.com $
+# ID: strings.py [f37a55a] benjamin@bengfort.com $
 
 """
 String handling helper functions.

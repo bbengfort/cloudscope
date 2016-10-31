@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: test_mobile.py [] benjamin@bengfort.com $
+# ID: test_mobile.py [9d50557] benjamin@bengfort.com $
 
 """
 Test the workload traces generation utility.

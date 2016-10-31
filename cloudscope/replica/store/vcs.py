@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: vcs.py [] benjamin@bengfort.com $
+# ID: vcs.py [2ab0a32] benjamin@bengfort.com $
 
 """
 Definition of what a replica actually stores and manages (data objects).

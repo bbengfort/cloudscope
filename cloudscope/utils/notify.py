@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: notify.py [] benjamin@bengfort.com $
+# ID: notify.py [8047d61] benjamin@bengfort.com $
 
 """
 Sends email notifications using Gmail.

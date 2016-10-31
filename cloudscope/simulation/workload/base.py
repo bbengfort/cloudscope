@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: base.py [] benjamin@bengfort.com $
+# ID: base.py [1efa3ed] benjamin@bengfort.com $
 
 """
 A refactoring of the original workload objects for multiple purposes.

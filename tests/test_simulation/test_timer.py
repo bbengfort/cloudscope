@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: test_timer.py [] benjamin@bengfort.com $
+# ID: test_timer.py [5a4cbcc] benjamin@bengfort.com $
 
 """
 Test the simulation timer functionality for use in Cloudscope.

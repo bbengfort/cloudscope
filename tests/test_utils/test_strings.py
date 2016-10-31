@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: test_strings.py [] benjamin@bengfort.com $
+# ID: test_strings.py [f37a55a] benjamin@bengfort.com $
 
 """
 Testing the string helper functions.

@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: synchro.py [] benjamin@bengfort.com $
+# ID: synchro.py [6c96ccc] benjamin@bengfort.com $
 
 """
 Synchronous workloads for testing simulation timing.

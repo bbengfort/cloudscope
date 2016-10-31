@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: base.py [] benjamin@bengfort.com $
+# ID: base.py [c2eb7ed] benjamin@bengfort.com $
 
 """
 Base functionality for a replica on a personal cloud storage system.

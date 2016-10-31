@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: base.py [] benjamin@bengfort.com $
+# ID: base.py [f37a55a] benjamin@bengfort.com $
 
 """
 The base class for consensus oriented replicas.

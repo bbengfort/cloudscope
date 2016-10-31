@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: test_traces.py [] benjamin@bengfort.com $
+# ID: test_traces.py [9d50557] benjamin@bengfort.com $
 
 """
 Tests for the traces reply script methodology.

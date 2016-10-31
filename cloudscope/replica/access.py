@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: access.py [] benjamin@bengfort.com $
+# ID: access.py [f37a55a] benjamin@bengfort.com $
 
 """
 Wrappers for access events (reads and writes) passed to replicas.

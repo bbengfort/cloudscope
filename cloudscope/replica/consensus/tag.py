@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: tag.py [] benjamin@bengfort.com $
+# ID: tag.py [5f0056a] benjamin@bengfort.com $
 
 """
 Package that implements tag based consensus consistency.

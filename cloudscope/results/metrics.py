@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: metrics.py [] benjamin@bengfort.com $
+# ID: metrics.py [736a559] benjamin@bengfort.com $
 
 """
 Specialized metrics objects for recording results accurately

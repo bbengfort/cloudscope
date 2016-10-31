@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: enums.py [] benjamin@bengfort.com $
+# ID: enums.py [448d930] benjamin@bengfort.com $
 
 """
 Advanced enumeration functionality used in Cloudscope.

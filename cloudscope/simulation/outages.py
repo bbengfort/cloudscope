@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: outages.py [] benjamin@bengfort.com $
+# ID: outages.py [d53df65] benjamin@bengfort.com $
 
 """
 Generate and replay outages in the network, similar to workload traces.

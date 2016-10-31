@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: analysis.py [] benjamin@bengfort.com $
+# ID: analysis.py [a6562cb] benjamin@bengfort.com $
 
 """
 Analysis utilities for dealing with cloudscope results.

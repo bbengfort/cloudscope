@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: test_metrics.py [] benjamin@bengfort.com $
+# ID: test_metrics.py [913fe6d] benjamin@bengfort.com $
 
 """
 Testing for the results metrics utilities.

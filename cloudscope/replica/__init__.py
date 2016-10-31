@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: __init__.py [] benjamin@bengfort.com $
+# ID: __init__.py [c2eb7ed] benjamin@bengfort.com $
 
 """
 Functionality for different replica types in the cloud storage system.

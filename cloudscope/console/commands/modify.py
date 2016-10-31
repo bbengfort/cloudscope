@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: modify.py [] benjamin@bengfort.com $
+# ID: modify.py [e587a14] benjamin@bengfort.com $
 
 """
 Modifies topologies in place for deploying to alternative sites.

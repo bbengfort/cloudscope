@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: colors.py [] benjamin@bengfort.com $
+# ID: colors.py [d2080f8] benjamin@bengfort.com $
 
 """
 Colors and color helpers for the CloudScope library (weird, right?)

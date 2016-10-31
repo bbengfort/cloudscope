@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: inspect.py [] benjamin@bengfort.com $
+# ID: inspect.py [b62bcba] benjamin@bengfort.com $
 
 """
 Prints out a table of the generated settings for experiments in a directory.

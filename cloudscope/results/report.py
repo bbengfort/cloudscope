@@ -7,7 +7,7 @@
 # Copyright (C) 2016 University of Maryland
 # For license information, see LICENSE.txt
 #
-# ID: report.py [] benjamin@bengfort.com $
+# ID: report.py [5afcfab] benjamin@bengfort.com $
 
 """
 Text based reporting tools for quick information on a results file.
