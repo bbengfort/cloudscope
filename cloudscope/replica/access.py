@@ -17,8 +17,10 @@ Wrappers for access events (reads and writes) passed to replicas.
 ## Imports
 ##########################################################################
 
+from cloudscope.config import settings
 from cloudscope.utils.decorators import Countable
 from cloudscope.exceptions import AccessError
+from collections import defaultdict
 
 
 ##########################################################################
@@ -28,6 +30,11 @@ from cloudscope.exceptions import AccessError
 # Access types
 READ  = "read"
 WRITE = "write"
+
+# Access event types
+COMPLETED = "on_complete"
+DROPPED   = "on_drop"
+UPDATED   = "on_update"
 
 ##########################################################################
 ## Base Access Event
@@ -88,7 +95,10 @@ class Access(object):
         self.finished = kwargs.get('finished', None)
 
         # Log retried accesses (if required)
-        self.attempts = 0
+        self.attempts = kwargs.get('attempts', 0)
+
+        # Add callbacks for event handling
+        self.callbacks = kwargs.get('callbacks', defaultdict(list))
 
         # We can create completed accesses for quick requests
         if kwargs.get('completed', False):
@@ -123,6 +133,12 @@ class Access(object):
         """
         return self.__class__.__name__.lower()
 
+    def register_callback(self, event, func):
+        """
+        Register a callback on the specified event.
+        """
+        self.callbacks[event].append(func)
+
     def is_dropped(self):
         """
         Checks if the access has been dropped
@@ -156,6 +172,12 @@ class Access(object):
         """
         self.dropped = True
         self.finished = self.env.now
+
+        # Call the on_drop callbacks
+        for cb in self.callbacks.get(DROPPED, []):
+            cb(self)
+
+
         return self
 
     def update(self, version, completed=False):
@@ -167,7 +189,15 @@ class Access(object):
         if completed: also call complete (e.g. for quick local updates)
         """
         self.version = version
-        if completed: self.complete()
+
+        # If completed don't call on_update callback so return
+        if completed:
+            return self.complete()
+
+        # Call the on_update callbacks
+        for cb in self.callbacks.get(UPDATED, []):
+            cb(self)
+
         return self
 
     def complete(self):
@@ -177,6 +207,15 @@ class Access(object):
         """
         # Don't call complete multiple times.
         if self.is_completed():
+
+            # TODO: Deprecate the below weak sauce capture and raise an error like you should
+            # TODO: Stop being such a hacker and write good code.
+            if settings.simulation.integration == 'federated':
+                self.owner.sim.logger.warn(
+                    "Attempting to complete {} after it was already completed!".format(self)
+                )
+                return
+
             raise AccessError(
                 "Attempting to complete {} after it was already completed!".format(self)
             )
@@ -187,6 +226,11 @@ class Access(object):
             )
 
         self.finished = self.env.now
+
+        # Call the on_complete callbacks
+        for cb in self.callbacks.get(COMPLETED, []):
+            cb(self)
+
         return self
 
     def log(self, replica):
@@ -206,6 +250,19 @@ class Access(object):
         # Log the complete message
         message = "{}{} {} on {}".format(prefix, self.type, target, replica)
         self.sim.logger.info(message)
+
+    def clone(self, replica=None):
+        """
+        Returns a new access (usually from a dropped access) with the same
+        properties, but has not been dropped or completed.
+
+        Can also specify a new replica to make the access local to it instead.
+        """
+        replica = replica or self.owner
+        return self.__class__(
+            self.name, replica, self.version,
+            attempts=self.attempts, callbacks=self.callbacks,
+        )
 
     def __str__(self):
         return "{} {}".format(self.type, self.name)
@@ -250,7 +307,7 @@ class Read(Access):
 
             # Track the drop latency
             self.sim.results.update(
-                'missed read latency latency',
+                'missed read latency',
                 (self.owner.id, self.name, self.started, self.finished)
             )
 
@@ -272,6 +329,8 @@ class Read(Access):
 
             - read latency
             - stale reads
+            - time (t) staleness
+            - version (k) staleness
 
         Logs the following information:
 
@@ -286,9 +345,14 @@ class Read(Access):
         )
 
         if self.version.is_stale():
-            # Count the number of stale reads
+            # Count the number of stale reads as well as provide a mechanism
+            # for computing time and version staleness.
             self.sim.results.update(
-                'stale reads', (self.owner.id, self.env.now)
+                'stale reads', (
+                    self.owner.id,
+                    self.env.now, self.version.created,
+                    self.version.latest_version(), self.version.version,
+                )
             )
 
             # Log the stale read
@@ -319,14 +383,14 @@ class Write(Access):
             (self.owner.id, self.name, self.started, self.finished)
         )
 
-        # Count the number of missed reads
+        # Count the number of dropped writes
         self.sim.results.update(
             'dropped writes', (self.owner.id, self.env.now)
         )
 
-        # Log the missed read
+        # Log the dropped write
         self.sim.logger.info(
-            "dropped write of object {} on {}".format(self.name, self)
+            "dropped {} on {}".format(self, self.owner)
         )
 
         return self

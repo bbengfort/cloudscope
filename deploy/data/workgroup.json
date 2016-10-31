@@ -18,14 +18,14 @@
             "id": "a1",
             "label": "Alpha 1",
             "type": "laptop",
-            "consistency": "low",
+            "consistency": "eventual",
             "location": "alpha-site"
         },
         {
             "id": "a2",
             "label": "Alpha 2",
             "type": "laptop",
-            "consistency": "low",
+            "consistency": "eventual",
             "location": "alpha-site"
         },
         {
@@ -39,14 +39,14 @@
             "id": "b1",
             "label": "Bravo 1",
             "type": "laptop",
-            "consistency": "low",
+            "consistency": "eventual",
             "location": "bravo-site"
         },
         {
             "id": "b2",
             "label": "Bravo 2",
             "type": "laptop",
-            "consistency": "low",
+            "consistency": "eventual",
             "location": "bravo-site"
         },
         {
@@ -60,14 +60,14 @@
             "id": "c1",
             "label": "Charlie 1",
             "type": "laptop",
-            "consistency": "low",
+            "consistency": "eventual",
             "location": "charlie-site"
         },
         {
             "id": "c2",
             "label": "Charlie 2",
             "type": "laptop",
-            "consistency": "low",
+            "consistency": "eventual",
             "location": "charlie-site"
         },
         {
@@ -81,14 +81,14 @@
             "id": "d1",
             "label": "Delta 1",
             "type": "laptop",
-            "consistency": "low",
+            "consistency": "eventual",
             "location": "delta-site"
         },
         {
             "id": "d2",
             "label": "Delta 2",
             "type": "laptop",
-            "consistency": "low",
+            "consistency": "eventual",
             "location": "delta-site"
         },
         {
@@ -102,14 +102,14 @@
             "id": "e1",
             "label": "Echo 1",
             "type": "laptop",
-            "consistency": "low",
+            "consistency": "eventual",
             "location": "echo-site"
         },
         {
             "id": "e2",
             "label": "Echo 2",
             "type": "laptop",
-            "consistency": "low",
+            "consistency": "eventual",
             "location": "echo-site"
         }
     ],

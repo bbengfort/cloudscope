@@ -44,17 +44,28 @@ class SimulateCommand(Command):
             'metavar': 'PATH',
             'help': 'specify location to write output to',
         },
-        ('-g', '--graph'): {
-            'type': argparse.FileType('w'),
-            'default': None,
-            'metavar': 'PATH',
-            'help': 'specify location to write the simulation graph',
+        ('-t', '--timesteps'): {
+            'type': int,
+            'default': settings.simulation.max_sim_time,
+            'metavar': 'T',
+            'help': 'set the maximum simulation time',
         },
         ('-T', '--trace'): {
             'type': str,
             'default': None,
             'metavar': 'PATH',
             'help': 'specify the path to the trace file with accesses',
+        },
+        ('-O', '--outages'): {
+            'type': str,
+            'default': None,
+            'metavar': 'PATH',
+            'help': 'specify the path to the outages script',
+        },
+        ('-c', '--consistency-report'):{
+            'action': 'store_true',
+            'default': False,
+            'help': 'validate consistency and print report when complete',
         },
         'data': {
             'nargs': '+',
@@ -80,6 +91,14 @@ class SimulateCommand(Command):
         """
         Entry point for the simulation runner.
         """
+
+        # Make sure we perform consistency validation if arg set.
+        if args.consistency_report:
+            settings.simulation.validate_consistency = True
+
+        # Set the maximum simulation time
+        settings.simulation.max_sim_time = args.timesteps
+
         if len(args.data) > 1:
             return self.handle_multiple(args)
         return self.handle_single(args)
@@ -89,7 +108,9 @@ class SimulateCommand(Command):
         Most common use case for the simulation runner: simply runs a single
         simulation, loading it from the data file.
         """
-        sim = ConsistencySimulation.load(args.data[0], trace=args.trace)
+        sim = ConsistencySimulation.load(
+            args.data[0], trace=args.trace, outages=args.outages
+        )
         sim.run()
 
         # Dump the output data to a file.
@@ -97,9 +118,13 @@ class SimulateCommand(Command):
             args.output = self.get_output_path(sim.name, sim.results.finished)
         sim.results.dump(args.output)
 
-        # Dump the graph data to a file.
-        if args.graph:
-            sim.dump(args.graph, indent=2)
+        # Print out the consistency report.
+        if args.consistency_report:
+            print "\nPer Log Consistency Report"
+            print sim.results.consistency.log_inconsistency_table()
+            print "\nSplit Log Distance Report (Jaccard and Levenshtein)"
+            print sim.results.consistency.split_log_distance_table()
+            print
 
         return "Results for {} written to {}".format(sim.name, args.output.name)
 
@@ -111,7 +136,7 @@ class SimulateCommand(Command):
         with Timer() as timer:
 
             sims   = [
-                ConsistencySimulation.load(fobj, trace=args.trace)
+                ConsistencySimulation.load(fobj, trace=args.trace, outages=args.outages)
                 for fobj in args.data
             ]
             output = [StringIO() for sim in sims]

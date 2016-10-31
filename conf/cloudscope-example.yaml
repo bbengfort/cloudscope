@@ -32,6 +32,15 @@ server:
     address:     "localhost"
     port:        8080
 
+
+# Notification Settings
+notify:
+    username:    null   # username to the email provider (e.g. gmail address)
+    password:    null   # password to the email provider (e.g. gmail password)
+    email_host:  null   # host name of the email service (e.g. smtp.gmail.com)
+    email_port:  null   # port of the secure smtp (e.g. 587)
+    fail_silent: true   # if there is an error, ignore or raise a new one.
+
 # Simulation Settings
 simulation:
 
@@ -39,44 +48,68 @@ simulation:
     random_seed:  42
     max_sim_time: 4320000
 
-    # Network Parameters
-    count_messages: false
-    aggregate_heartbeats: true
+    # Network and Simulation Parameters
+    trace_messages: false        # Create a time series of all messages (lots of disk space required)
+    validate_consistency: false  # Create a consistency report for all replicas post simulation (extra time)
+    trace_logs: false            # Write out the logs of all replicas in the results (more disk usage)
+    aggregate_heartbeats: true   # Differentiate between append entries and heartbeat messages
     default_latency: 800
     default_replica: storage
     default_consistency: strong
 
     # Workload Parameters
-    users: 1                  # number of simulated users creating traces
-    max_objects_accessed: 1   # maximum number of objects that can be accessed
-    synchronous_access: false # each access has to wait on the previous access to be triggered
-    valid_locations:          # locations to allow user to move to.
-        - home
-        - work
-        - mobile
+    users: 1                   # number of simulated users creating traces
+    max_users_location: null   # limit the number of users per location
+    max_objects_accessed: 1    # maximum number of objects that can be accessed (per user)
+    synchronous_access: false  # each access has to wait on the previous access to be triggered
+    invalid_locations:         # locations to disallow user to move to.
+        - cloud
 
-    invalid_types:      # replica types that shouldn't have accesses.
-        - storage
+    invalid_types:            # replica types that shouldn't have accesses.
+        - backup
 
-    move_prob: 0.2      # probability of moving locations
-    switch_prob: 0.4    # probability of switching devices
+    conflict_prob: 0.0  # probability of object overlap and potential access conflict
     object_prob: 0.3    # probability of switching the currently accessed object
     access_mean: 1800   # mean delay (milliseconds) between accesses
     access_stddev: 512  # standard deviation of delay (milliseconds) between accesses
     read_prob: 0.8      # probability of read access; write probability is 1 - read_prob
+    move_prob: 0.2      # probability of moving locations (mobile workload)
+    switch_prob: 0.4    # probability of switching devices (mobile workload)
+
+    # Outage Parameters
+    outage_prob: 0.0        # per-link probability of an outage
+    outage_mean: 5400       # mean outage duration in milliseconds
+    outage_stddev: 512      # standard deviation of outage duration in milliseconds
+    online_mean: 10800      # mean online duration in milliseconds
+    online_stddev: 512      # standard deviation of ounline duration in milliseconds
+    partition_across: wide  # types of links to cut, one of wide, local, both, node, or leader
+
+    # Integration parameter: default, floated, or federated
+    integration: default
+
+    # Versioning parameter: default, lamport, federated
+    versioning: default
 
     # Eventual Parameters
-    anti_entropy_delay: 3000        # delay in milliseconds (20x per minute)
-    do_gossip: true                 # perform gossip protocol
-    do_rumoring: true               # perform rumor mongering
+    anti_entropy_delay: 600       # delay in milliseconds (100x per minute)
+    num_neighbors: 1              # the number of neighbors to push to during anti-entropy session.
+    do_gossip: true               # perform gossip protocol (deprecated)
+    do_rumoring: false            # perform rumor mongering (deprecated)
 
     # Raft Parameters
-    election_timeout: [150, 300]    # Range to randomly select the election timeout
-    heartbeat_interval: 75          # Usually half the minimum election timeout
-    aggregate_writes: False         # Don't send writes until heartbeat.
+    election_timeout: [150, 300]  # Range to randomly select the election timeout
+    heartbeat_interval: 75        # Usually half the minimum election timeout
+    aggregate_writes: False       # Don't send writes until heartbeat.
+    read_policy: latest           # Policy for followers reading from logs (latest or commit).
 
     # Tag Parameters
     session_timeout: 4096           # Related to the mean delay between accesses
+
+    # Federated Parameters
+    sync_prob: 0.3          # probability of eventual syncing with core consensus
+    local_prob: 0.6         # probability of local anti-entropy over wide area (wide area is 1-local_prob)
+    forte_on_commit: false  # Increment the forte number on commit
+    forte_on_append: false  # Increment the forte number on append
 
 ## Visualization parameters
 vizualization:

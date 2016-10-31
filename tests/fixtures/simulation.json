@@ -32,35 +32,35 @@
             "id": "r3",
             "label": "Home Backup",
             "type": "storage",
-            "consistency": "medium",
+            "consistency": "causal",
             "location": "home"
         },
         {
             "id": "r4",
             "label": "Work Backup",
             "type": "storage",
-            "consistency": "medium",
+            "consistency": "causal",
             "location": "work"
         },
         {
             "id": "r5",
             "label": "Laptop",
             "type": "laptop",
-            "consistency": "medium",
+            "consistency": "causal",
             "location": "mobile"
         },
         {
             "id": "r6",
             "label": "iPad",
             "type": "tablet",
-            "consistency": "low",
+            "consistency": "eventual",
             "location": "mobile"
         },
         {
             "id": "r7",
             "label": "iPhone",
             "type": "smartphone",
-            "consistency": "low",
+            "consistency": "eventual",
             "location": "mobile"
         }
     ],

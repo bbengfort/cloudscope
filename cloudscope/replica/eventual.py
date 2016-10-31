@@ -48,7 +48,7 @@ mechanism rather than any remote reads/writes.
 import random
 
 from .base import Replica
-from .store import Version
+from .store import namespace
 from .store import MultiObjectWriteLog
 
 from cloudscope.config import settings
@@ -64,13 +64,17 @@ from collections import namedtuple
 
 ## Fetch simulation settings from defaults
 AE_DELAY    = settings.simulation.anti_entropy_delay
+NEIGHBORS   = settings.simulation.num_neighbors
+
+# Deprecated
 DO_GOSSIP   = settings.simulation.do_gossip
 DO_RUMORING = settings.simulation.do_rumoring
 
 ## RPC Message Definition
 Gossip   = namedtuple('Gossip', 'entries, length')
-Response = namedtuple('Response', 'entries, length, success')
-
+GossipResponse = namedtuple('GossipResponse', 'entries, length, success')
+Rumor    = namedtuple('Rumor', 'access')
+RumorResponse  = namedtuple('RumorResponse', 'access, success')
 
 ##########################################################################
 ## Eventual Replica
@@ -83,12 +87,14 @@ class EventualReplica(Replica):
 
         # Eventually consistent settings
         self.ae_delay    = kwargs.get('anti_entropy_delay', AE_DELAY)
+        self.n_neighbors = kwargs.get('num_neighbors', NEIGHBORS)
+
+        # Deprecated
         self.do_gossip   = kwargs.get('do_gossip', DO_GOSSIP)
         self.do_rumoring = kwargs.get('do_rumoring', DO_RUMORING)
 
         self.log         = MultiObjectWriteLog() # the write log of the replica
         self.timeout     = None                  # anti entropy timer
-        self.cache       = {}                    # cache to gossip on ae
 
     ######################################################################
     ## Properties
@@ -156,7 +162,7 @@ class EventualReplica(Replica):
 
             # Perform the write
             if latest is None:
-                version = Version.new(access.name)(self)
+                version = namespace(access.name)(self)
             else:
                 version = latest.nextv(self)
 
@@ -183,18 +189,14 @@ class EventualReplica(Replica):
 
         # At this point we've dealt with local vs. remote
         # Append the latest version to the local data store
-        self.log.append(version, version.version)
+        self.log.append(version, 0)
 
-        # Update the version to track visibility latency
-        version.update(self)
+        # Handle the access according to eventual rules
+        version.update(self) # Update the version to track visibility latency
+        access.log(self)     # Log the access from this particular replica.
+        self.rumor(access)   # Rumor the access on demand
 
-        # Cache the latest access to this object for anti-entropy
-        self.cache[access.name] = access
-        self.rumor() # Rumor the access on demand
-
-        # Log the access from this particular replica.
-        access.log(self)
-
+        # Return the access for subclass access.
         return access
 
     def run(self):
@@ -220,16 +222,17 @@ class EventualReplica(Replica):
         if not self.do_gossip:
             return
 
-        # Randomly select a neighbor that also has eventual consistency.
-        target = random.choice(self.neighbors(self.consistency))
+        # Perform pairwise anti-entropy sessions with n_neighbors
+        for target in self.get_anti_entropy_neighbors():
+            # Send the latest version of ALL objects.
+            entries = [
+                self.log.get_latest_version(name).access
+                for name in self.log.namespace
+            ]
+            gossip  = Gossip(tuple(entries), len(entries))
+            self.send(target, gossip)
 
-        # Perform pairwise gossiping for every object in the cache.
-        self.send(target, Gossip(tuple(self.cache.values()), len(self.cache)))
-
-        # Empty the cache on gossip.
-        self.cache = {}
-
-    def rumor(self):
+    def rumor(self, access):
         """
         Performs on access rumor mongering
         """
@@ -237,9 +240,10 @@ class EventualReplica(Replica):
         if not self.do_rumoring:
             return
 
-        raise NotImplementedError(
-            "Rumor mongering is not currently implemented."
-        )
+        # Send the access to n other neighbors (excluding the origin)
+        for target in self.get_anti_entropy_neighbors():
+            rumor = Rumor(access)
+            self.send(target, rumor)
 
     def get_anti_entropy_timeout(self):
         """
@@ -248,6 +252,77 @@ class EventualReplica(Replica):
         """
         self.timeout = Timer(self.env, self.ae_delay, self.gossip)
         return self.timeout.start()
+
+    def select_anti_entropy_neighbor(self):
+        """
+        Implements the anti-entropy neighbor selection policy. By default this
+        is simply uniform random selection of all the eventual neighbors.
+        """
+        return random.choice(self.neighbors(self.consistency))
+
+    def get_anti_entropy_neighbors(self):
+        """
+        Selects the neighbors to perform anti-entropy with.
+        """
+        for _ in xrange(self.n_neighbors):
+            yield self.select_anti_entropy_neighbor()
+
+    def update_forte_children(self, current, remote):
+        """
+        This unfortunately named method is a recursive function that updates
+        all the children of the remote version with the new forte number and
+        returns the newly correct current version.
+
+        The idea here is that if the current version has a lower forte number
+        then we should update the children of the remote (higher forte) in
+        order to make sure that the latest branch is current.
+
+        This method provides backpressure from Raft to Eventual.
+        """
+
+        def update_forte(forte, version, current):
+            """
+            Recursive update the forte number for a particular version.
+            """
+            # Update all the version's children with its forte number.
+            for child in version.children:
+                # Only update children that are in the current log.
+                if child in self.log:
+                    # Update child forte to parent and detect current
+                    child.forte = forte
+                    if child > current: current = child
+
+                # Recurse on grandchildren
+                current = update_forte(forte, child, current)
+
+            # Return the maximal version (using forte numbers) discovered.
+            return current
+
+        # This function only needs be called if we're in federated versioning.
+        if settings.simulation.versioning != "federated":
+            return current
+
+        # If the current is greater than the remote, return it.
+        if current is None or current >= remote: return current
+
+        # Check the forte number on the remote and update the children.
+        if remote.forte > current.forte:
+            strong = update_forte(remote.forte, remote, current)
+            if strong > current:
+                # Put the strong version at the end of the log and return it
+                # as the new current version (or latest for this object)
+                if strong in self.log:
+                    self.log.remove(strong)
+                    self.log.append(strong, strong.forte)
+                    return strong
+                else:
+                    # This really shouldn't happen?!
+                    self.sim.logger.warning(
+                        "Attempting to move {} to end when not in log!"
+                    )
+
+        # Last resort, return the current version.
+        return current
 
     ######################################################################
     ## Event Handlers
@@ -261,38 +336,83 @@ class EventualReplica(Replica):
         """
         entries = message.value.entries
         updates = []
-        objects = set(entry.name for entry in entries)
 
         # Go through the entries from the RPC and update log
         for access in entries:
+            # Get the latest version from the log then update with forte
             current = self.log.get_latest_version(access.name)
+            current = self.update_forte_children(current, access.version)
+
+            # If the access is greater than our current version, write it!
             if current is None or access.version > current:
                 self.write(access)
 
+            # Is the the remote behind us? If so, send the latest version!
             elif access.version < current:
                 updates.append(current.access)
 
             else:
+                # Presumably the version are equal, so do nothing.
                 continue
-
-        # Send back anything in local cache that wasn't received
-        for key, access in self.cache.items():
-            if key not in objects:
-                updates.append(access)
 
         # Success here just means whether or not we're responding with updates
         success = True if updates else False
 
-        # Respond to the sender
-        self.send(message.source, Response(updates, len(updates), success))
+        # Respond to the sender with the latest versions from our log
+        self.send(message.source, GossipResponse(updates, len(updates), success))
 
-    def on_response_rpc(self, message):
+    def on_gossip_response_rpc(self, message):
         """
         Handles the response to pairwise gossiping, updating entries from the
-        responder to your gossip with the latest news.
+        responder's cache to the local log and latest version cache.
         """
+        entries = message.value.entries
 
-        for access in message.value.entries:
+        for access in entries:
             current = self.log.get_latest_version(access.name)
+            current = self.update_forte_children(current, access.version)
+
+            # This is a new version or a later version than our current.
             if current is None or access.version > current:
                 self.write(access)
+
+    def on_rumor_rpc(self, message):
+        """
+        Handles the rumor message from the originator of the rumor.
+        """
+        access  = message.value.access
+        current = self.log.get_latest_version(access.name)
+        current = self.update_forte_children(current, access.version)
+
+        # Is the rumored version later than our current?
+        if current is None or access.version > current:
+            # Write the access which will rumor it out again
+            self.write(access)
+
+            # Respond True to the origin of the rumor
+            response = RumorResponse(None, True)
+
+        elif access.version < current:
+            # Respond False to the origin with the later version
+            response = RumorResponse(current.access, False)
+
+        else:
+            # Simply acknowledge receipt
+            response = RumorResponse(None, True)
+
+        # Send the response back to the source
+        self.send(message.source, response)
+
+    def on_rumor_response_rpc(self, message):
+        """
+        Handles the rumor acknowledgment
+        """
+        response = message.value
+        if not response.success:
+            # This means that a later value has come in!
+            current = self.log.get_latest_version(response.access.name)
+            current = self.update_forte_children(current, access.version)
+
+            # If their response is later than our version, write it.
+            if current is None or response.access.version > current:
+                self.write(response.access)

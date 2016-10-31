@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # cloudscope.console.commands.traces
 # Generates random traces to pass directly to the simulations (as input).
 #
@@ -18,18 +19,16 @@ Generates random traces to pass directly to the simulations (as input).
 ##########################################################################
 
 import sys
-import random
+import logging
 import argparse
-
-from operator import itemgetter
-from collections import defaultdict
 
 from commis import Command
 from cloudscope.config import settings
 from cloudscope.dynamo import CharacterSequence
 from cloudscope.simulation.main import ConsistencySimulation
-from cloudscope.simulation.workload import Workload
-from cloudscope.replica.access import READ, WRITE
+from cloudscope.simulation.workload.traces import TracesWriter
+from cloudscope.simulation.workload.cases import BestCaseAllocation
+from cloudscope.simulation.workload.cases import PingPongWorkload
 
 ##########################################################################
 ## Command
@@ -64,6 +63,24 @@ class TracesCommand(Command):
             'metavar': 'N',
             'help': 'specify the number of objects accessed'
         },
+        ('-c', '--conflict'): {
+            'type': float,
+            'default': settings.simulation.conflict_prob,
+            'metavar': 'P',
+            'help': 'the probability of conflict between objects',
+        },
+        ('-M', '--access-mean'): {
+            'type': int,
+            'default': settings.simulation.access_mean,
+            'metavar': 'μ',
+            'help': 'specify the mean delay between accesses',
+        },
+        ('-S', '--access-stddev'): {
+            'type': int,
+            'default': settings.simulation.access_stddev,
+            'metavar': 'σ',
+            'help': 'specify the standard deviation of delay between accesses',
+        },
         ('-t', '--timesteps'): {
             'type': int,
             'default': settings.simulation.max_sim_time,
@@ -88,8 +105,17 @@ class TracesCommand(Command):
 
     def handle(self, args):
         """
-        Uses the multi-object workload to generate a traces file.
+        Uses built in workloads and the TracesWriter to generate a trace file.
         """
+        # Disable logging during trace generation
+        logger = logging.getLogger('cloudscope.simulation')
+        logger.disabled = True
+
+        # Update settings arguments
+        settings.simulation.conflict_prob = args.conflict
+        settings.simulation.access_mean   = args.access_mean
+        settings.simulation.access_stddev = args.access_stddev
+
         # Simulation arguments
         kwargs = {
             'users': args.users,
@@ -100,163 +126,36 @@ class TracesCommand(Command):
 
         # Create simulation
         simulation = ConsistencySimulation.load(args.data[0], **kwargs)
-        simulation.script()
+        simulation.trace = None
 
-        # Fetch workload from the simulation
-        workload   = simulation.workload
+        # Create or select the correct simulation
+        if args.best_case or args.tiered:
+            workload = BestCaseAllocation(
+                simulation, args.objects, selection='random',
+            )
+            workload.allocate_many(args.users)
 
-        # If we're in manual mode, execute that and return.
-        if args.best_case:
-            return self.best_case_trace(workload, args)
-
-        if args.ping_pong:
-            return self.ping_pong_trace(workload, args)
-
-        if args.tiered:
-            return self.tiered_trace(workload, args)
-
-        # Write the traces to disk
-        for idx, access in enumerate(self.compute_accesses(workload, args.timesteps)):
-            args.output.write("\t".join(access) + "\n")
-
-        return (
-            "traced {} accesses on {} objects by {} users over {} timesteps\n"
-            "wrote the trace file to {}"
-        ).format(
-            idx+1, args.objects, args.users, args.timesteps, args.output.name
-        )
-
-    def compute_accesses(self, workload, until=None):
-        # Determine the maximum simulation time
-        until = until or settings.simulation.max_sim_time
-
-        # Set up the access computation
-        if isinstance(workload, Workload):
-            workload = [workload]
-
-        timestep = 0
-        schedule = defaultdict(list)
-
-        # Initialize the schedule
-        for work in workload:
-            schedule[int(work.next_access.get())].append(work)
-
-        # Iterate through time
-        while timestep < until:
-            # Update the timestep to the next time in schedule
-            timestep = min(schedule.keys())
-
-            # Perform accesses for all scheduled workloads
-            for work in schedule.pop(timestep):
-                work.update()
-                access = READ if work.do_read.get() else WRITE
-                yield (str(timestep), work.device.id, work.current, access)
-
-                # Reschedule the work
-                schedule[int(work.next_access.get()) + timestep].append(work)
-
-    def best_case_trace(self, workload, args):
-        """
-        Manual function to generate a "best case" trace for tagging: that is
-        where each replica server only accesses its own objects.
-        """
-        until    = args.timesteps
-        sequence = CharacterSequence(upper=True)
-
-        nodes = defaultdict(dict)
-        for idx, work in enumerate(workload):
-            work.move()
-            nodes[work]['dev'] = work.device.id
-            nodes[work]['obj'] = [sequence.next() for _ in xrange(3)]
-            nodes[work]['tme'] = 0
-            nodes[work]['acs'] = WRITE
-
-        output = []
-
-        # Each node is going to access a single object
-        for idx in xrange(1000):
-            for work, info in nodes.items():
-                info['tme'] += int(work.next_access.get())
-                if info['tme'] > until:
-                    break
-
-                info['acs'] = READ if work.do_read.get() else WRITE
-
-                output.append(
-                    (info['tme'], info['dev'], random.choice(info['obj']), info['acs'])
-                )
-
-        for line in sorted(output, key=itemgetter(0)):
-            args.output.write("\t".join((str(s) for s in line)) + "\n")
-
-        return "manual \"best case\" trace generated with {} accesses for {} devices".format(len(output), len(nodes))
-
-    def ping_pong_trace(self, workload, args):
-        """
-        Manual trace generation function to create a "ping pong" scenario
-        where the tag bounces between replica servers.
-        """
-        until = args.timesteps
-        tag   = ['A', 'B', 'C', 'D', 'E']
-        time  = 0
-        nodes = {work.device.id: work for work in workload if not work.move()}
-        bingo = random.choice(nodes.keys())
-        work  = nodes[bingo]
-        N     = 5000
-
-        for idx in xrange(N):
-
-            # Do we switch to a new writer with some small probability?
-            if random.random() < 0.1:
-                bingo = random.choice(nodes.keys())
-
-            # Update the time and determine the access
-            time  += int(work.next_access.get())
-            if time > until:
-                break
-
-            # Write the random
-            obj    = random.choice(tag)
-            access = READ if work.do_read.get() else WRITE
-
-            # Write out the trace
-            args.output.write(
-                "{}\t{}\t{}\t{}\n".format(time, bingo, obj, access)
+        elif args.ping_pong:
+            factory = CharacterSequence(upper=True)
+            objects = [factory.next() for _ in range(args.objects)]
+            workload = PingPongWorkload(
+                simulation, simulation.replicas[:args.users], objects=objects,
             )
 
-        return "manual \"ping pong\" trace generated with {} accesses for {} devices".format(idx+1, len(nodes))
+        else:
+            simulation.script()
+            workload = simulation.workload
 
-    def tiered_trace(self, workload, args):
-        """
-        Manual trace generation to create a "tiered quorum" scenario where
-        accesses to a single tag only occur in a single location, e.g. the
-        tag space is divided evenly on a per-replica basis.
-
-        Each item in the workload represents a user. Each user should be
-        restricted to their own location, and not allowed to move locations,
-        they should also be restricted to their own portion of the tagset.
-        """
-        sequence  = CharacterSequence(upper=True)
-        locations = workload[0].locations.keys()
-
-        # Delete the locations from the workload not assigned.
-        # Assign a specific tag space to that workload.
-        for idx, work in enumerate(workload):
-            loc = idx % len(locations)
-            for jdx, key in enumerate(work.locations.keys()):
-                if jdx != loc:
-                    del work.locations[key]
-
-            work.objects = [sequence.next() for _ in xrange(args.objects)]
-
-
-        # Write the traces to disk
-        for idx, access in enumerate(self.compute_accesses(workload, args.timesteps)):
-            args.output.write("\t".join(access) + "\n")
+        # Create the traces writer and write the traces to disk
+        writer = TracesWriter(workload, args.timesteps)
+        counts = writer.write(args.output)
 
         return (
-            "traced {} accesses in {} locations ({} objects per location) by {} users over {} timesteps\n"
-            "wrote the trace file to {}"
-        ).format(
-            idx+1, len(locations), args.objects, args.users, args.timesteps, args.output.name
-        )
+            "traced {rows:,} accesses on {devices:,} devices over {timesteps:,} timesteps ({realtime})\n"
+            "object space contains {objects:,} object names:\n"
+            "  {mean_objects_per_device:,} average objects per device | "
+            "{mean_devices_per_object:,} average devices per object\n"
+            "  {mean_accesses_per_device:,} average accesses per device | "
+            "{mean_accesses_per_object:,} average accesses per object\n"
+            "wrote the trace file to {0}"
+        ).format(args.output.name, **counts)

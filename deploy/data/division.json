@@ -11,7 +11,7 @@
             "id": "r6",
             "label": "iPad",
             "type": "tablet",
-            "consistency": "low",
+            "consistency": "eventual",
             "location": "home",
             "files": {}
         },
@@ -19,7 +19,7 @@
             "id": "r0",
             "label": "Laptop",
             "type": "laptop",
-            "consistency": "medium",
+            "consistency": "causal",
             "location": "mobile",
             "files": {}
         },
@@ -27,7 +27,7 @@
             "id": "r7",
             "label": "iPhone",
             "type": "smartphone",
-            "consistency": "low",
+            "consistency": "eventual",
             "location": "mobile",
             "files": {}
         },
@@ -67,7 +67,7 @@
             "id": "r5",
             "label": "Work Tablet",
             "type": "tablet",
-            "consistency": "low",
+            "consistency": "eventual",
             "location": "work",
             "files": {}
         }

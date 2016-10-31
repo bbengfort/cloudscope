@@ -1,3 +1,4 @@
+ # -*- coding: utf-8 -*-
 # cloudscope.simulation.network
 # Implements the networking interface for the simulation.
 #
@@ -30,20 +31,28 @@ from collections import namedtuple
 from networkx.readwrite import json_graph
 
 from cloudscope.config import settings
-from cloudscope.exceptions import UnknownType
+from cloudscope.utils.statistics import mean
 from cloudscope.dynamo import Uniform, Normal
 from cloudscope.simulation.base import Process
+from cloudscope.utils.decorators import setter
+from cloudscope.exceptions import NetworkError
+from cloudscope.exceptions import UnknownType, BadValue
 
 
 ##########################################################################
 ## Module Constants
 ##########################################################################
 
-CONSTANT = "constant"
-VARIABLE = "variable"
-NORMAL   = "normal"
+## Connection Constants
+CONSTANT   = "constant"
+VARIABLE   = "variable"
+NORMAL     = "normal"
 
+## Area Constants
+WIDE_AREA  = "wide"
+LOCAL_AREA = "local"
 
+## Message data structure
 Message  = namedtuple('Message', 'source, target, value, delay')
 
 ##########################################################################
@@ -81,6 +90,14 @@ class Node(Process):
         """
         The send messsage interface required by connectible objects.
         """
+        # If the connection is offline drop the message
+        if not self.connections[target].online:
+            raise NetworkError(
+                "{} cannot send message to {} when connection is offline!".format(
+                    self, target
+                )
+            )
+
         # Create a message named tuple
         message = self.pack(target, value)
 
@@ -95,6 +112,13 @@ class Node(Process):
         """
         The recv message interface required by connectible objects.
         """
+        if not self.connections[event.value.source].online:
+            raise NetworkError(
+                "{} cannot recv messages from {} when connection is offline!".format(
+                    self, event.value.source
+                )
+            )
+
         # Unpack the message from the timeout event
         return event.value
 
@@ -134,17 +158,39 @@ class Connection(object):
         self.source   = source
         self.target   = target
         self.type     = kwargs.get('connection', CONSTANT)
-        self.active   = kwargs.get('active', True)
+        self.online   = kwargs.get('online', True)
+        self.area     = kwargs.get('area', None)
 
         # Set the latency protected variable
         self._latency = kwargs.get(
             'latency', settings.simulation.default_latency
         )
 
+    @setter
+    def area(self, value):
+        """
+        If the area is set directly, then it is stored as such. Otherwise the
+        area is computed by inspecting the locations of the source and the
+        target: if they are the same then local, otherwise wide.
+        """
+        if value is None:
+            if not self.source or not self.target:
+                return None
+            if self.source.location == self.target.location:
+                return LOCAL_AREA
+            return WIDE_AREA
+        return value
+
     def latency(self):
         """
         Computes the latency from the latency range.
         """
+        # If we're not online then raise an exception.
+        if not self.online:
+            raise NetworkError(
+                "Cannot get latency for an offline connection!"
+            )
+
         # Constant Connections
         if self.type == CONSTANT:
             assert isinstance(self._latency, int)
@@ -166,7 +212,24 @@ class Connection(object):
                 )
 
         # Non-constant connections (Variable, Normal)
-        return self._latency_distribution.get()
+        value = self._latency_distribution.get()
+
+        # If value is zero or negative, try again
+        if value <= 1:
+            return self.latency()
+        return value
+
+    def up(self):
+        """
+        Make the connection online.
+        """
+        self.online = True
+
+    def down(self):
+        """
+        Take the connection offline (cannot send messages)
+        """
+        self.online = False
 
     def get_latency_range(self):
         """
@@ -176,12 +239,46 @@ class Connection(object):
             return (self._latency, self._latency)
         return self._latency
 
+    def get_latency_mean(self):
+        """
+        Returns the mean latency based on the connection type.
+        """
+        if self.type == CONSTANT:
+            return self.latency
+        else:
+            # Make sure there is a latency distribution
+            _ = self.latency()
+            return self._latency_distribution.get_mean()
+
+    def get_latency_stddev(self):
+        """
+        Returns the standard deviation of the latency based on connection type.
+        """
+        if self.type == CONSTANT:
+            return 0.0
+        else:
+            # Make sure there is a latency distribution
+            _ = self.latency()
+            return self._latency_distribution.get_stddev()
+
     def serialize(self):
         return {
             "connection": self.type,
-            "active": self.active,
+            "online": self.online,
             "latency": self._latency,
         }
+
+    def __str__(self):
+        """
+        Returns a representation of the connection object.
+        """
+        arrow = {
+            CONSTANT: "→",
+            VARIABLE: "⇝",
+            NORMAL: "⇴",
+        }[self.type]
+
+        return "{} {} {}".format(self.source, arrow, self.target)
 
 ##########################################################################
 ## Network of connections
@@ -251,6 +348,65 @@ class Network(object):
             (conn, (min(late), max(late)))
             for conn, late in latencies.iteritems()
         ])
+
+    def compute_tick(self, model='conservative', estimator='mean'):
+        """
+        Computes the tick, T of the network: a parameter that is measured
+        from the mean and standard deviation of latencies in the network.
+
+        The howard model proposes T = 2(mu + 2sd)
+        The bailis model proposes T = 10mu
+        The conservative model proposes T = 6(mu + 4sd)
+        The optimistic model proposes   T = 2(mu + 4sd)
+
+        For Raft parameters are usually set as follows:
+            - heartbeat interval = T/2
+            - election timeout = (T, 2T)
+
+        Anti-Entropy intervals can also be specified via T.
+
+        The estimator specifies how to choose the mean and standard deviation
+        from all the connections. Choices are mean, max, or min.
+        """
+
+        # Estimator mapping
+        estimators = {
+            'mean': mean,
+            'max': max,
+            'min': min,
+        }
+
+        # Select the estimator
+        if estimator not in estimators:
+            raise BadValue(
+                "Unknown estimator '{}', choose from {}".format(
+                    estimator, ", ".join(estimators.keys())
+                )
+            )
+        est = estimators[estimator]
+
+        # Compute the latency mean and standard deviation
+        lmu = est(map(lambda c: c.get_latency_mean(), self.iter_connections()))
+        lsd = est(map(lambda c: c.get_latency_stddev(), self.iter_connections()))
+
+        # Model mapping
+        models = {
+            'bailis': lambda mu, sd: 10*mu,
+            'howard': lambda mu, sd: 2*(mu + (2*sd)),
+            'conservative': lambda mu, sd: 6*(mu + (4*sd)),
+            'optimistic': lambda mu, sd: 2*(mu + (4*sd)),
+        }
+
+        # Select the model
+        if model not in models:
+            raise BadValue(
+                "Unknown model '{}', choose from {}".format(
+                    model, ", ".join(models.keys())
+                )
+            )
+
+        # Compute T with the model and return
+        return models[model](lmu, lsd)
 
     def graph(self):
         """

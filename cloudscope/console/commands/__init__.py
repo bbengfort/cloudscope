@@ -24,3 +24,8 @@ from .multi import MultipleSimulationsCommand
 from .generate import GenerateCommand
 from .traces import TracesCommand
 from .config import SettingsCommand
+from .inspect import InspectCommand
+from .outages import OutagesCommand
+from .modify import ModifyTopologyCommand
+from .topology import TopologyGeneratorCommand
+from .status import StatusCommand

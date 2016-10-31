@@ -11,7 +11,7 @@
             "id": "r0",
             "label": "Eventual 1",
             "type": "storage",
-            "consistency": "low",
+            "consistency": "eventual",
             "location": "cloud",
             "files": {}
         },
@@ -19,7 +19,7 @@
             "id": "r1",
             "label": "Eventual 2",
             "type": "storage",
-            "consistency": "low",
+            "consistency": "eventual",
             "location": "cloud",
             "files": {}
         },
@@ -27,7 +27,7 @@
             "id": "r2",
             "label": "Eventual 3",
             "type": "storage",
-            "consistency": "low",
+            "consistency": "eventual",
             "location": "cloud",
             "files": {}
         },
@@ -35,7 +35,7 @@
             "id": "r3",
             "label": "Eventual 4",
             "type": "storage",
-            "consistency": "low",
+            "consistency": "eventual",
             "location": "cloud",
             "files": {}
         },
@@ -43,7 +43,7 @@
             "id": "r4",
             "label": "Eventual 5",
             "type": "storage",
-            "consistency": "low",
+            "consistency": "eventual",
             "location": "cloud",
             "files": {}
         },
@@ -51,7 +51,7 @@
             "id": "r5",
             "label": "Eventual 6",
             "type": "storage",
-            "consistency": "low",
+            "consistency": "eventual",
             "location": "cloud",
             "files": {}
         },
@@ -59,7 +59,7 @@
             "id": "r6",
             "label": "Eventual 7",
             "type": "storage",
-            "consistency": "low",
+            "consistency": "eventual",
             "location": "cloud",
             "files": {}
         },
@@ -67,7 +67,7 @@
             "id": "r7",
             "label": "Eventual 8",
             "type": "storage",
-            "consistency": "low",
+            "consistency": "eventual",
             "location": "cloud",
             "files": {}
         }

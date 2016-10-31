@@ -113,15 +113,15 @@ svg text.icon {
     cursor: pointer;
 }
 
-.consistency-strong {
+.consistency-strong, .consistency-raft {
     fill: #91cf60;
 }
 
-.consistency-medium {
+.consistency-causal, .consistency-tag {
     fill: #ffffbf;
 }
 
-.consistency-low {
+.consistency-eventual {
     fill: #fc8d59;
 }
 

@@ -19,5 +19,9 @@ Management of the data objects and meta data in the simulation.
 
 from .log import WriteLog
 from .log import MultiObjectWriteLog
-from .vcs import Version
 from .vcs import ObjectFactory
+from .vcs import Namespace
+from .vcs import Version
+from .vcs import LamportVersion
+from .vcs import FederatedVersion
+from .vcs import namespace

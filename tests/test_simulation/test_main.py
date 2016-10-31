@@ -50,6 +50,7 @@ def load_simulation(path, **kwargs):
     defaults = {
         'max_sim_time': 100000,
         'objects': 10,
+        'users': 3,
     }
     defaults.update(kwargs)
 
@@ -93,14 +94,15 @@ class SimulationTests(unittest.TestCase):
 
         # Required Metrics
         required = {
-            u'read', u'read latency',
+            u'read', u'read latency', 'visibility',
             u'write', u'write latency', u'visibility latency',
         } | metrics
 
         # Optional Metrics
         optional = {
-            u'sent', u'recv', u'commit latency', u'stale reads',
-            u'empty reads', u'missed reads', u'dropped writes'
+            u'sent', u'recv', u'dropped', u'commit latency',
+            u'stale reads', u'empty reads', u'missed reads',
+            u'dropped writes', 'forked writes', 'stale writes',
         }
 
         for metric in required:
@@ -129,7 +131,7 @@ class SimulationTests(unittest.TestCase):
         # Check the results
         self.assertReliableResults(results)
 
-    @unittest.skip("See issue #63")
+    # @unittest.skip("See issue #63")
     def test_raft_simulation(self):
         """
         Run the raft consensus simulation without errors

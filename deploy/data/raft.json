@@ -11,35 +11,35 @@
             "id": "r0",
             "label": "Raft 1",
             "type": "storage",
-            "consistency": "strong",
+            "consistency": "raft",
             "location": "cloud"
         },
         {
             "id": "r1",
             "label": "Raft 2",
             "type": "storage",
-            "consistency": "strong",
+            "consistency": "raft",
             "location": "cloud"
         },
         {
             "id": "r2",
             "label": "Raft 3",
             "type": "storage",
-            "consistency": "strong",
+            "consistency": "raft",
             "location": "cloud"
         },
         {
             "id": "r3",
             "label": "Raft 4",
             "type": "storage",
-            "consistency": "strong",
+            "consistency": "raft",
             "location": "cloud"
         },
         {
             "id": "r4",
             "label": "Raft 5",
             "type": "storage",
-            "consistency": "strong",
+            "consistency": "raft",
             "location": "cloud"
         }
     ],

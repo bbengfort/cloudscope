@@ -68,6 +68,14 @@ class WriteLog(object):
         """
         return self.log[self.commitIndex].version
 
+    def insert(self, index, version, term):
+        """
+        Inserts a version at the specified index and increments last Applied.
+        Technically, we really shouldn't be inserting anything into logs!
+        """
+        self.log.insert(index, LogEntry(version, term))
+        self.lastApplied += 1
+
     def append(self, version, term):
         """
         Appends a version and a term to the log.
@@ -75,7 +83,32 @@ class WriteLog(object):
         self.log.append(LogEntry(version, term))
         self.lastApplied += 1
 
-    def remove(self, after=1):
+    def index(self, version, term=None):
+        """
+        Returns the index of the first instance of the given version in the
+        log. If the term is supplied, then both the version and the term have
+        to match in order to return an index. Returns None if not found.
+        """
+        for idx in xrange(len(self)):
+            if self[idx].version == version:
+                if term is not None and self[idx].term != term:
+                    continue
+                return idx
+        return None
+
+    def remove(self, version, term=None):
+        """
+        Finds the given version (optionally with the associated term) and
+        removes and returns it from the log; note that it also returns the
+        removed version, or None if it cannot find that version.
+        """
+        idx = self.index(version, term)
+        ver = self.log[idx].version
+        del self.log[idx]
+        self.lastApplied -= 1
+        return ver
+
+    def truncate(self, after=1):
         """
         Removes all items from a log after the specified index.
         """
@@ -91,12 +124,24 @@ class WriteLog(object):
             return lastApplied >= self.lastApplied
         return lastTerm > self.lastTerm
 
+    def freeze(self):
+        """
+        Returns an immutable copy of the log.
+        """
+        return tuple(self.log)
+
     def __getitem__(self, idx):
         return self.log[idx]
 
     def __iter__(self):
         for item in self.log:
             yield item
+
+    def __contains__(self, version):
+        for entry in self.log:
+            if entry.version == version:
+                return True
+        return False
 
     def __len__(self):
         return len(self.log)
@@ -159,6 +204,30 @@ class MultiObjectWriteLog(WriteLog):
     namespace of objects (not efficient, but practical).
     """
 
+    def __init__(self, *args, **kwargs):
+        super(MultiObjectWriteLog, self).__init__(*args, **kwargs)
+
+        # Keep track of the object namespace
+        self.namespace = set()
+
+    def append(self, version, term):
+        """
+        Appends a version and a term to the log.
+        """
+        self.namespace.add(version.name)
+        super(MultiObjectWriteLog, self).append(version, term)
+
+    def insert_before(self, ancestor, version, term):
+        """
+        Inserts the version and term to the log before the ancestor, which is
+        searched for from the reverse of the list.
+        """
+        for idx in xrange(self.lastApplied, -1, -1):
+            # Note that we have to use is for identity checking.
+            if self[idx].version is ancestor:
+                self.insert(idx, version, term)
+                break
+
     def search(self, name, start=None):
         """
         Searches the log for the name in reverse order.
@@ -173,6 +242,22 @@ class MultiObjectWriteLog(WriteLog):
         # Return the null object if search comes up empty
         return self[0]
 
+    def since(self, version, start=None):
+        """
+        Returns all versions for that name since the specified version.
+        """
+        start = start or self.lastApplied
+        for idx in xrange(start, -1, -1):
+            entry = self[idx]
+            if entry.version is version:
+                return [
+                    entry.version for entry in self.log[idx+1:]
+                    if entry.version.name == version.name
+                ]
+
+        # Didn't find anything so return empty list
+        return []
+
     def get_latest_version(self, name):
         """
         Get the latest version for the name given.
@@ -186,3 +271,14 @@ class MultiObjectWriteLog(WriteLog):
         """
         entry = self.search(name, self.commitIndex)
         return entry.version
+
+    def items(self, committed=True):
+        """
+        Returns an iterable of object names and their latest commit versions
+        unless committed is False, then returns their latest versions.
+        """
+        for name in self.namespace:
+            if committed:
+                yield name, self.get_latest_commit(name)
+            else:
+                yield name, self.get_latest_version(name)

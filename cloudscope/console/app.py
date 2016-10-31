@@ -39,6 +39,11 @@ COMMANDS    = [
     GenerateCommand,
     TracesCommand,
     SettingsCommand,
+    InspectCommand,
+    OutagesCommand,
+    ModifyTopologyCommand,
+    TopologyGeneratorCommand,
+    StatusCommand,
 ]
 
 ##########################################################################

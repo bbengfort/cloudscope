@@ -19,11 +19,12 @@ Base functionality for a replica on a personal cloud storage system.
 
 from cloudscope.config import settings
 from cloudscope.dynamo import Sequence
-from cloudscope.simulation.network import Node
 from cloudscope.utils.enums import Enum
 from cloudscope.utils.strings import decamelize
 from cloudscope.replica.access import Read, Write
-from cloudscope.exceptions import AccessError
+from cloudscope.results.metrics import SENT, RECV, DROP
+from cloudscope.simulation.network import Node, Message
+from cloudscope.exceptions import AccessError, NetworkError
 
 ##########################################################################
 ## Enumerations
@@ -34,9 +35,13 @@ class Consistency(Enum):
     Enumerates various consistency guarentees
     """
 
-    STRONG = "strong"
-    MEDIUM = "medium"
-    LOW    = "low"
+    STRONG   = "strong"    # In this case refers to Raft
+    CAUSAL   = "causal"    # No implementation yet
+    EVENTUAL = "eventual"  # By default, anti-entropy with last update wins
+    STENTOR  = "stentor"   # Eventual with double the anti-entropy voice
+    RAFT     = "raft"      # Specifically a Raft consensus group
+    TAG      = "tag"       # Specifically a tag consensus group
+
 
 class Location(Enum):
     """
@@ -54,6 +59,14 @@ class Location(Enum):
     KEENE     = "Keene, NH"
     LUBBOCK   = "Lubbock, TX"
 
+    # WAN Site Locations (Stub)
+    ALPHA   = "alpha"
+    BRAVO   = "bravo"
+    CHARLIE = "charlie"
+    DELTA   = "delta"
+    ECHO    = "echo"
+
+
 class Device(Enum):
     """
     Defines the device/replica types in the cluster.
@@ -65,6 +78,7 @@ class Device(Enum):
     TABLET  = "tablet"
     PHONE   = "smartphone"
     BACKUP  = "backup"
+
 
 class State(Enum):
     """
@@ -83,6 +97,15 @@ class State(Enum):
     TAGGING   = 6 # Tag consensus
     LEADER    = 7 # Raft leadership
     OWNER     = 8 # Tag ownership
+
+
+class ReadPolicy(Enum):
+    """
+    Defines the types of read policies allowed by replicas.
+    """
+
+    LATEST = "latest"
+    COMMIT = "commit"
 
 
 ##########################################################################
@@ -149,10 +172,17 @@ class Replica(Node):
         results analysis, and does final preperatory work for sent messages.
         Simply logs that the message has been sent.
         """
-        # Call the super method to queue the message on the network
-        event   = super(Replica, self).send(target, value)
+
+        try:
+            # Call the super method to queue the message on the network
+            event   = super(Replica, self).send(target, value)
+        except NetworkError:
+            # Drop the message if the network connection is down
+            return self.on_dropped_message(target, value)
+
+        # Track total number of sent messages and get message type for logging.
         message = event.value
-        mtype = message.value.__class__.__name__ if message.value else "None"
+        mtype = self.sim.results.messages.update(message, SENT)
 
         # Debug logging of the message sent
         self.sim.logger.debug(
@@ -162,26 +192,11 @@ class Replica(Node):
         )
 
         # Track time series of sent messages
-        if settings.simulation.count_messages:
-            # Aggregate heartbeats
-            if settings.simulation.aggregate_heartbeats:
-                if mtype == 'AppendEntries':
-                    # Tag/Complex entries
-                    if isinstance(message.value.entries, dict):
-                        if any(message.value.entries.values()):
-                            mtype = 'Heartbeat'
-
-                    # Raft/Standard entries
-                    if not message.value.entries:
-                        mtype = 'Heartbeat'
-
-
+        if settings.simulation.trace_messages:
             self.sim.results.update(
-                "sent", (self.id, self.env.now, mtype)
+                SENT, (message.source.id, message.target.id, self.env.now, mtype)
             )
 
-        # Track total number of sent messages
-        self.sim.results.messages['sent'][mtype] += 1
         return event
 
     def recv(self, event):
@@ -196,9 +211,18 @@ class Replica(Node):
         route incomming messages to their correct RPC handler or raise an
         exception if it cannot find the access method.
         """
-        # Get the unpacked message from the event.
-        message = super(Replica, self).recv(event)
-        mtype = message.value.__class__.__name__ if message.value else "None"
+        try:
+            # Get the unpacked message from the event.
+            message = super(Replica, self).recv(event)
+        except NetworkError:
+            # Drop the message if the network connection is down
+            return self.on_dropped_message(event.value.target, event.value.value)
+
+        # Track total number of sent messages and get message type for logging.
+        mtype = self.sim.results.messages.update(message, RECV)
+
+        # Track the message delay statistics of all received messages
+        self.sim.results.latencies.update(message)
 
         # Debug logging of the message recv
         self.sim.logger.debug(
@@ -208,13 +232,10 @@ class Replica(Node):
         )
 
         # Track time series of recv messages
-        if settings.simulation.count_messages:
+        if settings.simulation.trace_messages:
             self.sim.results.update(
-                "recv", (self.id, self.env.now, mtype, message.delay)
+                RECV, (message.target.id, message.source.id, self.env.now, mtype, message.delay)
             )
-
-        # Track total number of recv messages
-        self.sim.results.messages['recv'][mtype] += 1
 
         # Dispatch the RPC to the correct handler
         return self.dispatch(message)
@@ -312,25 +333,55 @@ class Replica(Node):
         handler = getattr(self, handler)
         return handler(message)
 
-    def neighbors(self, consistency=None):
+    def neighbors(self, consistency=None, location=None, exclude=False):
         """
-        Returns all nodes in the network with the specified consistency
-        level(s). By default, if None is passed in, this method returns the
-        neighbors who have the same consistency as the local.
+        Returns all nodes that are connected to the local node, filtering on
+        either consistency of location. If neither consistency nor location
+        are supplied, then this simply returns all of the neighboring nodes.
+
+        If exclude is False, this returns any node that has the specified
+        consistency or location. If exclude is True it returns any node that
+        doesn't have the specified consistency or location.
         """
-        # Get the default consistency level as shared with self
-        if consistency is None: consistency = self.consistency
+        neighbors = self.connections.keys()
 
-        # Convert a single consistenty level or a string into a collection
-        if isinstance(consistency, (Consistency, basestring)):
-            consistency = [Consistency.get(consistency)]
+        # Filter based on consistency level
+        if consistency is not None:
+            # Convert a single consistenty level or a string into a collection
+            if isinstance(consistency, (Consistency, basestring)):
+                consistency = [Consistency.get(consistency)]
+            else:
+                consistency = map(Consistency.get, consistency)
 
-        # Convert the consistencies into a set for lookup
-        consistency = set(consistency)
+            # Convert the consistencies into a set for lookup
+            consistency = frozenset(consistency)
 
-        # Filter connections in that consistency level
-        is_neighbor = lambda r: r.consistency in consistency
-        return filter(is_neighbor, self.connections)
+            # Filter connections in that consistency level
+            if exclude:
+                is_neighbor = lambda r: r.consistency not in consistency
+            else:
+                is_neighbor = lambda r: r.consistency in consistency
+
+            neighbors = filter(is_neighbor, neighbors)
+
+        # Filter based on location
+        if location is not None:
+            # Convert a single location into a collection
+            if isinstance(location, (Location, basestring)):
+                location = [location]
+
+            # Convert the locations into a set for lookup.
+            location = frozenset(location)
+
+            # Filter connections in that consistency level
+            if exclude:
+                is_neighbor = lambda r: r.location not in location
+            else:
+                is_neighbor = lambda r: r.location in location
+
+            neighbors = filter(is_neighbor, neighbors)
+
+        return neighbors
 
     ######################################################################
     ## Event Handlers
@@ -342,6 +393,29 @@ class Replica(Node):
         property for more detail (this is called on set).
         """
         pass
+
+    def on_dropped_message(self, target, value):
+        """
+        Called when there is a network error and a message that is being sent
+        is dropped - subclasses can choose to retry the message or send to
+        someone else. For now, we'll just record and log the drop.
+        """
+        # Create a dummy message
+        dummy = Message(self, target, value, None)
+        mtype = self.sim.results.messages.update(message, DROP)
+
+        # Debug logging of the message dropped
+        self.sim.logger.debug(
+            "message {} dropped from {} to {} at {}".format(
+                mtype, self, target, self.env.now
+            )
+        )
+
+        # Track time series of dropped messages
+        if settings.simulation.trace_messages:
+            self.sim.results.update(
+                DROP, (self.id, target.id, self.env.now, mtype)
+            )
 
     ######################################################################
     ## Object data model

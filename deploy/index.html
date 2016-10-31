@@ -45,6 +45,10 @@
               <li><a href="data/tagging.json">Tagging (Multi Raft) Quorum</a></li>
               <li><a href="data/eventual.json">Eventually There</a></li>
               <li><a href="data/cluster.json">Single Cluster</a></li>
+              <li role="separator" class="divider"></li>
+              <li><a href="data/federated/eventual.json">Large Eventual Cluster</a></li>
+              <li><a href="data/federated/sequential.json">Large Raft Quorum</a></li>
+              <li><a href="data/federated/federated.json">Federated Cluster</a></li>
             </ul>
           </li>
         </ul>
@@ -103,14 +107,14 @@
                   <text class="label-legend" x="44" y="54">Strong Consistency</text>
                 </g>
                 <g>
-                  <circle class="replica-legend consistency-medium"
+                  <circle class="replica-legend consistency-causal"
                     cx="24" cy="74" r="10" />
-                  <text class="label-legend" x="44" y="78">Medium Consistency</text>
+                  <text class="label-legend" x="44" y="78">Causal Consistency</text>
                 </g>
                 <g>
-                  <circle class="replica-legend consistency-low"
+                  <circle class="replica-legend consistency-eventual"
                     cx="24" cy="98" r="10" />
-                  <text class="label-legend" x="44" y="102">Low Consistency</text>
+                  <text class="label-legend" x="44" y="102">Eventual Consistency</text>
                 </g>
                 <g>
                   <line class="link-legend constant" x1="12" y1="122" x2="36" y2="122" />

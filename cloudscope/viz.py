@@ -17,14 +17,16 @@ Helper functions for creating output vizualiations from simulations.
 ## Imports
 ##########################################################################
 
-import networkx as nx
-
 from operator import itemgetter
 from collections import defaultdict
 from cloudscope.config import settings
 from peak.util.imports import lazyModule
+from cloudscope.colors import ColorMap
+from networkx.readwrite import json_graph
 
 # Perform lazy loading of vizualiation libraries
+nx  = lazyModule('networkx')
+gt  = lazyModule('graph_tool.all')
 sns = lazyModule('seaborn')
 plt = lazyModule('matplotlib.pyplot')
 np  = lazyModule('numpy')
@@ -164,22 +166,159 @@ def plot_message_traffic(messages):
 
 
 ##########################################################################
-## NetworkX Drawing Utilities
+## Graph Drawing Utilities
 ##########################################################################
 
-def draw_topology(G, layout='circular'):
+def draw_topology(topo, kind='graph_tool', **kwargs):
     """
-    Draws a network topology as loaded from a JSON file.
+    Draws a network graph from a topology with either graph tool or networkx.
     """
+
+    draw_funcs = {
+        'graph_tool': draw_graph_tool_topology,
+        'gt': draw_graph_tool_topology,
+        'networkx': draw_networkx_topology,
+        'nx': draw_networkx_topology,
+    }
+
+    if kind not in draw_funcs:
+        raise BadValue(
+            "Unknown graph draw kind '{}' chose from one of {}".format(
+                kind, ", ".join(draw_funcs.keys())
+            )
+        )
+
+    return draw_funcs[kind](topo, **kwargs)
+
+
+def draw_graph_tool_topology(topo, **kwargs):
+    """
+    Draws a network topology as loaded from a JSON file with graph tool.
+    """
+    from cloudscope.results.graph import get_prop_type
+    G = gt.Graph(directed=True)
+
+    # Construct the Graph properties
+    for key, value in topo['meta'].items():
+        tname, value, key = get_prop_type(value, key)
+        prop = G.new_graph_property(tname)
+        G.graph_properties[key] = prop
+        G.graph_properties[key] = value
+
+    # Add the node properties
+    nprops = set()
+    for node in topo['nodes']:
+        for key, val in node.items():
+            if key in nprops: continue
+
+            tname, value, key = get_prop_type(val, key)
+            prop = G.new_vertex_property(tname)
+            G.vertex_properties[key] = prop
+
+            nprops.add(key)
+
+    # Add the edge properties
+    eprops = set()
+    for edge in topo['links']:
+        for key, val in edge.items():
+            if key in eprops: continue
+
+            if key == 'latency':
+                for name in ('latency_mean', 'latency_stddev', 'latency_weight'):
+                    prop = G.new_edge_property('float')
+                    G.edge_properties[name] = prop
+                continue
+
+            tname, value, key = get_prop_type(val, key)
+            if key in {'source', 'target'}:
+                tname = 'string'
+
+            prop = G.new_edge_property(tname)
+            G.edge_properties[key] = prop
+
+            eprops.add(key)
+
+    # Add the nodes
+    vertices = {}
+    for idx,node in enumerate(topo['nodes']):
+        v = G.add_vertex()
+        vertices[idx] = v
+
+        # Set the vertex properties
+        for key, value in node.items():
+            G.vp[key][v] = value
+
+    # Add the edges
+    for edge in topo['links']:
+        src = vertices[edge['source']]
+        dst = vertices[edge['target']]
+        e = G.add_edge(src, dst)
+
+        for key, value in edge.items():
+            if key == 'latency':
+                G.ep['latency_mean'][e] = float(value[0])
+                G.ep['latency_stddev'][e] = float(value[1])
+                G.ep['latency_weight'][e] = 1.0 / float(value[0])
+                continue
+
+            if key in {'source', 'target'}:
+                G.ep[key][e] = topo['nodes'][value]['id']
+            else:
+                G.ep[key][e] = value
+
+    # Graph Drawing Time
+    vlabel  = G.vp['id']
+    vsize   = 60
+    vcolor  = G.new_vertex_property('string')
+    vcmap   = {
+        'stentor': "#9b59b6",
+        'federated': "#3498db",
+        'unknown': "#95a5a6",
+        'eventual': "#e74c3c",
+        'tag': "#34495e",
+        'strong': "#2ecc71",
+    }
+    for vertex in G.vertices():
+        vcolor[vertex] = vcmap[G.vp['consistency'][vertex]]
+
+    ecolor  = G.new_edge_property('string')
+    ecmap   = ColorMap('paired', shuffle=False)
+    for edge in G.edges():
+        ecolor[edge] = ecmap(G.ep['area'][edge])
+
+    elabel  = G.ep['connection']
+    esize   = G.ep['latency_weight']
+    eweight = G.ep['latency_weight']
+    esize   = gt.prop_to_size(esize, mi=2, ma=5)
+    pos = gt.arf_layout(G, weight=esize)
+
+    gt.graph_draw(
+        G, pos=pos,
+        vertex_text=vlabel, vertex_size=vsize, vertex_font_weight=1,
+        vertex_pen_width=1.3, vertex_fill_color=vcolor,
+        edge_pen_width=esize, edge_color=ecolor, edge_text=elabel,
+        output_size=(1200,1200), output="{}.png".format(topo['meta']['title']),
+    )
+
+def draw_networkx_topology(topo, layout='circular', **kwargs):
+    """
+    Draws a network topology as loaded from a JSON file with networkx.
+    """
+    G = json_graph.node_link_graph(topo)
+
     cmap = {
-        'strong': '#91cf60',
-        'medium': '#ffffbf',
-        'low': '#fc8d59',
+        'stentor': "#9b59b6",
+        'federated': "#3498db",
+        'unknown': "#95a5a6",
+        'eventual': "#e74c3c",
+        'tag': "#34495e",
+        'strong': "#2ecc71",
     }
 
     lmap = {
         'constant': 'solid',
         'variable': 'dashed',
+        'normal': 'dashdot',
     }
 
     draw = {

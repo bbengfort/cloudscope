@@ -70,3 +70,6 @@ fixtures/*
 !fixtures/*.zip
 !fixtures/*.tgz
 !fixtures/traces/*
+
+# Scratch pad
+spad.py

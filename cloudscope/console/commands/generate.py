@@ -26,6 +26,7 @@ from commis import Command
 from commis.exceptions import ConsoleError
 from cloudscope.experiment import LatencyVariation
 from cloudscope.experiment import AntiEntropyVariation
+from cloudscope.experiment import FederatedLatencyVariation
 from cloudscope.utils.serialize import JSONEncoder
 
 ##########################################################################
@@ -51,6 +52,7 @@ def csv(type=int):
 generators = {
     'latency': LatencyVariation,
     'entropy': AntiEntropyVariation,
+    'federated': FederatedLatencyVariation,
 }
 
 ##########################################################################
@@ -96,9 +98,15 @@ class GenerateCommand(Command):
             'metavar': 'min,max,step',
             'help': 'specify the range of users in experiments',
         },
+        '--traces': {
+            'type': csv(str),
+            'default': [],
+            'metavar': 'trace, trace, ...',
+            'help': 'specify a trace file or a trace per user range',
+        },
         '--latency': {
             'type': csv(int),
-            'default': (5,3000,1200),
+            'default': (30,3000,None),
             'metavar': 'min,max,width',
             'help': 'specify the latency range in experiments',
         },
@@ -107,6 +115,13 @@ class GenerateCommand(Command):
             'default': (100,1000),
             'metavar': 'min,max',
             'help': 'specify the anti-entropy delay range in experiments',
+        },
+        '--tick-metric': {
+            'type': str,
+            'default': 'conservative',
+            'choices': ['howard', 'bailis', 'conservative', 'optimistic'],
+            'metavar': 'method',
+            'help': 'specify tick computation method based on latency',
         },
         'topology': {
             'nargs': 1,
@@ -129,6 +144,7 @@ class GenerateCommand(Command):
         topology  = args.topology[0]
         name, ext = os.path.splitext(os.path.basename(topology.name))
 
+        idx =0
         # Generate the experiments and write them to disk
         for idx, experiment in enumerate(self.get_experiments(topology, args)):
             newname = "{}-{:0>2}{}".format(name, idx+1, ext)
@@ -147,9 +163,11 @@ class GenerateCommand(Command):
         latency   = dict(zip(('minimum', 'maximum', 'max_range'), args.latency))
         users     = dict(zip(('minimum', 'maximum', 'step'), args.users))
         aentropy  = dict(zip(('minimum', 'maximum'), args.anti_entropy))
+        traces    = args.traces
+        tick      = {'method': args.tick_metric}
         generate  = Generator.load(
-            topology, count=args.count, latency=latency,
-            users=users, anti_entropy=aentropy
+            topology, count=args.count, latency=latency, traces=traces,
+            users=users, anti_entropy=aentropy, tick_metric=tick,
         )
 
         # Create an iterable of generators if jittering is required.

@@ -19,7 +19,7 @@
             "id": "r3",
             "label": "Work Desktop",
             "type": "desktop",
-            "consistency": "medium",
+            "consistency": "causal",
             "location": "work",
             "files": {}
         },
@@ -35,7 +35,7 @@
             "id": "r4",
             "label": "Home Desktop",
             "type": "desktop",
-            "consistency": "medium",
+            "consistency": "causal",
             "location": "home",
             "files": {}
         },
@@ -51,7 +51,7 @@
             "id": "r5",
             "label": "Laptop",
             "type": "laptop",
-            "consistency": "medium",
+            "consistency": "causal",
             "location": "mobile",
             "files": {}
         }
