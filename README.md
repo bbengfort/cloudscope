@@ -156,11 +156,19 @@ The release versions that are tagged in Git. You can see the tags through the Gi
 
 The versioning uses a three part version system, "a.b.c" - "a" represents a major release that may not be backwards compatible. "b" is incremented on minor releases that may contain extra features, but are backwards compatible. "c" releases are bug fixes or other micro changes that developers should feel free to immediately update to.
 
+### Version 0.5
+
+* **tag**: [v0.5](https://github.com/bbengfort/cloudscope/releases/tag/v0.5)
+* **deployment**: Monday, October 31, 2016
+* **commit**: (see tag)
+
+This release specifically implements the research related to _Federated Consistency_ as well as the simulations and related implementation. Implementing federated led to a lot of refactoring, and there has been a lot of new features and tests added as well. However, this release also includes a lot of technical debt that will be cleaned up in later versions.
+
 ### Version 0.4
 
 * **tag**: [v0.4](https://github.com/bbengfort/cloudscope/releases/tag/v0.4)
 * **deployment**: Wednesday, June 15, 2016
-* **commit**: (see tag)
+* **commit**: [9f8e8c3](https://github.com/bbengfort/cloudscope/commit/9f8e8c34f2c6a3181b69c0160cc9875cb9a40f8e)
 
 In the course of research, things change. This release is an attempt to create a fixture for the initial progression of the research. There will be some pivots in upcoming releases, but Version 0.4 represents a stable platform for running simulations of various kinds for consistency modeling in a distributed storage system. This release saw the addition of _many_ features and bug squashes. An enumeration of these additions is on the GitHub release page. Together these features show the course of research over the Spring semester, and relate to the papers that will be published via the Version 0.5 release of this code.
 
