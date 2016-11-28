@@ -24,7 +24,7 @@ import argparse
 
 from commis import Command
 from cloudscope.config import settings
-from cloudscope.simulation.outages import OutagesWriter
+from cloudscope.simulation.outages import OutagesWriter, PARTITION_TYPES
 from cloudscope.simulation.main import ConsistencySimulation
 
 
@@ -49,6 +49,42 @@ class OutagesCommand(Command):
             'metavar': 'PATH',
             'help': 'specify location to write traces to',
         },
+        ('-o', '--outage-prob'): {
+            'type': float,
+            'default': settings.simulation.outage_prob,
+            'metavar': 'P',
+            'help': 'the likelihood of an outage at each period',
+        },
+        ('-m', '--outage-mean'): {
+            'type': int,
+            'default': settings.simulation.outage_mean,
+            'metavar': 'mu',
+            'help': 'the average outage duration',
+        },
+        ('-s', '--outage-stddev'): {
+            'type': int,
+            'default': settings.simulation.outage_stddev,
+            'metavar': 'sd',
+            'help': 'the average outage standard deviation',
+        },
+        ('-M', '--online-mean'): {
+            'type': int,
+            'default': settings.simulation.online_mean,
+            'metavar': 'mu',
+            'help': 'the average online duration',
+        },
+        ('-S', '--online-stddev'): {
+            'type': int,
+            'default': settings.simulation.online_stddev,
+            'metavar': 'sd',
+            'help': 'the average online standard deviation',
+        },
+        ('-p', '--partition-across'): {
+            'type': str,
+            'choices': PARTITION_TYPES,
+            'default': settings.simulation.partition_across,
+            'help': 'the strategy for deciding how the network is partitioned',
+        },
         'data': {
             'nargs': '+',
             'type': argparse.FileType('r'),
@@ -60,11 +96,14 @@ class OutagesCommand(Command):
 
     def handle(self, args):
         """
-        Uses the OutagesWriter to generate an outages script. 
+        Uses the OutagesWriter to generate an outages script.
         """
         # Disable logging during trace generation
         logger = logging.getLogger('cloudscope.simulation')
         logger.disabled = True
+
+        # Update the global settings with command line specific ones.
+        self.update_configuration(args)
 
         # Simulation arguments
         kwargs = {
@@ -95,3 +134,14 @@ class OutagesCommand(Command):
             settings.simulation.outage_mean, settings.simulation.outage_stddev,
             args.output.name
         )
+
+    def update_configuration(self, args):
+        """
+        Update the configuration from command line arguments.
+        """
+        settings.simulation.outage_prob = args.outage_prob
+        settings.simulation.outage_mean = args.outage_mean
+        settings.simulation.outage_stddev = args.outage_stddev
+        settings.simulation.online_mean = args.online_mean
+        settings.simulation.online_stddev = args.online_stddev
+        settings.simulation.partition_across = args.partition_across
