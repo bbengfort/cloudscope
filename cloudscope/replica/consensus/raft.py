@@ -48,7 +48,7 @@ AppendEntries = namedtuple('AppendEntries', 'term, leaderId, prevLogIndex, prevL
 AEResponse    = namedtuple('AEResponse', 'term, success, lastLogIndex, lastCommitIndex')
 RequestVote   = namedtuple('RequestVote', 'term, candidateId, lastLogIndex, lastLogTerm')
 VoteResponse  = namedtuple('VoteResponse', 'term, voteGranted')
-RemoteWrite   = namedtuple('RemoteWrite', 'term, version')
+RemoteWrite   = namedtuple('RemoteWrite', 'term, access')
 WriteResponse = namedtuple('WriteResponse', 'term, success, access')
 
 ##########################################################################
@@ -288,12 +288,14 @@ class RaftReplica(ConsensusReplica):
         # If not leader, then drop the write
         if not leader:
             self.sim.logger.info(
-                "no leader: dropped write at {}".format(self), color="RED"
+                "no leader: dropped write at {}".format(self), color="LIGHT_RED"
             )
 
             return access.drop()
 
         # Send the remote write to the leader
+        # NOTE: If the send is dropped then the access is also dropped.
+        # See self.on_dropped_message for more on that.
         self.send(
             leader, RemoteWrite(self.currentTerm, access)
         )
@@ -662,7 +664,7 @@ class RaftReplica(ConsensusReplica):
         """
 
         # Write the access from the remote replica
-        access = message.value.version
+        access = message.value.access
         self.write(access)
 
         # Check if the access was dropped (e.g. the write failed)
@@ -678,3 +680,22 @@ class RaftReplica(ConsensusReplica):
         rpc = message.value
         if rpc.success:
             rpc.access.complete()
+
+    def on_dropped_message(self, target, value):
+        """
+        Called when there is a network error and a message that is being sent
+        is dropped - for Raft, if it was a remote write that was dropped then
+        drop the access (for now) rather than retrying later. Ignore for all
+        other message types (e.g. the message just gets dropped)
+        """
+
+        # Log the dropped message
+        super(RaftReplica, self).on_dropped_message(target, value)
+
+        # Drop any writes that can't be sent to the leader.
+        if isinstance(value, RemoteWrite):
+            self.sim.logger.info(
+                "unavailable leader: dropped write at {}".format(self), color="LIGHT_RED"
+            )
+
+            value.access.drop()
