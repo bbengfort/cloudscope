@@ -77,10 +77,11 @@ class LoggingConfiguration(Configuration):
     the `cloudscope.utils.logger` module for more info.
     """
 
-    level   = "INFO"
-    logfmt  = "[%(asctime)s] %(levelname)s %(message)s"
-    datefmt = "%d/%b/%Y %H:%M:%S"
+    level    = "INFO"
+    logfmt   = "[%(asctime)s] %(levelname)s %(message)s"
+    datefmt  = "%d/%b/%Y %H:%M:%S"
     disable_existing_loggers = False
+    colorize = False
 
 
 ##########################################################################

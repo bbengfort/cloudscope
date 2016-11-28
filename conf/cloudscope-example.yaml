@@ -16,7 +16,8 @@ testing:    false
 
 # Logging Settings
 logging:
-    level: INFO
+    level: INFO     # Log level to control verbosity of output
+    colorize: true  # Colorize the log output to the console
 
 # Site Settings
 site:

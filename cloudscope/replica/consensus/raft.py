@@ -30,8 +30,6 @@ from .election import ElectionTimer, Election
 from collections import defaultdict
 from collections import namedtuple
 
-# Colorizing the log
-from commis import color
 
 ##########################################################################
 ## Module Constants
@@ -290,7 +288,7 @@ class RaftReplica(ConsensusReplica):
         # If not leader, then drop the write
         if not leader:
             self.sim.logger.info(
-                color.format("no leader: dropped write at {}".format(self), color.RED)
+                "no leader: dropped write at {}".format(self), color="RED"
             )
 
             return access.drop()
@@ -454,7 +452,7 @@ class RaftReplica(ConsensusReplica):
 
         # Log the newly formed candidacy
         self.sim.logger.info(
-            color.format("{} is now a leader candidate".format(self), color.CYAN)
+            "{} is now a leader candidate".format(self), color="CYAN"
         )
 
     def on_request_vote_rpc(self, msg):
@@ -468,7 +466,7 @@ class RaftReplica(ConsensusReplica):
                 if self.log.as_up_to_date(rpc.lastLogTerm, rpc.lastLogIndex):
 
                     self.sim.logger.info(
-                        color.format("{} voting for {}".format(self, rpc.candidateId), color.YELLOW)
+                        "{} voting for {}".format(self, rpc.candidateId), color="YELLOW"
                     )
 
                     self.timeout.stop()
@@ -501,7 +499,7 @@ class RaftReplica(ConsensusReplica):
 
                 ## Log the new leader
                 self.sim.logger.info(
-                    color.format("{} has become raft leader".format(self), color.GREEN)
+                    "{} has become raft leader".format(self), color="GREEN"
                 )
 
             return
@@ -644,7 +642,7 @@ class RaftReplica(ConsensusReplica):
 
                 ## Log the failed election
                 self.sim.logger.info(
-                    color.format("{} has stepped down as candidate".format(self), color.MAGENTA)
+                    "{} has stepped down as candidate".format(self), color="LIGHT_CYAN"
                 )
 
                 return

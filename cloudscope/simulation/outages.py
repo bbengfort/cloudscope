@@ -213,12 +213,12 @@ class OutageGenerator(NamedProcess):
             # Get the duration of the current state
             duration = self.duration()
 
-            # Log (info) the outage/online state and duration
             self.sim.logger.info(
-                "{} connections {} for {}".format(
+                "{} connections {} until timestep {} (simulated {})".format(
                     len(self.connections), self.state,
-                    humanizedelta(milliseconds=duration)
-                )
+                    int(self.env.now + duration),
+                    humanizedelta(milliseconds=duration), 
+                ), color="GREEN" if self.state == ONLINE else "RED"
             )
 
             # Wait for the duration
@@ -599,14 +599,13 @@ class OutageScript(NamedProcess):
                 timestep, humanizedelta(milliseconds=delay)
             )
 
-            from commis import color
             # Log the connections going online
             if online:
-                self.sim.logger.info(color.format(message.format(online, ONLINE, timed), color.GREEN))
+                self.sim.logger.info(message.format(online, ONLINE, timed), color="GREEN")
 
             # Log the connections going to outage
             if outage:
-                self.sim.logger.info(color.format(message.format(outage, OUTAGE, timed), color.RED))
+                self.sim.logger.info(message.format(outage, OUTAGE, timed), color="RED")
 
             # Wait for the timeout
             yield self.env.timeout(delay)
