@@ -416,3 +416,19 @@ class EventualReplica(Replica):
             # If their response is later than our version, write it.
             if current is None or response.access.version > current:
                 self.write(response.access)
+
+    def on_dropped_message(self, target, value):
+        """
+        Called when there is a network error and a message that is being sent
+        is dropped - for Eventual, we simply log the fact that anti-entropy
+        could not occur, but we don't do much else.
+        """
+
+        # Log the dropped message
+        super(EventualReplica, self).on_dropped_message(target, value)
+
+        # Drop any writes that can't be sent to the leader.
+        if isinstance(value, (Gossip, Rumor)):
+            self.sim.logger.info(
+                "anti-entropy between {} and {} failed".format(self, target), color="LIGHT_RED"
+            )

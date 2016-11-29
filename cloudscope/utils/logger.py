@@ -22,8 +22,10 @@ import logging
 import warnings
 import logging.config
 
+from commis import color
 from cloudscope.config import settings
 from cloudscope.dynamo import Sequence
+
 
 ##########################################################################
 ## Logging configuration: must be run at the module level first
@@ -105,7 +107,29 @@ class WrappedLogger(object):
 
     logger = None
 
+    ## Logger Colors (from commis and colorama)
+    COLORS = {
+        "BLACK":  color.BLACK,
+        "RED":  color.RED,
+        "GREEN":  color.GREEN,
+        "YELLOW":  color.YELLOW,
+        "BLUE":  color.BLUE,
+        "MAGENTA":  color.MAGENTA,
+        "CYAN":  color.CYAN,
+        "WHITE":  color.WHITE,
+        "RESET":  color.RESET,
+        "LIGHT_BLACK":  color.LIGHT_BLACK,
+        "LIGHT_RED":  color.LIGHT_RED,
+        "LIGHT_GREEN":  color.LIGHT_GREEN,
+        "LIGHT_YELLOW":  color.LIGHT_YELLOW,
+        "LIGHT_BLUE":  color.LIGHT_BLUE,
+        "LIGHT_MAGENTA":  color.LIGHT_MAGENTA,
+        "LIGHT_CYAN":  color.LIGHT_CYAN,
+        "LIGHT_WHITE":  color.LIGHT_WHITE,
+    }
+
     def __init__(self, **kwargs):
+        self.colorize = kwargs.pop('colorize', settings.logging.colorize)
         self.raise_warnings = kwargs.pop('raise_warnings', settings.debug)
         self.logger = kwargs.pop('logger', self.logger)
 
@@ -122,6 +146,11 @@ class WrappedLogger(object):
         This is the primary method to override to ensure logging with extra
         options gets correctly specified.
         """
+        text_color = kwargs.pop('color', None)
+        if text_color is not None and self.colorize:
+            text_color = self.COLORS[text_color.upper()]
+            message = color.format(message, text_color)
+
         extra = self.extras.copy()
         extra.update(kwargs.pop('extra', {}))
 

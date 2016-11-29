@@ -131,7 +131,12 @@ class WriteLog(object):
         return tuple(self.log)
 
     def __getitem__(self, idx):
-        return self.log[idx]
+        try:
+            return self.log[idx]
+        except IndexError:
+            raise IndexError(
+                "index {} out of range of {}".format(idx, str(self))
+            )
 
     def __iter__(self):
         for item in self.log:
@@ -193,6 +198,16 @@ class WriteLog(object):
             return self.lastApplied < other.lastApplied
         return self.lastTerm < other.lastTerm
 
+    def __str__(self):
+        return (
+            "{} with {} items | "
+            "last applied index: {} [{}] "
+            "last commit index: {} [{}]"
+        ).format(
+            self.__class__.__name__, len(self),
+            self.lastApplied, self[self.lastApplied],
+            self.commitIndex, self[self.commitIndex],
+        )
 
 ##########################################################################
 ## Multi Object Write Log

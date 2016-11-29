@@ -25,6 +25,7 @@ from cloudscope.utils.decorators import setter, memoized
 from cloudscope.exceptions import BadValue, OutagesException
 from cloudscope.simulation.network import WIDE_AREA, LOCAL_AREA
 
+from itertools import groupby
 from collections import Sequence, defaultdict, namedtuple
 
 
@@ -33,6 +34,7 @@ from collections import Sequence, defaultdict, namedtuple
 ##########################################################################
 
 ## Connection Outage Types
+GLOBAL_OUTAGE = "global"
 WIDE_OUTAGE   = "wide"
 LOCAL_OUTAGE  = "local"
 NODE_OUTAGE   = "node"
@@ -41,7 +43,8 @@ BOTH_OUTAGE   = "both"
 
 ## All Partition Across Types
 PARTITION_TYPES = (
-    WIDE_OUTAGE, LOCAL_OUTAGE, NODE_OUTAGE, LEADER_OUTAGE, BOTH_OUTAGE,
+    GLOBAL_OUTAGE, WIDE_OUTAGE, LOCAL_OUTAGE,
+    NODE_OUTAGE, LEADER_OUTAGE, BOTH_OUTAGE,
 )
 
 ## Connection States
@@ -210,12 +213,12 @@ class OutageGenerator(NamedProcess):
             # Get the duration of the current state
             duration = self.duration()
 
-            # Log (info) the outage/online state and duration
             self.sim.logger.info(
-                "{} connections {} for {}".format(
+                "{} connections {} until timestep {} (simulated {})".format(
                     len(self.connections), self.state,
-                    humanizedelta(milliseconds=duration)
-                )
+                    int(self.env.now + duration),
+                    humanizedelta(milliseconds=duration), 
+                ), color="GREEN" if self.state == ONLINE else "RED"
             )
 
             # Wait for the duration
@@ -263,7 +266,7 @@ class Outages(Sequence):
         # Generate outage generators
         self.allocate(partition_across or settings.simulation.partition_across)
 
-    def allocate(self, partition_across=WIDE_OUTAGE):
+    def allocate(self, partition_across=GLOBAL_OUTAGE):
         """
         Allocates the internal outage generators for the network.
         """
@@ -279,6 +282,7 @@ class Outages(Sequence):
 
         # Choose the correct allocation mechansim
         allocate_method = {
+            GLOBAL_OUTAGE: self._allocate_global,
             WIDE_OUTAGE: self._allocate_wide,
             LOCAL_OUTAGE: self._allocate_local,
             BOTH_OUTAGE: self._allocate_both,
@@ -288,6 +292,25 @@ class Outages(Sequence):
 
         # Call the allocate method
         self.outage_generators = tuple(allocate_method())
+
+    def _allocate_global(self):
+        """
+        Internal allocation method for the global strategy.
+
+        The global strategy is just a single outage generator that affects
+        every single wide area connection. Nodes can still communicate in
+        their local area, but no node can make a connection to the outside.
+        """
+        # Fetch all wide area connections
+        connections = [
+            connection for connection in self.network.iter_connections()
+            if connection.area == WIDE_AREA
+        ]
+
+        # Yield only a single outage generator
+        yield self.outage_generator_class(
+            self.sim, connections, **self.outage_kwargs
+        )
 
     def _allocate_wide(self):
         """
@@ -548,48 +571,58 @@ class OutageScript(NamedProcess):
         Reads in outage events (must be ordered by timestep) and makes the
         connections specified either up or down according to the event state.
         """
-        # Track how many connections have outage events together.
-        local_count = 1
-
         # Read through the outage events in an ordered fashion.
         # Note this will only generate outages until they are exhaused.
-        for event in self.reader:
+        for timestep, events in groupby(self.reader, key=lambda e: e.timestep):
 
             # Validate that the event occurs now or at the clock
-            if event.timestep < self.clock:
+            if timestep < self.clock:
                 raise OutagesException(
                     "Unordered outage event '{}' occured at time {}".format(
                         event, self.clock
                     )
                 )
 
+            # List the events for multiple passes
+            events = list(events)
+
+            # Compute the number of connections that are online/offline
+            # until the specified next period.
+            outage = sum(1 for event in events if event.state == ONLINE)
+            online = sum(1 for event in events if event.state == OUTAGE)
+
             # Compute delay in simulation and timeout
             # If the delay is not zero then wait in simulation time.
-            delay = event.timestep - self.clock
-            if delay == 0:
-                local_count += 1
-            else:
-                self.sim.logger.info(
-                    "{} connections {} for {}".format(
-                        local_count, event.state,
-                        humanizedelta(milliseconds=delay)
-                    )
-                )
-                local_count = 1
-                yield self.env.timeout(delay)
+            delay = timestep - self.clock
+            message = "{} connections {} until {}"
+            timed = "timestep {} (simulated {})".format(
+                timestep, humanizedelta(milliseconds=delay)
+            )
+
+            # Log the connections going online
+            if online:
+                self.sim.logger.info(message.format(online, ONLINE, timed), color="GREEN")
+
+            # Log the connections going to outage
+            if outage:
+                self.sim.logger.info(message.format(outage, OUTAGE, timed), color="RED")
+
+            # Wait for the timeout
+            yield self.env.timeout(delay)
 
             # Update our internal clock
             self.clock = self.env.now
             self.count += 1
 
-            # Take the connection up or down depending on the event.
-            conn = self.get_connnection(event.source, event.target)
-            if event.state == ONLINE:
-                conn.up()
+            # Take the connections up or down depending on the event.
+            for event in events:
+                conn = self.get_connnection(event.source, event.target)
+                if event.state == ONLINE:
+                    conn.up()
 
-            if event.state == OUTAGE:
-                conn.down()
+                if event.state == OUTAGE:
+                    conn.down()
 
-            self.sim.logger.debug(
-                "{} is now {}".format(conn, event.state)
-            )
+                self.sim.logger.debug(
+                    "{} is now {}".format(conn, event.state)
+                )

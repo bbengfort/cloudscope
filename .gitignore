@@ -60,6 +60,7 @@ target/
 # Configuration
 conf/*
 !conf/cloudscope-example.yaml
+.env
 
 # iPython
 .ipynb_checkpoints

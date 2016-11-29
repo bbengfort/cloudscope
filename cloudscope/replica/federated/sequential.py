@@ -22,8 +22,8 @@ import random
 from cloudscope.config import settings
 from cloudscope.replica.consensus import RaftReplica
 from cloudscope.replica.consensus.raft import WriteResponse
-from cloudscope.replica.eventual import Gossip
-from cloudscope.replica.eventual import GossipResponse
+from cloudscope.replica.eventual import Gossip, Rumor
+from cloudscope.replica.eventual import GossipResponse, RumorResponse
 from cloudscope.simulation.timer import Interval
 from cloudscope.replica import Consistency
 
@@ -291,3 +291,19 @@ class FederatedRaftReplica(RaftReplica):
             # This is a new version or a later version than our current.
             if current is None or access.version > current:
                 self.write(access)
+
+    def on_dropped_message(self, target, value):
+        """
+        Called when there is a network error and a message that is being sent
+        is dropped - for Federated Raft, we must do both the check for the
+        unavailable leader and if anti-entropy has failed.
+        """
+
+        # Log the dropped message
+        super(FederatedRaftReplica, self).on_dropped_message(target, value)
+
+        # Drop any writes that can't be sent to the leader.
+        if isinstance(value, (Gossip, Rumor)):
+            self.sim.logger.info(
+                "anti-entropy between {} and {} failed".format(self, target), color="LIGHT_RED"
+            )

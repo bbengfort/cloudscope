@@ -402,7 +402,7 @@ class Replica(Node):
         """
         # Create a dummy message
         dummy = Message(self, target, value, None)
-        mtype = self.sim.results.messages.update(message, DROP)
+        mtype = self.sim.results.messages.update(dummy, DROP)
 
         # Debug logging of the message dropped
         self.sim.logger.debug(

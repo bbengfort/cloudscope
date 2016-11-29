@@ -30,6 +30,7 @@ from .election import ElectionTimer, Election
 from collections import defaultdict
 from collections import namedtuple
 
+
 ##########################################################################
 ## Module Constants
 ##########################################################################
@@ -47,7 +48,7 @@ AppendEntries = namedtuple('AppendEntries', 'term, leaderId, prevLogIndex, prevL
 AEResponse    = namedtuple('AEResponse', 'term, success, lastLogIndex, lastCommitIndex')
 RequestVote   = namedtuple('RequestVote', 'term, candidateId, lastLogIndex, lastLogTerm')
 VoteResponse  = namedtuple('VoteResponse', 'term, voteGranted')
-RemoteWrite   = namedtuple('RemoteWrite', 'term, version')
+RemoteWrite   = namedtuple('RemoteWrite', 'term, access')
 WriteResponse = namedtuple('WriteResponse', 'term, success, access')
 
 ##########################################################################
@@ -287,12 +288,14 @@ class RaftReplica(ConsensusReplica):
         # If not leader, then drop the write
         if not leader:
             self.sim.logger.info(
-                "no leader: dropped write at {}".format(self)
+                "no leader: dropped write at {}".format(self), color="LIGHT_RED"
             )
 
             return access.drop()
 
         # Send the remote write to the leader
+        # NOTE: If the send is dropped then the access is also dropped.
+        # See self.on_dropped_message for more on that.
         self.send(
             leader, RemoteWrite(self.currentTerm, access)
         )
@@ -451,7 +454,7 @@ class RaftReplica(ConsensusReplica):
 
         # Log the newly formed candidacy
         self.sim.logger.info(
-            "{} is now a leader candidate".format(self)
+            "{} is now a leader candidate".format(self), color="CYAN"
         )
 
     def on_request_vote_rpc(self, msg):
@@ -465,7 +468,7 @@ class RaftReplica(ConsensusReplica):
                 if self.log.as_up_to_date(rpc.lastLogTerm, rpc.lastLogIndex):
 
                     self.sim.logger.info(
-                        "{} voting for {}".format(self, rpc.candidateId)
+                        "{} voting for {}".format(self, rpc.candidateId), color="YELLOW"
                     )
 
                     self.timeout.stop()
@@ -498,7 +501,7 @@ class RaftReplica(ConsensusReplica):
 
                 ## Log the new leader
                 self.sim.logger.info(
-                    "{} has become raft leader".format(self)
+                    "{} has become raft leader".format(self), color="GREEN"
                 )
 
             return
@@ -530,7 +533,7 @@ class RaftReplica(ConsensusReplica):
 
         # Reply false if log doesn't contain an entry at prevLogIndex whose
         # term matches previous log term.
-        if self.log.lastApplied < rpc.prevLogIndex or self.log[rpc.prevLogIndex][1] != rpc.prevLogTerm:
+        if self.log.lastApplied < rpc.prevLogIndex or self.log[rpc.prevLogIndex].term != rpc.prevLogTerm:
             if self.log.lastApplied < rpc.prevLogIndex:
 
                 self.sim.logger.info(
@@ -550,36 +553,38 @@ class RaftReplica(ConsensusReplica):
             )
 
         # At this point AppendEntries RPC is accepted
+        rpcInsertIndex = rpc.prevLogIndex + 1
+        if self.log.lastApplied >= rpcInsertIndex:
+            # If existing entry conflicts with new one (same index, different terms)
+            # Delete the existing entry and all that follow it.
+            if self.log[rpcInsertIndex].term != rpc.term:
+                self.log.truncate(rpcInsertIndex)
+
+        if self.log.lastApplied >= rpcInsertIndex:
+            # Possibly a duplicate append entries (or out of order AE)
+            # If we're at this point we should have a non-conflicting entry
+            # at the insert index. So just return and do nothing with this.
+            self.sim.logger.warn((
+                "{} received possible out of order append entries "
+                "- there exists a non conflicting entry at index {}".format(
+                    self, rpcInsertIndex
+                )
+            ))
+            return
+
+        # Append any new entries not already in the log.
+        for entry in rpc.entries:
+            # Add the entry/term to the log
+            self.log.append(*entry)
+            self.sim.logger.debug(
+                "appending {} to {} on {}".format(entry[0], entry[1], self)
+            )
+
+            # Update the versions to compute visibilities
+            entry[0].update(self)
+
+        # Log the last write from the append entries.
         if rpc.entries:
-            if self.log.lastApplied >= rpc.prevLogIndex:
-                # If existing entry conflicts with new one (same index, different terms)
-                # Delete the existing entry and all that follow it.
-                if self.log[rpc.prevLogIndex][1] != rpc.prevLogTerm:
-                    self.log.truncate(rpc.prevLogIndex)
-
-            if self.log.lastApplied > rpc.prevLogIndex:
-                # Otherwise this could be a message that is sent again
-                # raise RaftRPCException(
-                #     "{} is possibly receiving a duplicate append entries!".format(self)
-                # )
-                self.sim.logger.warn(
-                    "{} is possibly receiving a duplicate append entries!".format(self)
-                )
-                return self.send(msg.source, AEResponse(self.currentTerm, True, self.log.lastApplied, self.log.lastCommit))
-
-
-            # Append any new entries not already in the log.
-            for entry in rpc.entries:
-                # Add the entry/term to the log
-                self.log.append(*entry)
-                self.sim.logger.debug(
-                    "appending {} to {} on {}".format(entry[0], entry[1], self)
-                )
-
-                # Update the versions to compute visibilities
-                entry[0].update(self)
-
-            # Log the last write from the append entries.
             self.sim.logger.debug(
                 "{} writes {} at idx {} (term {}, commit {})".format(
                 self, self.log.lastVersion, self.log.lastApplied, self.log.lastTerm, self.log.commitIndex
@@ -605,6 +610,8 @@ class RaftReplica(ConsensusReplica):
                 self.matchIndex[msg.source] = rpc.lastLogIndex
 
             else:
+                # Set the next index to the follower's previous log index or
+                # my
                 # Decrement next index and retry append entries
                 # Ensure to floor the nextIndex to 1 (the start of the log).
                 nidx = self.nextIndex[msg.source] - 1
@@ -637,7 +644,7 @@ class RaftReplica(ConsensusReplica):
 
                 ## Log the failed election
                 self.sim.logger.info(
-                    "{} has stepped down as candidate".format(self)
+                    "{} has stepped down as candidate".format(self), color="LIGHT_CYAN"
                 )
 
                 return
@@ -657,7 +664,7 @@ class RaftReplica(ConsensusReplica):
         """
 
         # Write the access from the remote replica
-        access = message.value.version
+        access = message.value.access
         self.write(access)
 
         # Check if the access was dropped (e.g. the write failed)
@@ -673,3 +680,22 @@ class RaftReplica(ConsensusReplica):
         rpc = message.value
         if rpc.success:
             rpc.access.complete()
+
+    def on_dropped_message(self, target, value):
+        """
+        Called when there is a network error and a message that is being sent
+        is dropped - for Raft, if it was a remote write that was dropped then
+        drop the access (for now) rather than retrying later. Ignore for all
+        other message types (e.g. the message just gets dropped)
+        """
+
+        # Log the dropped message
+        super(RaftReplica, self).on_dropped_message(target, value)
+
+        # Drop any writes that can't be sent to the leader.
+        if isinstance(value, RemoteWrite):
+            self.sim.logger.info(
+                "unavailable leader: dropped write at {}".format(self), color="LIGHT_RED"
+            )
+
+            value.access.drop()
