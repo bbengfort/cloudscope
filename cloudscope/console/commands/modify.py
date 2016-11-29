@@ -315,7 +315,7 @@ class ModifyTopologyCommand(Command):
                     "Trace at {} does not exist!".format(path)
                 )
 
-            mods += self.update_meta_param(topo, 'trace', path)
+            mods += self.update_meta_param(topo, 'outages', path)
 
         elif os.path.isfile(outages):
             # Replace the trace with the specified file.
