@@ -522,6 +522,7 @@ def create_per_experiment_dataframe(results):
         data['election timeout (ms, ms)'] = conf['election_timeout']
         data['T parameter model'] = conf['tick_param_model']
         data['conflict probability'] = conf['conflict_prob']
+        data['outage probability'] = conf['outage_prob']
         data['sync probability'] = conf['sync_prob']
         data['local probability'] = conf['local_prob']
 
