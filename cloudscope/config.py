@@ -121,8 +121,8 @@ class SimulationConfiguration(Configuration):
 
     conflict_prob   = 0.0     # probability of object overlap and potential access conflict
     object_prob     = 0.3     # probability of switching the currently accessed object
-    access_mean     = 1800    # mean delay between accesses (milliseconds)
-    access_stddev   = 512     # stddev of delay between accesses (milliseconds)
+    access_mean     = 3000    # mean delay between accesses (milliseconds)
+    access_stddev   = 96      # stddev of delay between accesses (milliseconds)
     read_prob       = 0.6     # probability of read access (write is 1-read_prob)
     move_prob       = 0.2     # probability of moving locations (mobile workload)
     switch_prob     = 0.3     # probability of switching devices (mobile workload)

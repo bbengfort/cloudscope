@@ -98,7 +98,12 @@ class ModifyTopologyCommand(Command):
         ('-T', '--traces'): {
             "metavar": "PATH",
             "default": None,
-            "help": "specify a directory or trace to replace traces information",
+            "help": "specify a directory or trace to replace accesses information",
+        },
+        ('-O', '--outages'): {
+            "metavar": "PATH",
+            "default": None,
+            "help": "specify a directory or trace to replace outages information",
         },
         ('-M', '--meta'): {
             "metavar": "KEY=VAL",
@@ -154,6 +159,12 @@ class ModifyTopologyCommand(Command):
         if args.traces:
             mods += self.modify_traces(
                 topo, args.traces
+            )
+
+        # If new outages have been passed in, modify it.
+        if args.outages:
+            mods += self.modify_outages(
+                topo, args.outages
             )
 
         # Modify Raft nodes
@@ -277,6 +288,38 @@ class ModifyTopologyCommand(Command):
         elif os.path.isfile(traces):
             # Replace the trace with the specified file.
             mods += self.update_meta_param(topo, 'trace', traces)
+
+        else:
+            raise ConsoleError(
+                "Supply either a valid directory or path to a trace!"
+            )
+
+        return mods
+
+    def modify_outages(self, topo, outages):
+        """
+        Modifies the outages inside the meta data of the topology. Returns the
+        number of modifications made.
+        """
+        # Modifications
+        mods = 0
+
+        if os.path.isdir(outages):
+            # Replace the metadata trace with a new directory
+            name = os.path.basename(topo['meta']['outages'])
+            path = os.path.abspath(os.path.join(outages, name))
+
+            # Quick check to make sure the trace exists
+            if not os.path.exists(path):
+                raise ConsoleError(
+                    "Trace at {} does not exist!".format(path)
+                )
+
+            mods += self.update_meta_param(topo, 'trace', path)
+
+        elif os.path.isfile(outages):
+            # Replace the trace with the specified file.
+            mods += self.update_meta_param(topo, 'outages', traces)
 
         else:
             raise ConsoleError(
