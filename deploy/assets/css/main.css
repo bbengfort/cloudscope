@@ -114,15 +114,15 @@ svg text.icon {
 }
 
 .consistency-strong, .consistency-raft {
-    fill: #91cf60;
+    fill: #a6cee3;
 }
 
 .consistency-causal, .consistency-tag {
-    fill: #ffffbf;
+    fill: #cab2d6;
 }
 
 .consistency-eventual {
-    fill: #fc8d59;
+    fill: #fb9a99;
 }
 
 .message {
