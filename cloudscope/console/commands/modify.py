@@ -27,6 +27,7 @@ import warnings
 from commis import Command
 from commis.exceptions import ConsoleError
 from cloudscope.experiment import compute_tick
+from cloudscope.replica import RAFT_TYPES, EVENTUAL_TYPES
 
 
 ##########################################################################
@@ -94,6 +95,12 @@ class ModifyTopologyCommand(Command):
             "type": float,
             "default": None,
             "help": "modify the select local probability of eventual nodes",
+        },
+        '--aggregate-writes': {
+            "type": str,
+            "default": None,
+            "choices": ("true", "false"),
+            "help": "modify the aggregate writes flag on Raft nodes",
         },
         ('-T', '--traces'): {
             "metavar": "PATH",
@@ -355,7 +362,29 @@ class ModifyTopologyCommand(Command):
 
         For now, this method is a noop.
         """
-        return 0
+        mods = 0 # count the number of modifications
+        aggw = {
+            'true': True,
+            'false': False,
+            None: None,
+        }[args.aggregate_writes]
+
+        # Modify each node's Raft policies
+        for node in topo['nodes']:
+
+            # Only modify raft or strong nodes
+            if node['consistency'] not in RAFT_TYPES:
+                continue
+
+            # Aggregate writes policy
+            if args.aggregate_writes is not None:
+                mods += self.update_dict_value(node, 'aggregate_writes', aggw)
+
+        # Modify the meta information
+        if args.aggregate_writes is not None:
+            mods += self.update_meta_param(topo, 'aggregate_writes', aggw)
+
+        return mods
 
     def modify_eventual(self, topo, args):
         """
@@ -372,7 +401,7 @@ class ModifyTopologyCommand(Command):
         for node in topo['nodes']:
 
             # Only modify eventual or stentor nodes
-            if node['consistency'] not in {'eventual', 'stentor'}:
+            if node['consistency'] not in EVENTUAL_TYPES:
                 continue
 
             if args.sync_prob is not None:

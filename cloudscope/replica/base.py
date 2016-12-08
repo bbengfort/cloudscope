@@ -43,6 +43,10 @@ class Consistency(Enum):
     TAG      = "tag"       # Specifically a tag consensus group
 
 
+RAFT_TYPES = (Consistency.STRONG.value, Consistency.RAFT.value)
+EVENTUAL_TYPES = (Consistency.EVENTUAL.value, Consistency.STENTOR.value)
+
+
 class Location(Enum):
     """
     Defines the location types in a personal cloud.
