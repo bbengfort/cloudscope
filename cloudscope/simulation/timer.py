@@ -95,6 +95,17 @@ class Timer(Process):
             "Timers cannot be run, they should be started and stopped!"
         )
 
+    def is_stopped(self):
+        """
+        Returns whether or not the timer is stopped.
+        """
+        return self.action is None or not self.running
+
+    def is_running(self):
+        """
+        Return whether or not the timer is running.
+        """
+        return self.running
 
 ##########################################################################
 ## Interval Process

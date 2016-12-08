@@ -221,7 +221,8 @@ class RaftReplica(ConsensusReplica):
         # Also interrupt the heartbeat since we just sent AppendEntries
         if not self.aggregate_writes:
             self.send_append_entries()
-            self.heartbeat.stop()
+            if not self.heartbeat.is_stopped():
+                self.heartbeat.stop()
 
         return access
 
