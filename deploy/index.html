@@ -34,21 +34,9 @@
           <li class="dropdown">
             <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false"><i class="fa fa-server"></i> Select Simulation <span class="caret"></span></a>
             <ul id="selectSimulation" class="dropdown-menu">
-              <li><a href="data/origin.json">Origin Simulation</a></li>
-              <li><a href="data/backbone.json">Backbone Simulation</a></li>
-              <li><a href="data/workgroup.json">Workgroup Simulation</a></li>
-              <li><a href="data/bottleneck.json">Bottleneck Simulation</a></li>
-              <li><a href="data/division.json">Taking Sides</a></li>
-              <li><a href="data/tiered.json">Two Tier Quorums</a></li>
-              <li role="separator" class="divider"></li>
               <li><a href="data/raft.json">Raft Quorum</a></li>
-              <li><a href="data/tagging.json">Tagging (Multi Raft) Quorum</a></li>
-              <li><a href="data/eventual.json">Eventually There</a></li>
-              <li><a href="data/cluster.json">Single Cluster</a></li>
-              <li role="separator" class="divider"></li>
-              <li><a href="data/federated/eventual.json">Large Eventual Cluster</a></li>
-              <li><a href="data/federated/sequential.json">Large Raft Quorum</a></li>
-              <li><a href="data/federated/federated.json">Federated Cluster</a></li>
+              <li><a href="data/eventual.json">Anti-Entropy</a></li>
+              <li><a href="data/federated.json">Federated</a></li>
             </ul>
           </li>
         </ul>
@@ -99,51 +87,32 @@
             <!-- Legend and log column -->
             <g id="info">
               <g id="legend">
-                <rect class="infobox" x="1" y="1" height="164" width="300" />
+                <rect class="infobox" x="1" y="1" height="140" width="300" />
                 <text class="infobox-title" x="10" y="24">Legend</text>
                 <g>
                   <circle class="replica-legend consistency-strong"
                     cx="24" cy="50" r="10" />
-                  <text class="label-legend" x="44" y="54">Strong Consistency</text>
+                  <text class="label-legend" x="44" y="54">Raft Replica</text>
                 </g>
                 <g>
-                  <circle class="replica-legend consistency-causal"
+                  <circle class="replica-legend consistency-federated"
                     cx="24" cy="74" r="10" />
-                  <text class="label-legend" x="44" y="78">Causal Consistency</text>
+                  <text class="label-legend" x="44" y="78">Federated Raft Replica</text>
                 </g>
                 <g>
                   <circle class="replica-legend consistency-eventual"
                     cx="24" cy="98" r="10" />
-                  <text class="label-legend" x="44" y="102">Eventual Consistency</text>
+                  <text class="label-legend" x="44" y="102">Eventual Replica</text>
                 </g>
                 <g>
-                  <line class="link-legend constant" x1="12" y1="122" x2="36" y2="122" />
-                  <text id="constantLatencyLegend" class="label-legend" x="44" y="126">Constant Latency</text>
-                </g>
-                <g>
-                  <line class="link-legend variable" x1="12" y1="146" x2="36" y2="146" />
-                  <text id="variableLatencyLegend" class="label-legend" x="44" y="150">Variable Latency</text>
+                  <line class="link-legend normal" x1="12" y1="121" x2="36" y2="121" />
+                  <text id="connectionLegend" class="label-legend" x="44" y="126">Connection</text>
                 </g>
               </g>
 
               <g id="state">
-                <rect class="infobox" x="1" y="174" height="164" width="300" />
-                <text class="infobox-title" x="10" y="198">Simulation State</text>
-
-                <!-- Versions Label -->
-                <text class="icon" x="10" y="220">&#xf0c5;</text>
-                <text class="label-legend" x="26" y="220">Versions:</text>
-                <text id="versionsLegend" class="label-legend" x="120" y="220">0</text>
-
-                <!-- Staleness Label -->
-                <text class="icon" x="10" y="242">&#xf1b8;</text>
-                <text class="label-legend" x="26" y="242">Staleness:</text>
-                <text id="stalenessLegend" class="label-legend" x="120" y="242">0%</text>
-
-                <!-- Latency Label -->
-                <text class="icon" x="10" y="264">&#xf0e4;</text>
-                <text class="label-legend" x="26" y="264">Latency:</text>
-                <text id="latencyLegend" class="label-legend" x="120" y="264">&#x3bc;: 0ms 	&#x3c3;: 0ms</text>
+                <rect class="infobox" x="1" y="150" height="164" width="300" />
+                <text class="infobox-title" x="10" y="174">Simulation State</text>
               </g>
             </g>
 
@@ -181,7 +150,7 @@
               <label for="slowmo" class="col-sm-3 control-label">Slow Down Factor</label>
               <div class="col-sm-9">
                 <input type="text" class="form-control" id="slowmo" name="slowmo">
-                <span class="help-block">Controls the speed of the simulation. Set 1 for real time, or scale by a factor of up to 10 (increasing the latency of messages).</span>
+                <span class="help-block">Controls the speed of the simulation. Set 1 for real time, or scale by a factor of up to 100 (increasing the latency of messages).</span>
               </div>
             </div>
             <div class="form-group">

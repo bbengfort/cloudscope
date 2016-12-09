@@ -18,6 +18,7 @@
     // Network connection types
     CONSTANT: "constant",
     VARIABLE: "variable",
+    NORMAL: "normal",
 
     // Constant message payloads
     ACK: "ACK",
@@ -26,11 +27,11 @@
   // Modifiable configuration values.
   config = {
 
-    // Set this to 1 for realtime, or a factor < 10 for slow motion
-    slowmo: 3,
+    // Set this to 1 for realtime, or a factor < 100 for slow motion
+    slowmo: 50,
 
     // Default latency for a new connection
-    default_latency: 800,
+    default_latency: 40,
 
     // Margins for the primary simulation SVG
     margins: {

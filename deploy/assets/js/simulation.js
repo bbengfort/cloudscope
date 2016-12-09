@@ -81,11 +81,8 @@
           });
 
           // Add the minimum and maximum latency to the legend
-          $("#constantLatencyLegend").text(
-            "Constant Latency: " + data.meta.constant
-          );
-          $("#variableLatencyLegend").text(
-            "Variable Latency: " + data.meta.variable
+          $("#connectionLegend").text(
+            "Connection λμ: " + data.meta.latency_mean + "ms λσ: " + data.meta.latency_stddev + "ms"
           );
 
           console.log("Simulation loaded from " + self.url);
@@ -96,24 +93,9 @@
     };
 
     // Updates the state of the simulation shown in the legend.
-    // TODO: This is a complete hack and needs to be rewritten!
+    // TODO: Add log states rather than version information.
     this.updateState = function() {
         var state = $("#state", this.svg);
-        var files = _.unique(_.flatten(_.map(this.nodes, function(node) {
-          return _.values(node.files);
-        })));
-
-        var blocks = _.reduce(files, function(blocks, file) { return blocks + file.replicas }, 0);
-        var staleness = (blocks / (this.nodes.length * files.length)) * 100;
-        var latencies = _.compact(_.map(files, function(version) {
-          if (version.replicated) return version.getLatency();
-        }));
-
-        $("#versionsLegend", state).text(files.length);
-        $("#stalenessLegend", state).text(s.sprintf("%d%%", staleness));
-        $("#latencyLegend", state).text(
-          s.sprintf("μ: %0.0fms σ: %0.0fms", stats.mean(latencies), stats.stddev(latencies)
-        ));
     };
 
     // Draws the primary simulation elements

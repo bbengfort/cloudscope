@@ -1,32 +1,33 @@
 {
     "meta": {
-        "title": "Anti-Entropy",
-        "description": "Eventual Consistency with Anti-Entropy.",
+        "title": "Federated",
+        "description": "Federated Consistency with Forte Number.",
         "latency_mean": 20,
         "latency_stddev": 5,
         "tick_param": 240,
-        "anti_entropy_delay": 60
+        "heartbeat_interval": 120,
+        "election_timeout": [240, 480]
     },
     "nodes": [
         {
             "id": "r0",
-            "label": "Eventual 1",
+            "label": "Raft 1",
             "type": "storage",
-            "consistency": "eventual",
+            "consistency": "strong",
             "location": "cloud"
         },
         {
             "id": "r1",
-            "label": "Eventual 2",
+            "label": "Raft 2",
             "type": "storage",
-            "consistency": "eventual",
+            "consistency": "strong",
             "location": "cloud"
         },
         {
             "id": "r2",
-            "label": "Eventual 3",
+            "label": "Raft 3",
             "type": "storage",
-            "consistency": "eventual",
+            "consistency": "strong",
             "location": "cloud"
         },
         {
@@ -48,14 +49,16 @@
             "label": "Eventual 6",
             "type": "storage",
             "consistency": "eventual",
-            "location": "cloud"
+            "location": "cloud",
+            "files": {}
         },
         {
             "id": "r6",
             "label": "Eventual 7",
             "type": "storage",
             "consistency": "eventual",
-            "location": "cloud"        },
+            "location": "cloud"
+        },
         {
             "id": "r7",
             "label": "Eventual 8",

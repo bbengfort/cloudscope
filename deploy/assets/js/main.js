@@ -15,7 +15,7 @@ var simulation;
 $(document).ready(function() {
 
   // Fetch the simulation data to begin writing it to the screen.
-  simulation = new Simulation("#simulation", 'data/simulation.json');
+  simulation = new Simulation("#simulation", 'data/eventual.json');
 
   // Register various other event handlers.
   // Select Simulation from Dropdown Menu.

@@ -113,12 +113,17 @@
 
     // Computes the latency on demand for the connection.
     this.getLatency = function() {
+      var latency;
+
       if (this.type == consts.VARIABLE) {
-       var latency = random.randint(this.latency[0], this.latency[1]);
-       return latency * config.slowmo;
+       latency = random.randint(this.latency[0], this.latency[1]);
+      } else if (this.type == consts.NORMAL) {
+       latency = random.normal(this.latency[0], this.latency[1]);
       } else {
-       return this.latency * config.slowmo;
+       latency = this.latency
       }
+
+      return latency * config.slowmo;
     };
 
     // Draw the bezier curve path onto the simulation.

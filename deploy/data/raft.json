@@ -1,10 +1,13 @@
 {
     "meta": {
-        "constant": "30ms",
-        "variable": "15-45ms",
-        "seed": 42,
         "title": "Raft Quorum",
-        "description": "Single Consistency Type: Strong Raft Consensus."
+        "description": "Sequential Consistency with Raft",
+        "latency_mean": 20,
+        "latency_stddev": 5,
+        "tick_param": 240,
+        "anti_entropy_delay": 60,
+        "heartbeat_interval": 120,
+        "election_timeout": [240, 480]
     },
     "nodes": [
         {
@@ -44,15 +47,15 @@
         }
     ],
     "links": [
-        {"source": 0, "target": 1, "connection": "variable", "latency": [15, 45]},
-        {"source": 0, "target": 2, "connection": "variable", "latency": [15, 45]},
-        {"source": 0, "target": 3, "connection": "variable", "latency": [15, 45]},
-        {"source": 0, "target": 4, "connection": "variable", "latency": [15, 45]},
-        {"source": 1, "target": 2, "connection": "variable", "latency": [15, 45]},
-        {"source": 1, "target": 3, "connection": "variable", "latency": [15, 45]},
-        {"source": 1, "target": 4, "connection": "variable", "latency": [15, 45]},
-        {"source": 2, "target": 3, "connection": "variable", "latency": [15, 45]},
-        {"source": 2, "target": 4, "connection": "variable", "latency": [15, 45]},
-        {"source": 3, "target": 4, "connection": "variable", "latency": [15, 45]}
+        {"source": 0, "target": 1, "connection": "normal", "latency": [20, 5]},
+        {"source": 0, "target": 2, "connection": "normal", "latency": [20, 5]},
+        {"source": 0, "target": 3, "connection": "normal", "latency": [20, 5]},
+        {"source": 0, "target": 4, "connection": "normal", "latency": [20, 5]},
+        {"source": 1, "target": 2, "connection": "normal", "latency": [20, 5]},
+        {"source": 1, "target": 3, "connection": "normal", "latency": [20, 5]},
+        {"source": 1, "target": 4, "connection": "normal", "latency": [20, 5]},
+        {"source": 2, "target": 3, "connection": "normal", "latency": [20, 5]},
+        {"source": 2, "target": 4, "connection": "normal", "latency": [20, 5]},
+        {"source": 3, "target": 4, "connection": "normal", "latency": [20, 5]}
     ]
 }

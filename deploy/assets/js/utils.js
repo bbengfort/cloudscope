@@ -82,6 +82,22 @@
     random: function() { return Math.random(); },
 
     /*
+     * Uses central limit theorem and resampling to generate normal random.
+     */
+    normal: function(mu, sigma, nsamples) {
+      if(!nsamples) nsamples = 6;
+      if(!sigma) sigma = 1;
+      if(!mu) mu = 0;
+
+      var total = 0;
+      for (var i=0 ; i < nsamples ; i++) {
+        total += Math.random()
+      }
+
+      return sigma * (total - nsamples / 2) / (nsamples / 2) + mu;
+    },
+
+    /*
      * Returns a float between the minimum and the maximum value
      */
     randrange: function(min, max) {

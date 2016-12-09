@@ -104,6 +104,11 @@ svg text.icon {
     stroke-dasharray: 6, 4, 3, 4, 6;
 }
 
+.link.normal,
+.link-legend.normal {
+    stroke-dasharray: 2, 2, 6, 2;
+}
+
 .replica, .replica-legend {
     stroke: #333;
     stroke-width: 2;
@@ -117,7 +122,9 @@ svg text.icon {
     fill: #a6cee3;
 }
 
-.consistency-causal, .consistency-tag {
+.consistency-causal,
+.consistency-tag,
+.consistency-federated {
     fill: #cab2d6;
 }
 
